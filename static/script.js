@@ -238,9 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("startButton.disabled BEFORE:", UIElements.startButton.disabled);
             // --- HATA AYIKLAMA SONU ---
             
-            if (!UIElements.startButton.disabled) { 
+            // DÜZELTME: Bu if kontrolü kaldırıldı. Buton durumu her zaman canStartBot'a göre ayarlanmalı.
+            // if (!UIElements.startButton.disabled) { 
                 UIElements.startButton.disabled = !canStartBot;
-            }
+            // }
             console.log("startButton.disabled AFTER:", UIElements.startButton.disabled);
 
             // Update API status on API page
