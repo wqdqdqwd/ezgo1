@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EzyagoTrading - Profesyonel Trading Bot</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="auth-container" class="auth-wrapper flex items-center justify-center min-h-screen">
+        <div class="container">
+            <div id="login-card" class="auth-card fade-in">
+                <h2><i class="fas fa-sign-in-alt"></i> Giriş Yap</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="login-email" class="form-label"><i class="fas fa-envelope"></i> E-posta Adresi</label>
+                        <input type="email" id="login-email" class="form-input" placeholder="ornek@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password" class="form-label"><i class="fas fa-lock"></i> Şifre</label>
+                        <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+                    </div>
+                    <button id="login-button" type="button" class="btn btn-primary w-full"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
+                </form>
+                <p id="login-error" class="status-message error mt-4" style="display: none;"></p>
+                <p class="toggle-form-text">Hesabın yok mu? <a href="#" id="show-register-link">Kayıt Ol</a></p>
+            </div>
+
+            <div id="register-card" class="auth-card fade-in" style="display: none;">
+                <h2><i class="fas fa-user-plus"></i> Hesap Oluştur</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="register-email" class="form-label"><i class="fas fa-envelope"></i> E-posta Adresi</label>
+                        <input type="email" id="register-email" class="form-input" placeholder="ornek@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password" class="form-label"><i class="fas fa-lock"></i> Şifre</label>
+                        <input type="password" id="register-password" class="form-input" placeholder="En az 6 karakter" required>
+                    </div>
+                    <button id="register-button" type="button" class="btn btn-primary w-full"><i class="fas fa-user-plus"></i> Kayıt Ol</button>
+                </form>
+                <p id="register-error" class="status-message error mt-4" style="display: none;"></p>
+                <p class="toggle-form-text">Zaten hesabın var mı? <a href="#" id="show-login-link">Giriş Yap</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="app-layout" style="display: none;">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    ezyago
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="bot-page">
+                    <i class="fas fa-robot"></i>
+                    Bot Dashboard
+                </button>
+                <button class="nav-item" data-page="api-page">
+                    <i class="fas fa-key"></i>
+                    API Anahtarları
+                </button>
+                <button class="nav-item" data-page="settings-page">
+                    <i class="fas fa-cog"></i>
+                    Ayarlar
+                </button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div id="bot-page" class="page active">
+                <div class="main-header">
+                    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Trading Dashboard</h1>
+                    <p class="page-subtitle">Bot kontrol merkeziniz ve trading analizi</p>
+                </div>
+                
+                <div class="main-body">
+                    <div class="content-grid">
+                        <div class="flex flex-col gap-6">
+                            <div class="card pair-card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-coins"></i> Trading Çifti</h3>
+                                        <p class="card-subtitle">Aktif parite seçimi</p>
+                                    </div>
+                                </div>
+                                <div class="pair-display">
+                                    <div class="pair-symbol">BTCUSDT</div>
+                                    <div class="pair-price">$43,250.00</div>
+                                    <input type="hidden" id="symbol-input" value="BTCUSDT">
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-sliders-h"></i> Kaldıraç</h3>
+                                        <p class="card-subtitle">Risk seviyenizi ayarlayın</p>
+                                    </div>
+                                    <div class="leverage-value" id="leverage-value">10x</div>
+                                </div>
+                                <input type="range" id="leverage-input" class="leverage-slider" min="1" max="25" value="10">
+                                <div class="leverage-marks">
+                                    <span>1x</span>
+                                    <span>25x</span>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-dollar-sign"></i> İşlem Büyüklüğü</h3>
+                                        <p class="card-subtitle">USDT cinsinden</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="order-size-input" class="form-input text-center text-xl font-bold" value="20" min="20" placeholder="20">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-target"></i> Kar/Zarar Oranları</h3>
+                                        <p class="card-subtitle">TP ve SL yüzde değerleri</p>
+                                    </div>
+                                </div>
+                                <div class="tp-sl-grid">
+                                    <div class="tp-sl-item">
+                                        <label class="form-label text-success"><i class="fas fa-arrow-up"></i> Take Profit %</label>
+                                        <input type="number" id="tp-input" class="form-input tp-sl-input tp text-success" value="4" min="0.1" step="0.1">
+                                    </div>
+                                    <div class="tp-sl-item">
+                                        <label class="form-label text-danger"><i class="fas fa-arrow-down"></i> Stop Loss %</label>
+                                        <input type="number" id="sl-input" class="form-input tp-sl-input sl text-danger" value="2" min="0.1" step="0.1">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-chart-bar"></i> Piyasa Analizi</h3>
+                                        <p class="card-subtitle">Real-time market data</p>
+                                    </div>
+                                    <div class="market-status">
+                                        <span class="status-indicator active"></span>
+                                        <span class="text-sm text-success">LIVE</span>
+                                    </div>
+                                </div>
+                                <div class="analysis-chart" id="analysis-chart-container"></div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-power-off"></i> Bot Kontrolü</h3>
+                                        <p class="card-subtitle">Otomatik trading sistemi</p>
+                                    </div>
+                                    <div class="bot-status">
+                                        <span class="status-indicator inactive" id="bot-status-indicator"></span>
+                                        <span class="text-sm text-muted" id="bot-status-text">OFFLINE</span>
+                                    </div>
+                                </div>
+                                <div class="status-message" id="status-message">
+                                    <i class="fas fa-info-circle"></i>
+                                    Bot başlatılmadı. API anahtarlarınızı kontrol edin.
+                                </div>
+                                <div class="control-buttons">
+                                    <button id="start-button" class="btn btn-success flex-1" disabled>
+                                        <i class="fas fa-play"></i>
+                                        Başlat
+                                    </button>
+                                    <button id="stop-button" class="btn btn-danger flex-1" disabled>
+                                        <i class="fas fa-stop"></i>
+                                        Durdur
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="api-page" class="page">
+                <div class="main-header">
+                    <h1 class="page-title"><i class="fas fa-key"></i> API Anahtarları</h1>
+                    <p class="page-subtitle">Binance API ayarlarınızı güvenli şekilde yönetin</p>
+                </div>
+                
+                <div class="main-body">
+                    <div class="flex flex-col gap-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fab fa-bitcoin"></i> Binance API Konfigürasyonu</h3>
+                                    <p class="card-subtitle">Trading için gerekli API bilgileri</p>
+                                </div>
+                                <div class="api-status">
+                                    <span class="status-indicator inactive" id="api-status-indicator"></span>
+                                    <span class="text-sm text-muted" id="api-status-text">NOT CONFIGURED</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="api-key-input" class="form-label"><i class="fas fa-key"></i> API Key</label>
+                                <input type="password" id="api-key-input" class="form-input" placeholder="Binance API Key'inizi buraya yapıştırın">
+                            </div>
+                            <div class="form-group">
+                                <label for="api-secret-input" class="form-label"><i class="fas fa-lock"></i> API Secret</label>
+                                <input type="password" id="api-secret-input" class="form-input" placeholder="Binance API Secret'ınızı buraya yapıştırın">
+                            </div>
+                            <button id="save-keys-button" class="btn btn-primary w-full"><i class="fas fa-save"></i> Anahtarları Kaydet</button>
+                            <p id="api-keys-status" class="status-message mt-4" style="display: none;"></p>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-shield-alt"></i> Güvenlik Ayarları</h3>
+                                    <p class="card-subtitle">Binance'e eklenecek güvenilir IP adresleri</p>
+                                </div>
+                            </div>
+                            <div class="ip-info">
+                                <p class="text-secondary mb-4">
+                                    <i class="fas fa-info-circle"></i>
+                                    Aşağıdaki IP adreslerini Binance API ayarlarınızda beyaz listeye eklemeniz gerekmektedir.
+                                </p>
+                                <div class="ip-list" id="ip-list">
+                                    <div class="ip-item loading">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        IP adresleri yükleniyor...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-question-circle"></i> Kurulum Rehberi</h3>
+                                    <p class="card-subtitle">Adım adım API kurulum talimatları</p>
+                                </div>
+                            </div>
+                            <div class="guide-steps">
+                                <div class="guide-step">
+                                    <div class="step-number">1</div>
+                                    <div class="step-content">
+                                        <h4>Binance hesabınıza giriş yapın</h4>
+                                        <p>Binance.com adresinden hesabınızla giriş yapın</p>
+                                    </div>
+                                </div>
+                                <div class="guide-step">
+                                    <div class="step-number">2</div>
+                                    <div class="step-content">
+                                        <h4>API Management sayfasına gidin</h4>
+                                        <p>Profil menüsünden "API Management" seçeneğini seçin</p>
+                                    </div>
+                                </div>
+                                <div class="guide-step">
+                                    <div class="step-number">3</div>
+                                    <div class="step-content">
+                                        <h4>Yeni API key oluşturun</h4>
+                                        <p>"Create API" butonuna tıklayıp futures trading yetkisi verin</p>
+                                    </div>
+                                </div>
+                                <div class="guide-step">
+                                    <div class="step-number">4</div>
+                                    <div class="step-content">
+                                        <h4>IP adreslerini ekleyin</h4>
+                                        <p>Yukarıdaki IP adreslerini API ayarlarınızda beyaz listeye ekleyin</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-page" class="page">
+                <div class="main-header">
+                    <h1 class="page-title"><i class="fas fa-cog"></i> Ayarlar</h1>
+                    <p class="page-subtitle">Hesap bilgileri ve abonelik yönetimi</p>
+                </div>
+                
+                <div class="main-body">
+                    <div class="flex flex-col gap-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-user"></i> Profil Bilgileri</h3>
+                                    <p class="card-subtitle">Hesap ve üyelik detayları</p>
+                                    </div>
+                                </div>
+                            <div class="profile-info">
+                                <div class="profile-item">
+                                    <span class="profile-label"><i class="fas fa-envelope"></i> E-posta</span>
+                                    <span class="profile-value" id="user-email">-</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label"><i class="fas fa-crown"></i> Üyelik Durumu</span>
+                                    <span class="profile-value" id="subscription-status">
+                                        <span class="status-badge inactive">-</span>
+                                    </span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label"><i class="fas fa-calendar-alt"></i> Bitiş Tarihi</span>
+                                    <span class="profile-value" id="subscription-expiry">-</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label"><i class="fas fa-clock"></i> Kayıt Tarihi</span>
+                                    <span class="profile-value" id="register-date">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="payment-info" class="card" style="display: none;">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-credit-card"></i> Abonelik Yenileme</h3>
+                                    <p class="card-subtitle">Ödeme bilgileri ve yenileme</p>
+                                </div>
+                            </div>
+                            <div class="payment-details">
+                                <div class="payment-amount">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <span class="amount">15 USDT</span>
+                                    <span class="period">/ Aylık</span>
+                                </div>
+                                <p class="payment-description">
+                                    Aboneliğinizi yenilemek için aşağıdaki TRC20 adresine ödeme yapın ve bizimle iletişime geçin.
+                                </p>
+                                <div class="payment-address">
+                                    <label class="form-label">TRC20 Wallet Adresi:</label>
+                                    <div class="address-container">
+                                        <code id="payment-address" class="payment-code">-</code>
+                                        <button class="btn-copy" onclick="copyToClipboard('payment-address')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-chart-pie"></i> İstatistikler</h3>
+                                    <p class="card-subtitle">Trading performans özeti</p>
+                                </div>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-icon success"><i class="fas fa-arrow-up"></i></div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">0</div>
+                                        <div class="stat-label">Toplam İşlem</div>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon warning"><i class="fas fa-percentage"></i></div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">0%</div>
+                                        <div class="stat-label">Başarı Oranı</div>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon primary"><i class="fas fa-dollar-sign"></i></div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">$0.00</div>
+                                        <div class="stat-label">Toplam Kar/Zarar</div>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon danger"><i class="fas fa-clock"></i></div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">0h</div>
+                                        <div class="stat-label">Aktif Süre</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-tools"></i> Hesap İşlemleri</h3>
+                                    <p class="card-subtitle">Güvenlik ve hesap yönetimi</p>
+                                </div>
+                            </div>
+                            <div class="account-actions">
+                                <button class="btn btn-outline w-full mb-4"><i class="fas fa-key"></i> Şifre Değiştir</button>
+                                <button class="btn btn-outline w-full mb-4"><i class="fas fa-download"></i> İşlem Geçmişini İndir</button>
+                                <button id="logout-button" class="btn btn-danger w-full"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <nav class="mobile-nav">
+        <div class="mobile-nav-grid">
+            <button class="mobile-nav-item active" data-page="bot-page">
+                <i class="fas fa-robot"></i>
+                <span>Bot</span>
+            </button>
+            <button class="mobile-nav-item" data-page="api-page">
+                <i class="fas fa-key"></i>
+                <span>API</span>
+            </button>
+            <button class="mobile-nav-item" data-page="settings-page">
+                <i class="fas fa-cog"></i>
+                <span>Ayarlar</span>
+            </button>
+        </div>
+    </nav>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>

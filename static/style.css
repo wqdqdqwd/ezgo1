@@ -1,0 +1,811 @@
+/* =================================================================== */
+/* 1. Kök Değişkenler ve Genel Stiller (Variables & Global Styles)      */
+/* =================================================================== */
+
+:root {
+    --primary-color: #3b82f6; /* Blue 500 */
+    --primary-hover: #2563eb; /* Blue 600 */
+    --secondary-color: #6b7280; /* Gray 500 */
+    --success-color: #10b981; /* Green 500 */
+    --danger-color: #ef4444; /* Red 500 */
+    --warning-color: #f59e0b; /* Amber 500 */
+    --background-color: #f3f4f6; /* Gray 100 */
+    --card-background: #ffffff; /* White */
+    --text-primary: #111827; /* Gray 900 */
+    --text-secondary: #4b5563; /* Gray 700 */
+    --border-color: #e5e7eb; /* Gray 200 */
+    --font-family: 'Inter', sans-serif;
+    --box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --transition: all 0.3s ease;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+}
+
+/* Base container for content */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* =================================================================== */
+/* 2. Yardımcı Sınıflar (Utility Classes)                              */
+/* =================================================================== */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.flex-col { flex-direction: column; }
+.gap-6 { gap: 1.5rem; }
+.w-full { width: 100%; }
+.min-h-screen { min-height: 100vh; }
+.mt-4 { margin-top: 1rem; }
+.mb-4 { margin-bottom: 1rem; }
+.text-center { text-align: center; }
+.text-xl { font-size: 1.25rem; }
+.font-bold { font-weight: 700; }
+.text-success { color: var(--success-color); }
+.text-danger { color: var(--danger-color); }
+.text-muted { color: var(--secondary-color); }
+.text-sm { font-size: 0.875rem; }
+.flex-1 { flex: 1; } /* For flex-grow: 1 */
+
+/* =================================================================== */
+/* 3. Kimlik Doğrulama Sayfası (Auth Container)                        */
+/* =================================================================== */
+
+.auth-wrapper {
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6); /* Darker blue to primary blue */
+}
+
+.auth-card {
+    background-color: var(--card-background);
+    padding: 2.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-card h2 {
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.auth-card h2 i {
+    color: var(--primary-color);
+    margin-right: 0.75rem;
+}
+
+.toggle-form-text {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.toggle-form-text a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.toggle-form-text a:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* =================================================================== */
+/* 4. Form Elemanları ve Butonlar (Forms & Buttons)                    */
+/* =================================================================== */
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.form-label i {
+    margin-right: 0.5rem;
+    width: 16px; /* Ensure icon alignment */
+    text-align: center;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: var(--transition);
+    background-color: #f9fafb; /* Lighter input background */
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); /* Focus ring */
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.btn i {
+    margin-right: 0.5rem;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+.btn-success:hover {
+    background-color: #059669; /* Darker green */
+}
+.btn-success:disabled {
+    background-color: #d1fae5; /* Lighter green for disabled */
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #dc2626; /* Darker red */
+}
+.btn-danger:disabled {
+    background-color: #fee2e2; /* Lighter red for disabled */
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+.btn-outline:hover {
+    background-color: var(--background-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-copy {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--secondary-color);
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+.btn-copy:hover {
+    color: var(--primary-color);
+}
+
+
+/* =================================================================== */
+/* 5. Uygulama Ana Düzeni (App Layout)                                 */
+/* =================================================================== */
+
+#app-container {
+    display: none; /* Initially hidden, shown by JS */
+}
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--background-color);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background-color: var(--card-background);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    transition: width 0.3s ease;
+    flex-shrink: 0; /* Prevent shrinking on smaller screens */
+}
+
+.sidebar-header .logo {
+    display: flex;
+    align-items: center;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 2.5rem;
+}
+
+.sidebar-header .logo i {
+    color: var(--primary-color);
+    margin-right: 0.75rem;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border: none;
+    background-color: transparent;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition);
+    width: 100%; /* Ensure full width clickable area */
+}
+
+.nav-item i {
+    margin-right: 1rem;
+    width: 20px; /* Consistent icon width */
+    text-align: center;
+}
+
+.nav-item:hover {
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background-color: #e0e7ff; /* Lighter blue for active state */
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 2.5rem;
+    overflow-y: auto; /* Enable scrolling for long content */
+}
+
+.main-header {
+    margin-bottom: 2.5rem;
+    text-align: left; /* Default alignment */
+}
+
+.page-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    color: var(--text-primary);
+}
+
+.page-title i {
+    margin-right: 1rem;
+    color: var(--primary-color);
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.page {
+    display: none;
+}
+.page.active {
+    display: block;
+    animation: fadeIn 0.5s ease; /* Reuse fadeIn for page transitions */
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Adjusted minmax for better fit */
+    gap: 1.5rem;
+}
+
+
+/* =================================================================== */
+/* 6. Kart Bileşenleri (Card Components)                               */
+/* =================================================================== */
+
+.card {
+    background-color: var(--card-background);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* Spacing between card elements */
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the start for multiline titles */
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    gap: 0.5rem; /* Space between title and status if wrapped */
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    color: var(--text-primary);
+}
+
+.card-title i {
+    margin-right: 0.75rem;
+    color: var(--primary-color);
+}
+
+.card-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* =================================================================== */
+/* 7. Özel Bileşenler (Custom Components)                              */
+/* =================================================================== */
+
+/* Status Indicator & Messages */
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    display: inline-block; /* Ensure it's not a block element */
+}
+.status-indicator.active { background-color: var(--success-color); }
+.status-indicator.inactive { background-color: var(--danger-color); }
+
+.status-message {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    background-color: var(--background-color);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    word-break: break-word; /* Prevent overflow for long messages */
+}
+
+.status-message i { margin-right: 0.75rem; }
+.status-message.error { background-color: #fee2e2; color: #b91c1c; } /* Red 100 / Red 800 */
+.status-message.success { background-color: #d1fae5; color: #065f46; } /* Green 100 / Green 800 */
+
+/* Pair Display */
+.pair-card {
+    cursor: pointer; /* Indicate it's clickable */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.pair-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 10px -1px rgb(0 0 0 / 0.15), 0 4px 6px -2px rgb(0 0 0 / 0.08);
+}
+.pair-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+.pair-symbol { 
+    font-size: 2rem; 
+    font-weight: 700; 
+    color: var(--text-primary);
+}
+.pair-price { 
+    font-size: 1.5rem; 
+    color: var(--success-color); 
+    font-weight: 600;
+}
+
+/* Leverage Slider */
+.leverage-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+.leverage-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 5px;
+    outline: none;
+    cursor: grab; /* Indicate draggable */
+    margin-top: 0.5rem;
+}
+.leverage-slider:active {
+    cursor: grabbing;
+}
+.leverage-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    border: 4px solid white;
+    box-shadow: var(--box-shadow);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.leverage-slider::-webkit-slider-thumb:hover {
+    background: var(--primary-hover);
+}
+.leverage-marks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+
+/* TP/SL Grid */
+.tp-sl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.tp-sl-item .form-label { font-weight: 600; }
+.tp-sl-input { text-align: center; font-weight: 700; font-size: 1.25rem; }
+.tp-sl-input.tp { border-color: var(--success-color); }
+.tp-sl-input.sl { border-color: var(--danger-color); }
+
+/* Analysis Chart */
+.analysis-chart {
+    height: 150px; /* Fixed height for the chart */
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: flex-end; /* Bars start from bottom */
+    padding: 0.5rem;
+    gap: 2px;
+    overflow: hidden; /* Ensure bars don't exceed container */
+    border: 1px solid var(--border-color);
+}
+.chart-bar {
+    width: 100%; /* Will be overridden by flex-basis in JS if needed */
+    background-color: var(--success-color);
+    border-radius: 2px;
+    transition: height 0.3s ease;
+    flex-grow: 1; /* Bars grow to fill space */
+}
+.chart-bar.down {
+    background-color: var(--danger-color);
+}
+
+/* Bot Control */
+.control-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.bot-status, .api-status, .market-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.bot-status .text-sm, .api-status .text-sm {
+    min-width: 90px; /* Ensure text doesn't jump */
+    text-align: right;
+}
+
+/* API Page */
+.ip-info { margin-top: 1rem; }
+.ip-list {
+    background-color: #f9fafb;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    max-height: 150px; /* Limit height for scrollability */
+    overflow-y: auto;
+}
+.ip-item {
+    font-family: 'Courier New', Courier, monospace;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #e5e7eb; /* Dashed border for visual separation */
+    color: var(--text-primary);
+}
+.ip-item:last-child { border-bottom: none; }
+.ip-item.loading {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    font-style: italic;
+}
+.ip-item.loading i { margin-right: 0.5rem; animation: spin 1s linear infinite; }
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.guide-steps { margin-top: 1rem; }
+.guide-step { 
+    display: flex; 
+    align-items: flex-start; 
+    margin-bottom: 1.5rem; 
+    gap: 1rem;
+}
+.step-number {
+    width: 32px; height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+}
+.step-content { flex: 1; }
+.step-content h4 { font-weight: 600; margin-bottom: 0.25rem; color: var(--text-primary); }
+.step-content p { color: var(--text-secondary); font-size: 0.9rem; }
+
+/* Settings Page */
+.profile-info, .account-actions { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 0.75rem; /* Slightly tighter spacing */
+}
+.profile-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Align label and value vertically */
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.profile-item:last-child { border-bottom: none; }
+.profile-label { display: flex; align-items: center; color: var(--text-secondary); }
+.profile-label i { margin-right: 0.75rem; }
+.profile-value { font-weight: 500; color: var(--text-primary); }
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px; /* Pill shape */
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.status-badge.active { background-color: #d1fae5; color: #065f46; } /* Green 100 / Green 800 */
+.status-badge.inactive { background-color: #fee2e2; color: #991b1b; } /* Red 100 / Red 800 */
+.status-badge.trial { background-color: #fef3c7; color: #b45309; } /* Amber 100 / Amber 800 */
+
+
+.payment-details { text-align: center; }
+.payment-amount { 
+    font-size: 2rem; 
+    font-weight: 700; 
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.payment-amount .period { font-size: 1rem; color: var(--text-secondary); font-weight: 400; }
+.payment-description { margin: 1rem 0; color: var(--text-secondary); line-height: 1.6; }
+.payment-address {
+    text-align: left; /* Align label to left */
+}
+.address-container {
+    display: flex;
+    align-items: center;
+    background-color: #f9fafb;
+    padding: 0.75rem 1rem; /* Increased padding for better tap target */
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    gap: 0.5rem;
+    word-break: break-all; /* Allow long addresses to break */
+}
+.payment-code { 
+    flex-grow: 1; 
+    text-align: left; 
+    font-size: 0.9rem; 
+    font-weight: 600; 
+    color: var(--text-primary);
+    user-select: all; /* Allow easy selection */
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Adjusted for smaller screens */
+    gap: 1rem; /* Slightly tighter gap */
+}
+.stat-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.75rem; /* Consistent gap */
+    background-color: var(--background-color);
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+.stat-icon {
+    width: 44px; height: 44px; /* Slightly smaller icons */
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 1.1rem; /* Adjusted font size */
+    flex-shrink: 0;
+}
+.stat-icon.success { background-color: var(--success-color); }
+.stat-icon.warning { background-color: var(--warning-color); }
+.stat-icon.primary { background-color: var(--primary-color); }
+.stat-icon.danger { background-color: var(--danger-color); }
+.stat-value { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+.stat-label { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; }
+
+.account-actions button {
+    margin-bottom: 0.75rem; /* Consistent spacing */
+}
+.account-actions button:last-child {
+    margin-bottom: 0;
+}
+
+/* =================================================================== */
+/* 8. Mobil Navigasyon ve Duyarlılık (Mobile Nav & Responsive)       */
+/* =================================================================== */
+
+.mobile-nav {
+    display: none; /* Initially hidden on desktop */
+}
+
+@media (max-width: 768px) {
+    /* Hide desktop sidebar */
+    .sidebar {
+        display: none;
+    }
+
+    /* Adjust main content for mobile */
+    .main-content {
+        padding: 1.5rem 1rem 6rem 1rem; /* Add padding-bottom for mobile nav */
+        width: 100%; /* Ensure it takes full width */
+    }
+
+    .main-header {
+        text-align: center;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        justify-content: center; /* Center icon and title */
+    }
+
+    .content-grid {
+        grid-template-columns: 1fr; /* Single column layout */
+    }
+
+    /* Show and style mobile navigation */
+    .mobile-nav {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: var(--card-background);
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom); /* For iPhone notches */
+    }
+
+    .mobile-nav-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .mobile-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 0.5rem;
+        background: none;
+        border: none;
+        font-size: 0.75rem; /* Smaller font size for labels */
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition);
+        flex: 1; /* Distribute space evenly */
+    }
+
+    .mobile-nav-item i {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .mobile-nav-item.active {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    .mobile-nav-item:hover {
+        background-color: var(--background-color);
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 1.5rem;
+    }
+    .auth-card h2 {
+        font-size: 1.5rem;
+    }
+    .main-content {
+        padding: 1rem 0.75rem 5.5rem 0.75rem;
+    }
+    .page-title {
+        font-size: 1.5rem;
+    }
+    .pair-symbol {
+        font-size: 1.75rem;
+    }
+    .pair-price {
+        font-size: 1.25rem;
+    }
+    .tp-sl-input {
+        font-size: 1rem;
+        padding: 0.6rem 0.8rem;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr; /* Stack stats on very small screens */
+    }
+}

@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+gunicorn            # <-- Eklendi (Üretim için önerilir)
+python-dotenv
+python-binance
+websockets
+pandas
+firebase-admin
+cryptography
+# pydantic          # <-- İsteğe bağlı, genellikle FastAPI ile gelir
