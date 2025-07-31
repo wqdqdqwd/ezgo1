@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage: document.getElementById('status-message'),
         pairCard: document.querySelector('.pair-card'),
         pairSymbol: document.querySelector('.pair-symbol'),
-        pairPrice: document.querySelector('.pair-price'), // Added for price updates
+        pairPrice: document.querySelector('.pair-price'), 
         botStatusIndicator: document.getElementById('bot-status-indicator'),
         botStatusText: document.getElementById('bot-status-text'),
 
@@ -54,16 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
         userEmailSpan: document.getElementById('user-email'),
         subscriptionStatusSpan: document.getElementById('subscription-status'),
         subscriptionExpirySpan: document.getElementById('subscription-expiry'),
-        registerDateSpan: document.getElementById('register-date'), // Added registration date
+        registerDateSpan: document.getElementById('register-date'), 
         paymentInfoDiv: document.getElementById('payment-info'),
         paymentAddressCode: document.getElementById('payment-address'),
         logoutButton: document.getElementById('logout-button'),
     };
 
-    let statusInterval = null; // Interval for bot status updates
-    let priceUpdateInterval = null; // Interval for price updates
-    const API_BASE_URL = ''; // Keep empty if hosted on same domain, otherwise specify full URL
-    const WEBSOCKET_URL = 'wss://stream.binance.com:9443/ws/'; // Binance WebSocket URL
+    let statusInterval = null; 
+    let priceUpdateInterval = null; 
+    const API_BASE_URL = ''; 
+    const WEBSOCKET_URL = 'wss://stream.binance.com:9443/ws/'; 
 
     const firebaseServices = {
         auth: null,
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const idToken = await user.getIdToken(); // Gets fresh token if needed
+            const idToken = await user.getIdToken(); 
             
             const headers = {
                 'Authorization': `Bearer ${idToken}`,
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             UIElements.authContainer.style.display = 'none';
             UIElements.appContainer.style.display = 'flex';
             
-            UIActions.generateChartBars(); // Initial chart generation
+            UIActions.generateChartBars(); 
             
             await UIActions.updateUserProfile();
             await UIActions.updateApiKeysStatus();
@@ -139,8 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (priceUpdateInterval) clearInterval(priceUpdateInterval);
 
             // Start periodic updates
-            statusInterval = setInterval(UIActions.updateBotStatus, 8000); // Update bot status every 8 seconds
-            priceUpdateInterval = setInterval(UIActions.updatePairPrice, 5000); // Update price every 5 seconds
+            statusInterval = setInterval(UIActions.updateBotStatus, 8000); 
+            priceUpdateInterval = setInterval(UIActions.updatePairPrice, 5000); 
         },
 
         /**
@@ -160,20 +160,19 @@ document.addEventListener('DOMContentLoaded', () => {
          */
         generateChartBars: () => {
             UIElements.chartContainer.innerHTML = '';
-            const numberOfBars = 30; // More bars for better visual
+            const numberOfBars = 30; 
             for (let i = 0; i < numberOfBars; i++) {
                 const bar = document.createElement('div');
                 bar.classList.add('chart-bar');
-                // Simulate price movement
-                if (Math.random() > 0.45) { // Slightly more "up" bars
-                    bar.classList.add('up'); // Add 'up' class
+                if (Math.random() > 0.45) { 
+                    bar.classList.add('up'); 
                     bar.style.backgroundColor = 'var(--success-color)';
                 } else {
-                    bar.classList.add('down'); // Add 'down' class
+                    bar.classList.add('down'); 
                     bar.style.backgroundColor = 'var(--danger-color)';
                 }
-                bar.style.height = `${Math.random() * 70 + 20}%`; // Height between 20% and 90%
-                bar.style.flexGrow = 1; // Make bars fill available width
+                bar.style.height = `${Math.random() * 70 + 20}%`; 
+                bar.style.flexGrow = 1; 
                 UIElements.chartContainer.appendChild(bar);
             }
         },
@@ -210,9 +209,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? profile.server_ips.map(ip => `<li class="ip-item">${ip}</li>`).join('')
                 : '<li class="ip-item loading">Sunucu IP adresi bulunamadı.</li>';
 
-            // Enable/disable start button based on subscription and API keys
-            const canStartBot = profile.has_api_keys && ['active', 'trial'].includes(profile.subscription_status);
-            if (!UIElements.startButton.disabled) { // Only update if not already disabled by bot running state
+            // Enable/disable start button based on subscription and API keys and valid settings
+            // Yeni kontrol eklendi: Ayarlar geçerli olmalı
+            const areSettingsValid = 
+                parseFloat(UIElements.orderSizeInput.value) >= 10 && // Min işlem büyüklüğü 10 USDT
+                parseInt(UIElements.leverageInput.value, 10) >= 1 && // Min kaldıraç 1x
+                parseInt(UIElements.leverageInput.value, 10) <= 125; // Max kaldıraç 125x
+
+            const canStartBot = profile.has_api_keys && ['active', 'trial'].includes(profile.subscription_status) && areSettingsValid;
+            
+            if (!UIElements.startButton.disabled) { 
                 UIElements.startButton.disabled = !canStartBot;
             }
 
@@ -231,13 +237,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBotStatus: async () => {
             const data = await fetchApi('/api/status');
             if (!data) {
-                // If API call fails, assume bot is offline and disable controls
                 UIElements.botStatusIndicator.classList.remove('active');
                 UIElements.botStatusIndicator.classList.add('inactive');
                 UIElements.botStatusText.textContent = 'ERROR';
                 UIElements.botStatusText.classList.remove('text-success');
                 UIElements.botStatusText.classList.add('text-danger');
-                UIElements.startButton.disabled = true; // Disable if status fetch fails
+                UIElements.startButton.disabled = true; 
                 UIElements.stopButton.disabled = true;
                 UIElements.statusMessage.textContent = "Bot durumu alınamadı. Lütfen tekrar deneyin.";
                 return;
@@ -254,15 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             UIElements.stopButton.disabled = !isRunning;
             
-            // If bot is running, start button must be disabled regardless of API keys/subscription
             if (isRunning) {
                 UIElements.startButton.disabled = true;
             } else {
-                // If bot is not running, re-check user profile to enable start button
                 await UIActions.updateUserProfile(); 
             }
 
-            // Toggle input field disable state based on bot running status
             const inputsToToggle = [
                 UIElements.symbolInput, UIElements.leverageInput, UIElements.tpInput, 
                 UIElements.slInput, UIElements.orderSizeInput
@@ -279,15 +281,26 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         /**
-         * Seçilen paritenin anlık fiyatını Binance WebSocket API'sinden alır ve UI'ı günceller.
+         * Seçilen paritenin anlık fiyatını Binance WebSocket API'sından alır ve UI'ı günceller.
          */
         updatePairPrice: () => {
+            // Mevcut WebSocket bağlantısını kapat (varsa)
+            if (UIElements.pairPrice.dataset.currentWs) {
+                try {
+                    const oldWs = JSON.parse(UIElements.pairPrice.dataset.currentWs);
+                    if (oldWs && oldWs.readyState === WebSocket.OPEN) {
+                        oldWs.close();
+                    }
+                } catch (e) {
+                    console.warn("Mevcut WebSocket kapatılırken hata:", e);
+                }
+                UIElements.pairPrice.dataset.currentWs = null;
+            }
+
             const symbol = UIElements.symbolInput.value.toLowerCase();
             const ws = new WebSocket(`${WEBSOCKET_URL}${symbol}@ticker`);
 
-            ws.onopen = () => {
-                // console.log(`WebSocket connected for ${symbol}`);
-            };
+            ws.onopen = () => { /* console.log(`WebSocket connected for ${symbol}`); */ };
 
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
@@ -300,21 +313,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ws.onerror = (error) => {
                 console.error('WebSocket Error:', error);
                 UIElements.pairPrice.textContent = 'Fiyat Yok';
-                // Close the WebSocket on error to prevent constant retries
                 ws.close(); 
             };
 
-            ws.onclose = () => {
-                // console.log(`WebSocket disconnected for ${symbol}`);
-            };
+            ws.onclose = () => { /* console.log(`WebSocket disconnected for ${symbol}`); */ };
 
-            // Close the previous WebSocket connection if it exists
-            if (UIElements.pairPrice.dataset.currentWs) {
-                const oldWs = JSON.parse(UIElements.pairPrice.dataset.currentWs);
-                if (oldWs.readyState === WebSocket.OPEN) {
-                    oldWs.close();
-                }
-            }
             // Store the current WebSocket instance for future closing
             UIElements.pairPrice.dataset.currentWs = JSON.stringify(ws);
         },
@@ -342,8 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setLoadingState: (isLoading, button) => {
             if(button) {
                 button.disabled = isLoading;
-                // Optionally add a loading spinner or text
-                // button.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin"></i> Yükleniyor...' : originalButtonHTML;
             }
             UIElements.statusMessage.textContent = isLoading ? "İşlem yapılıyor, lütfen bekleyin..." : "";
         }
@@ -357,11 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
         UIElements.navButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const pageId = button.dataset.page;
-                // Remove active class from all nav items
                 UIElements.navButtons.forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked nav item
                 button.classList.add('active');
-                // Hide all pages and show the active one
                 UIElements.appPages.forEach(page => page.classList.toggle('active', page.id === pageId));
             });
         });
@@ -369,7 +367,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Leverage slider input
         UIElements.leverageInput.addEventListener('input', (e) => {
             UIElements.leverageValue.textContent = `${e.target.value}x`;
+            UIActions.updateUserProfile(); // Ayar değişikliğinde butonu güncelle
         });
+
+        // Order size input
+        UIElements.orderSizeInput.addEventListener('input', (e) => {
+            UIActions.updateUserProfile(); // Ayar değişikliğinde butonu güncelle
+        });
+
+        // TP/SL inputs (though not used in canStartBot, good practice for full validation later)
+        UIElements.tpInput.addEventListener('input', UIActions.updateUserProfile);
+        UIElements.slInput.addEventListener('input', UIActions.updateUserProfile);
 
         // Toggle auth forms
         UIElements.showRegisterLink.addEventListener('click', (e) => { 
@@ -393,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
             UIActions.setLoadingState(true, UIElements.loginButton);
             try {
                 await firebaseServices.auth.signInWithEmailAndPassword(email, password);
-                // AuthStateChanged listener will handle showing app screen
             } catch (error) {
                 let errorMessage = "Giriş yaparken bir hata oluştu.";
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -419,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
             UIActions.setLoadingState(true, UIElements.registerButton);
             try {
                 await firebaseServices.auth.createUserWithEmailAndPassword(email, password);
-                // AuthStateChanged listener will handle showing app screen
             } catch (error) {
                 let errorMessage = "Hesap oluşturulurken bir hata oluştu.";
                 if (error.code === 'auth/weak-password') { 
@@ -439,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
         UIElements.logoutButton.addEventListener('click', async () => { 
             try {
                 await firebaseServices.auth.signOut(); 
-                // UIActions.showAuthScreen() will be called by onAuthStateChanged
             } catch (error) {
                 console.error("Çıkış yaparken hata:", error);
                 alert("Çıkış yapılırken bir hata oluştu.");
@@ -470,11 +475,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result && result.success) {
                 UIElements.apiKeysStatus.textContent = "API Anahtarları başarıyla kaydedildi!";
                 UIElements.apiKeysStatus.classList.add('success');
-                UIElements.apiKeyInput.value = ''; // Clear fields after successful save for security
+                UIElements.apiKeyInput.value = ''; 
                 UIElements.apiSecretInput.value = '';
-                await UIActions.updateUserProfile(); // Update UI with new API key status
+                await UIActions.updateUserProfile(); 
             } else {
                 UIElements.apiKeysStatus.textContent = result?.detail || "API Anahtarları kaydedilirken hata oluştu.";
+                UIElements.apiKeysStatus.classList.remove('success');
                 UIElements.apiKeysStatus.classList.add('error');
             }
             UIActions.setLoadingState(false, UIElements.saveKeysButton);
@@ -488,19 +494,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 order_size: parseFloat(UIElements.orderSizeInput.value),
                 stop_loss: parseFloat(UIElements.slInput.value),
                 take_profit: parseFloat(UIElements.tpInput.value),
+                timeframe: "15m" // Varsayılan timeframe eklendi
             };
 
-            // Basic validation
+            // Basic validation (Updated to match backend's StartRequest model)
             if (!botSettings.symbol || botSettings.symbol.length < 3) {
                 alert('Lütfen geçerli bir trading paritesi (örn: BTCUSDT) girin.');
                 return;
             }
-            if (isNaN(botSettings.leverage) || botSettings.leverage < 1 || botSettings.leverage > 25) {
-                alert('Kaldıraç 1 ile 25 arasında bir değer olmalıdır.');
+            if (isNaN(botSettings.leverage) || botSettings.leverage < 1 || botSettings.leverage > 125) { // Updated to 125
+                alert('Kaldıraç 1 ile 125 arasında bir değer olmalıdır.');
                 return;
             }
-            if (isNaN(botSettings.order_size) || botSettings.order_size < 20) {
-                alert('İşlem büyüklüğü en az 20 USDT olmalıdır.');
+            if (isNaN(botSettings.order_size) || botSettings.order_size < 10) { // Updated to 10
+                alert('İşlem büyüklüğü en az 10 USDT olmalıdır.');
                 return;
             }
             if (isNaN(botSettings.stop_loss) || botSettings.stop_loss <= 0) {
@@ -530,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 UIElements.statusMessage.classList.remove('success');
                 UIElements.statusMessage.classList.add('error');
             }
-            await UIActions.updateBotStatus(); // Update status after action
+            await UIActions.updateBotStatus(); 
             UIActions.setLoadingState(false, UIElements.startButton);
         });
 
@@ -547,13 +554,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 UIElements.statusMessage.classList.remove('success');
                 UIElements.statusMessage.classList.add('error');
             }
-            await UIActions.updateBotStatus(); // Update status after action
+            await UIActions.updateBotStatus(); 
             UIActions.setLoadingState(false, UIElements.stopButton);
         });
 
         // Pair Card click (to change symbol)
         UIElements.pairCard.addEventListener('click', () => {
-            if (UIElements.symbolInput.disabled) { // Prevent changing if bot is running
+            if (UIElements.symbolInput.disabled) { 
                 alert("Bot çalışırken parite değiştirilemez. Lütfen botu durdurun.");
                 return;
             }
@@ -562,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formattedSymbol = newSymbol.trim().toUpperCase();
                 UIElements.symbolInput.value = formattedSymbol;
                 UIElements.pairSymbol.textContent = formattedSymbol;
-                UIActions.updatePairPrice(); // Update price for new symbol immediately
+                UIActions.updatePairPrice(); 
             }
         });
 
@@ -572,7 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!element) return;
 
             let textToCopy = element.textContent;
-            // Create a temporary textarea to copy text from
             const tempTextArea = document.createElement('textarea');
             tempTextArea.value = textToCopy;
             document.body.appendChild(tempTextArea);
@@ -580,7 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.execCommand('copy');
             document.body.removeChild(tempTextArea);
 
-            // Provide visual feedback
             const originalText = element.textContent;
             element.textContent = 'Kopyalandı!';
             setTimeout(() => {
@@ -602,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             firebase.initializeApp(firebaseConfig);
             firebaseServices.auth = firebase.auth();
-            firebaseServices.database = firebase.database(); // If you use Realtime Database
+            firebaseServices.database = firebase.database(); 
 
             // Kullanıcının oturum durumunu dinle
             firebaseServices.auth.onAuthStateChanged(user => {
@@ -614,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             setupEventListeners();
-            UIActions.updatePairPrice(); // Initial price fetch on load
+            UIActions.updatePairPrice(); 
 
         } catch (error) {
             console.error("Uygulama başlatılamadı:", error);
