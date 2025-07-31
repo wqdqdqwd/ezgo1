@@ -209,18 +209,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? profile.server_ips.map(ip => `<li class="ip-item">${ip}</li>`).join('')
                 : '<li class="ip-item loading">Sunucu IP adresi bulunamadı.</li>';
 
-            // Enable/disable start button based on subscription and API keys and valid settings
-            // Yeni kontrol eklendi: Ayarlar geçerli olmalı
-            const areSettingsValid = 
-                parseFloat(UIElements.orderSizeInput.value) >= 10 && // Min işlem büyüklüğü 10 USDT
-                parseInt(UIElements.leverageInput.value, 10) >= 1 && // Min kaldıraç 1x
-                parseInt(UIElements.leverageInput.value, 10) <= 125; // Max kaldıraç 125x
+            // --- HATA AYIKLAMA BAŞLANGICI ---
+            console.log("--- updateUserProfile Debug ---");
+            console.log("Profile objesi:", profile);
+            console.log("Profile has_api_keys:", profile.has_api_keys);
+            console.log("Profile subscription_status:", profile.subscription_status);
+            console.log("orderSizeInput değeri:", UIElements.orderSizeInput.value);
+            console.log("leverageInput değeri:", UIElements.leverageInput.value);
 
+            const currentOrderSize = parseFloat(UIElements.orderSizeInput.value);
+            const currentLeverage = parseInt(UIElements.leverageInput.value, 10);
+            console.log("Parsed Order Size:", currentOrderSize);
+            console.log("Parsed Leverage:", currentLeverage);
+
+            const check1 = currentOrderSize >= 10;
+            const check2 = currentLeverage >= 1;
+            const check3 = currentLeverage <= 125;
+            console.log("Check 1 (Order Size >= 10):", check1);
+            console.log("Check 2 (Leverage >= 1):", check2);
+            console.log("Check 3 (Leverage <= 125):", check3);
+            
+            const areSettingsValid = check1 && check2 && check3;
+            console.log("Calculated areSettingsValid:", areSettingsValid);
+
+            // Enable/disable start button based on subscription and API keys and valid settings
             const canStartBot = profile.has_api_keys && ['active', 'trial'].includes(profile.subscription_status) && areSettingsValid;
+            console.log("Calculated canStartBot:", canStartBot);
+            console.log("startButton.disabled BEFORE:", UIElements.startButton.disabled);
+            // --- HATA AYIKLAMA SONU ---
             
             if (!UIElements.startButton.disabled) { 
                 UIElements.startButton.disabled = !canStartBot;
             }
+            console.log("startButton.disabled AFTER:", UIElements.startButton.disabled);
 
             // Update API status on API page
             const apiConfigured = profile.has_api_keys;
