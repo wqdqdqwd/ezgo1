@@ -5,7 +5,7 @@ import math
 from datetime import datetime, timezone
 from app.binance_client import BinanceClient
 from app.trading_strategy import trading_strategy
-from app.firebase_manager import firebase_manager # FirebaseManager'ı import et
+from app.firebase_manager import firebase_manager
 
 class BotCore:
     def __init__(self, user_id: str, binance_client: BinanceClient, settings: dict):
@@ -17,35 +17,51 @@ class BotCore:
             "symbol": self.settings.get('symbol'), 
             "position_side": None, 
             "status_message": "Bot başlatılmadı.",
-            "last_check_time": datetime.now(timezone.utc).isoformat() # Son kontrol zamanı eklendi
+            "last_check_time": datetime.now(timezone.utc).isoformat()
         }
         self.klines = []
         self._stop_requested = False
         self.quantity_precision = 0
         self.price_precision = 0
         self.websocket_task = None
-        self.subscription_check_interval = 60 # Abonelik kontrolü saniye cinsinden (örn: 60 saniye)
+        self.subscription_check_interval = 60
 
     def _get_precision_from_filter(self, symbol_info, filter_type, key):
         for f in symbol_info['filters']:
             if f['filterType'] == filter_type:
                 size_str = f[key]
-                if '.' in size_str: return len(size_str.split('.')[1].rstrip('0'))
+                # 'stepSize' veya 'tickSize' gibi değerler float olabilir
+                # Örneğin, "0.001" veya "1.0"
+                if '.' in size_str:
+                    # Ondalık basamak sayısını bulmak için
+                    return len(size_str.split('.')[1].rstrip('0'))
                 return 0
         return 0
 
+    # BURADAKİ METOT GÜNCELLENDİ
     def _format_quantity(self, quantity: float):
-        if self.quantity_precision == 0: return math.floor(quantity)
-        factor = 10 ** self.quantity_precision
-        return math.floor(quantity * factor) / factor
+        # Hassasiyet 0 ise (tam sayı), int'e çevir
+        if self.quantity_precision == 0:
+            return int(quantity)
+        
+        # Eğer hassasiyet > 0 ise, string formatlama ile yuvarla
+        # Bu, kayan nokta hassasiyet sorunlarını en aza indirmek için güvenli bir yoldur.
+        format_string = f"%.{self.quantity_precision}f"
+        rounded_quantity_str = format_string % quantity
+        
+        # Sonuçta oluşan string'i float'a çevir
+        return float(rounded_quantity_str)
+        # Not: Binance'in Lot_Size stepSize'ına tam uyan miktarı garanti etmek için
+        # bazen miktar / stepSize yapıp yuvarlayıp tekrar stepSize ile çarpmak gerekir.
+        # Ancak şimdilik bu metod ondalık hassasiyetini çözecektir.
 
-    async def start(self): # symbol argümanı kaldırıldı
+
+    async def start(self):
         if self.status["is_running"]: return
         
         self._stop_requested = False
         self.status.update({"is_running": True, "status_message": f"{self.settings['symbol']} için başlatılıyor..."})
         
-        # Abonelik kontrolünü bot başlatılırken de yap
         if not firebase_manager.is_subscription_active(self.user_id):
             self.status["status_message"] = "Bot başlatılamadı: Aboneliğiniz aktif değil veya süresi dolmuş."
             print(f"{self.user_id}: Abonelik aktif olmadığı için bot başlatılamadı.")
@@ -62,6 +78,10 @@ class BotCore:
             
         self.quantity_precision = self._get_precision_from_filter(symbol_info, 'LOT_SIZE', 'stepSize')
         self.price_precision = self._get_precision_from_filter(symbol_info, 'PRICE_FILTER', 'tickSize')
+
+        # HATA AYIKLAMA İÇİN EKLENDİ: Hassasiyet değerlerini yazdır
+        print(f"DEBUG: Symbol: {self.settings['symbol']}, Quantity Precision: {self.quantity_precision}, Price Precision: {self.price_precision}")
+
 
         if not await self.binance_client.set_leverage(self.settings['symbol'], self.settings['leverage']):
             self.status["status_message"] = "Kaldıraç ayarlanamadı."
@@ -90,16 +110,15 @@ class BotCore:
                             message = await asyncio.wait_for(ws.recv(), timeout=60.0)
                             await self._handle_websocket_message(message)
 
-                            # Abonelik kontrolü ekle
                             current_time = datetime.now(timezone.utc)
                             if (current_time - last_subscription_check).total_seconds() >= self.subscription_check_interval:
                                 if not firebase_manager.is_subscription_active(self.user_id):
                                     self.status["status_message"] = "Aboneliğiniz sona erdi, bot durduruluyor."
                                     print(f"{self.user_id}: Aboneliği sona erdiği için bot durdurma isteği.")
                                     await self.stop()
-                                    return # Bot durdurulduğu için döngüden çık
+                                    return
                                 last_subscription_check = current_time
-                                self.status["last_check_time"] = current_time.isoformat() # UI'da göstermek için
+                                self.status["last_check_time"] = current_time.isoformat()
 
                         except asyncio.TimeoutError:
                             await ws.ping()
@@ -109,7 +128,7 @@ class BotCore:
                             break
                         except Exception as e:
                             print(f"{self.user_id} için WebSocket mesaj işleme hatası: {e}")
-                            await asyncio.sleep(1) # Hata durumunda kısa bekleme
+                            await asyncio.sleep(1)
 
             except Exception as e:
                 print(f"{self.user_id} için WebSocket bağlantı hatası: {e}. 5 saniye sonra tekrar denenecek.")
@@ -121,19 +140,18 @@ class BotCore:
         if not self._stop_requested:
             self._stop_requested = True
             
-            # Eğer açık pozisyon varsa kapat
             open_positions = await self.binance_client.get_open_positions(self.settings["symbol"])
             if open_positions:
                 print(f"--> {self.user_id}: Bot durdurulurken açık pozisyonlar kapatılıyor...")
                 await self.binance_client.close_open_position_and_orders(self.settings["symbol"])
                 pnl = await self.binance_client.get_last_trade_pnl(self.settings["symbol"])
                 firebase_manager.log_trade(self.user_id, {"symbol": self.settings["symbol"], "pnl": pnl, "status": "CLOSED_ON_BOT_STOP", "timestamp": datetime.now(timezone.utc)})
-                await asyncio.sleep(1) # Pozisyonun kapanması için kısa bekleme
+                await asyncio.sleep(1)
 
             if self.websocket_task and not self.websocket_task.done():
                 self.websocket_task.cancel()
                 try:
-                    await self.websocket_task # Görevin iptal edilmesini bekle
+                    await self.websocket_task
                 except asyncio.CancelledError:
                     print(f"{self.user_id}: WebSocket görevi iptal edildi.")
                 except Exception as e:
@@ -142,32 +160,20 @@ class BotCore:
             if self.status["is_running"]:
                 self.status.update({"is_running": False, "status_message": "Bot durduruldu."})
                 print(f"{self.user_id} için bot durduruluyor...")
-                await self.binance_client.close() # HTTP oturumunu kapat
+                await self.binance_client.close()
                 print(f"{self.user_id} için bot başarıyla durduruldu.")
 
     async def _handle_websocket_message(self, message: str):
         data = json.loads(message)
-        if not data.get('k', {}).get('x', False): return # Sadece kapanmış mum çubuklarını işle
+        if not data.get('k', {}).get('x', False): return
             
-        # Klines listesini güncelle
         self.klines.pop(0)
-        # Binance kline verisi formatına göre güncellendi
         self.klines.append([
-            data['k']['t'],  # Open time
-            data['k']['o'],  # Open
-            data['k']['h'],  # High
-            data['k']['l'],  # Low
-            data['k']['c'],  # Close
-            data['k']['v'],  # Volume
-            data['k']['T'],  # Close time
-            data['k']['q'],  # Quote asset volume
-            data['k']['n'],  # Number of trades
-            data['k']['V'],  # Taker buy base asset volume
-            data['k']['Q'],  # Taker buy quote asset volume
-            data['k']['B']   # Ignore (actual value varies, typically last_value_ignored)
+            data['k']['t'], data['k']['o'], data['k']['h'], data['k']['l'], data['k']['c'],
+            data['k']['v'], data['k']['T'], data['k']['q'], data['k']['n'], data['k']['V'],
+            data['k']['Q'], data['k']['B']
         ])
         
-        # Pozisyon kontrolü
         open_positions = await self.binance_client.get_open_positions(self.settings["symbol"])
         if self.status["position_side"] is not None and not open_positions:
             print(f"--> {self.user_id}: Pozisyon SL/TP ile veya manuel olarak kapandı.")
@@ -175,19 +181,16 @@ class BotCore:
             firebase_manager.log_trade(self.user_id, {"symbol": self.settings["symbol"], "pnl": pnl, "status": "CLOSED_BY_SL_TP_OR_MANUAL", "timestamp": datetime.now(timezone.utc)})
             self.status["position_side"] = None
 
-        # Sinyal analizi
         signal = trading_strategy.analyze_klines(self.klines)
         if signal != "HOLD":
             print(f"{self.user_id} - Strateji analizi sonucu: {signal}")
 
-        # Pozisyonu çevir veya aç
         if signal != "HOLD" and signal != self.status.get("position_side"):
             await self._flip_position(signal)
 
     async def _flip_position(self, new_signal: str):
         symbol = self.settings["symbol"]
         
-        # Aboneliğin aktif olup olmadığını tekrar kontrol et
         if not firebase_manager.is_subscription_active(self.user_id):
             self.status["status_message"] = "Aboneliğiniz sona erdi, yeni pozisyon açılamıyor."
             print(f"{self.user_id}: Aboneliği sona erdiği için yeni pozisyon açılamadı.")
@@ -196,12 +199,11 @@ class BotCore:
 
         open_positions = await self.binance_client.get_open_positions(symbol)
         if open_positions:
-            # Mevcut pozisyonu ve açık emirleri kapat
             print(f"--> {self.user_id}: Ters sinyal geldi. Mevcut {self.status['position_side']} pozisyonu kapatılıyor...")
             await self.binance_client.close_open_position_and_orders(symbol)
             pnl = await self.binance_client.get_last_trade_pnl(symbol)
             firebase_manager.log_trade(self.user_id, {"symbol": symbol, "pnl": pnl, "status": "CLOSED_BY_FLIP", "timestamp": datetime.now(timezone.utc)})
-            await asyncio.sleep(1) # Pozisyonun kapanması için kısa bekleme
+            await asyncio.sleep(1)
 
         print(f"--> {self.user_id}: Yeni {new_signal} pozisyonu açılıyor...")
         side = "BUY" if new_signal == "LONG" else "SELL"
@@ -212,6 +214,9 @@ class BotCore:
             return
             
         quantity = self._format_quantity((self.settings['order_size']) / price)
+        # HATA AYIKLAMA İÇİN EKLENDİ: Hesaplanan quantity'yi yazdır
+        print(f"DEBUG: Hesaplanan Quantity (Formatlanmış): {quantity}")
+
         if quantity <= 0:
             self.status["status_message"] = f"Hesaplanan miktar çok düşük: {quantity}"
             print(f"{self.user_id}: {self.status['status_message']}")
