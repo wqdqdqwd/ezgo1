@@ -13,9 +13,9 @@ class BotCore:
         self.binance_client = binance_client
         self.settings = settings  # Kullanıcıdan gelen tüm ayarlar
         self.status = {
-            "is_running": False, 
-            "symbol": self.settings.get('symbol'), 
-            "position_side": None, 
+            "is_running": False,
+            "symbol": self.settings.get('symbol'),
+            "position_side": None,
             "status_message": "Bot başlatılmadı.",
             "last_check_time": datetime.now(timezone.utc).isoformat()
         }
@@ -30,38 +30,32 @@ class BotCore:
         for f in symbol_info['filters']:
             if f['filterType'] == filter_type:
                 size_str = f[key]
-                # 'stepSize' veya 'tickSize' gibi değerler float olabilir
-                # Örneğin, "0.001" veya "1.0"
                 if '.' in size_str:
-                    # Ondalık basamak sayısını bulmak için
                     return len(size_str.split('.')[1].rstrip('0'))
                 return 0
         return 0
 
-    # BURADAKİ METOT GÜNCELLENDİ
-    def _format_quantity(self, quantity: float):
-        # Hassasiyet 0 ise (tam sayı), int'e çevir
-        if self.quantity_precision == 0:
-            return int(quantity)
+    # BURADAKİ METOT YENİDEN GÜNCELLENDİ
+    def _format_quantity(self, quantity: float, step_size: float):
+        """
+        Miktarı Binance'in 'LOT_SIZE' filtresindeki 'stepSize' değerine göre formatlar.
+        """
+        # StepSize'ın ondalık hassasiyetini bul
+        step_size_str = f"{step_size:f}"
+        if '.' in step_size_str:
+            precision = len(step_size_str.split('.')[1].rstrip('0'))
+        else:
+            precision = 0
         
-        # Eğer hassasiyet > 0 ise, string formatlama ile yuvarla
-        # Bu, kayan nokta hassasiyet sorunlarını en aza indirmek için güvenli bir yoldur.
-        format_string = f"%.{self.quantity_precision}f"
-        rounded_quantity_str = format_string % quantity
-        
-        # Sonuçta oluşan string'i float'a çevir
-        return float(rounded_quantity_str)
-        # Not: Binance'in Lot_Size stepSize'ına tam uyan miktarı garanti etmek için
-        # bazen miktar / stepSize yapıp yuvarlayıp tekrar stepSize ile çarpmak gerekir.
-        # Ancak şimdilik bu metod ondalık hassasiyetini çözecektir.
-
+        # Miktarı stepSize'ın katına yuvarla
+        return math.floor(quantity / step_size) * step_size
 
     async def start(self):
         if self.status["is_running"]: return
-        
+
         self._stop_requested = False
         self.status.update({"is_running": True, "status_message": f"{self.settings['symbol']} için başlatılıyor..."})
-        
+
         if not firebase_manager.is_subscription_active(self.user_id):
             self.status["status_message"] = "Bot başlatılamadı: Aboneliğiniz aktif değil veya süresi dolmuş."
             print(f"{self.user_id}: Abonelik aktif olmadığı için bot başlatılamadı.")
@@ -75,17 +69,19 @@ class BotCore:
         if not symbol_info:
             self.status["status_message"] = f"{self.settings['symbol']} için borsa bilgileri alınamadı."
             await self.stop(); return
-            
+
+        # Gerekli filtre değerlerini alalım
+        lot_size_filter = next((f for f in symbol_info['filters'] if f['filterType'] == 'LOT_SIZE'), None)
+        price_filter = next((f for f in symbol_info['filters'] if f['filterType'] == 'PRICE_FILTER'), None)
+
+        if not lot_size_filter or not price_filter:
+            self.status["status_message"] = f"{self.settings['symbol']} için gerekli filtre bilgileri bulunamadı."
+            await self.stop(); return
+
         self.quantity_precision = self._get_precision_from_filter(symbol_info, 'LOT_SIZE', 'stepSize')
         self.price_precision = self._get_precision_from_filter(symbol_info, 'PRICE_FILTER', 'tickSize')
-
-        # HATA AYIKLAMA İÇİN EKLENDİ: Hassasiyet değerlerini yazdır
-        print(f"DEBUG: Symbol: {self.settings['symbol']}, Quantity Precision: {self.quantity_precision}, Price Precision: {self.price_precision}")
-
-
-        if not await self.binance_client.set_leverage(self.settings['symbol'], self.settings['leverage']):
-            self.status["status_message"] = "Kaldıraç ayarlanamadı."
-            await self.stop(); return
+        
+        self.step_size = float(lot_size_filter['stepSize']) # Yeni eklenen step_size değeri
 
         self.klines = await self.binance_client.get_historical_klines(self.settings['symbol'], self.settings['timeframe'], limit=50)
         if not self.klines:
@@ -139,7 +135,7 @@ class BotCore:
     async def stop(self):
         if not self._stop_requested:
             self._stop_requested = True
-            
+
             open_positions = await self.binance_client.get_open_positions(self.settings["symbol"])
             if open_positions:
                 print(f"--> {self.user_id}: Bot durdurulurken açık pozisyonlar kapatılıyor...")
@@ -166,14 +162,14 @@ class BotCore:
     async def _handle_websocket_message(self, message: str):
         data = json.loads(message)
         if not data.get('k', {}).get('x', False): return
-            
+
         self.klines.pop(0)
         self.klines.append([
             data['k']['t'], data['k']['o'], data['k']['h'], data['k']['l'], data['k']['c'],
             data['k']['v'], data['k']['T'], data['k']['q'], data['k']['n'], data['k']['V'],
             data['k']['Q'], data['k']['B']
         ])
-        
+
         open_positions = await self.binance_client.get_open_positions(self.settings["symbol"])
         if self.status["position_side"] is not None and not open_positions:
             print(f"--> {self.user_id}: Pozisyon SL/TP ile veya manuel olarak kapandı.")
@@ -190,7 +186,7 @@ class BotCore:
 
     async def _flip_position(self, new_signal: str):
         symbol = self.settings["symbol"]
-        
+
         if not firebase_manager.is_subscription_active(self.user_id):
             self.status["status_message"] = "Aboneliğiniz sona erdi, yeni pozisyon açılamıyor."
             print(f"{self.user_id}: Aboneliği sona erdiği için yeni pozisyon açılamadı.")
@@ -212,11 +208,10 @@ class BotCore:
             self.status["status_message"] = "Yeni pozisyon için fiyat alınamadı."
             print(f"{self.user_id}: {self.status['status_message']}")
             return
-            
-        quantity = self._format_quantity((self.settings['order_size']) / price)
-        # HATA AYIKLAMA İÇİN EKLENDİ: Hesaplanan quantity'yi yazdır
-        print(f"DEBUG: Hesaplanan Quantity (Formatlanmış): {quantity}")
 
+        # quantity hesaplamasını güncelledik ve step_size parametresini kullandık
+        quantity = self._format_quantity((self.settings['order_size']) / price, self.step_size)
+        
         if quantity <= 0:
             self.status["status_message"] = f"Hesaplanan miktar çok düşük: {quantity}"
             print(f"{self.user_id}: {self.status['status_message']}")
