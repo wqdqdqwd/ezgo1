@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let statusInterval = null; 
     let priceUpdateInterval = null; 
+    let currentWebSocket = null; // WebSocket referansını takip etmek için
     const API_BASE_URL = ''; 
     const WEBSOCKET_URL = 'wss://stream.binance.com:9443/ws/'; 
 
@@ -95,15 +96,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ detail: response.statusText }));
                 console.error(`API Hatası (${response.status}) - ${endpoint}:`, errorData.detail || response.statusText);
-                UIElements.statusMessage.textContent = `Hata: ${errorData.detail || 'Bilinmeyen bir hata oluştu.'}`;
+                if (UIElements.statusMessage) {
+                    UIElements.statusMessage.textContent = `Hata: ${errorData.detail || 'Bilinmeyen bir hata oluştu.'}`;
+                }
                 return null;
             }
 
             return response.json();
         } catch (error) {
             console.error("Ağ veya fetch hatası:", error);
-            UIElements.statusMessage.textContent = "Ağ bağlantısı hatası oluştu. Lütfen internet bağlantınızı kontrol edin.";
+            if (UIElements.statusMessage) {
+                UIElements.statusMessage.textContent = "Ağ bağlantısı hatası oluştu. Lütfen internet bağlantınızı kontrol edin.";
+            }
             return null;
+        }
+    }
+
+    /**
+     * WebSocket bağlantısını güvenli bir şekilde kapatır
+     */
+    function closeWebSocket() {
+        if (currentWebSocket) {
+            try {
+                currentWebSocket.close();
+            } catch (e) {
+                console.warn("WebSocket kapatılırken hata:", e);
+            }
+            currentWebSocket = null;
         }
     }
 
@@ -117,8 +136,17 @@ document.addEventListener('DOMContentLoaded', () => {
         showAuthScreen: () => {
             UIElements.authContainer.style.display = 'flex';
             UIElements.appContainer.style.display = 'none';
-            if (statusInterval) clearInterval(statusInterval);
-            if (priceUpdateInterval) clearInterval(priceUpdateInterval);
+            
+            // Tüm interval'ları ve WebSocket bağlantılarını temizle
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            if (priceUpdateInterval) {
+                clearInterval(priceUpdateInterval);
+                priceUpdateInterval = null;
+            }
+            closeWebSocket();
         },
 
         /**
@@ -134,11 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
             await UIActions.updateApiKeysStatus();
             await UIActions.updateBotStatus();
 
-            // Clear previous intervals to prevent duplicates
+            // Önceki interval'ları temizle
             if (statusInterval) clearInterval(statusInterval);
             if (priceUpdateInterval) clearInterval(priceUpdateInterval);
 
-            // Start periodic updates
+            // Yeni interval'ları başlat
             statusInterval = setInterval(UIActions.updateBotStatus, 8000); 
             priceUpdateInterval = setInterval(UIActions.updatePairPrice, 5000); 
         },
@@ -150,7 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleAuthForms: (showRegister) => {
             UIElements.loginCard.style.display = showRegister ? 'none' : 'block';
             UIElements.registerCard.style.display = showRegister ? 'block' : 'none';
-            // Clear any previous error messages when toggling
+            
+            // Hata mesajlarını temizle
+            UIElements.loginError.style.display = 'none';
+            UIElements.registerError.style.display = 'none';
             UIElements.loginError.textContent = '';
             UIElements.registerError.textContent = '';
         },
@@ -159,6 +190,8 @@ document.addEventListener('DOMContentLoaded', () => {
          * Analiz grafiği için rastgele çubuklar oluşturur.
          */
         generateChartBars: () => {
+            if (!UIElements.chartContainer) return;
+            
             UIElements.chartContainer.innerHTML = '';
             const numberOfBars = 30; 
             for (let i = 0; i < numberOfBars; i++) {
@@ -184,7 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const profile = await fetchApi('/api/user-profile');
             if (!profile) return;
 
-            UIElements.userEmailSpan.textContent = profile.email || 'N/A';
+            // UI elemanlarının varlığını kontrol et
+            if (UIElements.userEmailSpan) {
+                UIElements.userEmailSpan.textContent = profile.email || 'N/A';
+            }
+
             const statusMap = {
                 'active': 'Aktif', 
                 'trial': 'Deneme Sürümü', 
@@ -192,65 +229,81 @@ document.addEventListener('DOMContentLoaded', () => {
                 'inactive': 'Aktif Değil'
             };
             const subscriptionStatusText = statusMap[profile.subscription_status] || 'Bilinmiyor';
-            UIElements.subscriptionStatusSpan.innerHTML = `<span class="status-badge ${profile.subscription_status}">${subscriptionStatusText}</span>`;
             
-            UIElements.subscriptionExpirySpan.textContent = profile.subscription_expiry 
-                ? new Date(profile.subscription_expiry).toLocaleDateString('tr-TR')
-                : 'N/A';
+            if (UIElements.subscriptionStatusSpan) {
+                UIElements.subscriptionStatusSpan.innerHTML = `<span class="status-badge ${profile.subscription_status || 'inactive'}">${subscriptionStatusText}</span>`;
+            }
             
-            UIElements.registerDateSpan.textContent = profile.registration_date
-                ? new Date(profile.registration_date).toLocaleDateString('tr-TR')
-                : 'N/A';
-
-            UIElements.paymentAddressCode.textContent = profile.payment_address || 'Yükleniyor...';
-            UIElements.paymentInfoDiv.style.display = (profile.subscription_status === 'expired' || !profile.subscription_status) ? 'block' : 'none';
-
-            UIElements.ipListElement.innerHTML = profile.server_ips?.length
-                ? profile.server_ips.map(ip => `<li class="ip-item">${ip}</li>`).join('')
-                : '<li class="ip-item loading">Sunucu IP adresi bulunamadı.</li>';
-
-            // --- HATA AYIKLAMA BAŞLANGICI ---
-            console.log("--- updateUserProfile Debug ---");
-            console.log("Profile objesi:", profile);
-            console.log("Profile has_api_keys:", profile.has_api_keys);
-            console.log("Profile subscription_status:", profile.subscription_status);
-            console.log("orderSizeInput değeri:", UIElements.orderSizeInput.value);
-            console.log("leverageInput değeri:", UIElements.leverageInput.value);
-
-            const currentOrderSize = parseFloat(UIElements.orderSizeInput.value);
-            const currentLeverage = parseInt(UIElements.leverageInput.value, 10);
-            console.log("Parsed Order Size:", currentOrderSize);
-            console.log("Parsed Leverage:", currentLeverage);
-
-            const check1 = currentOrderSize >= 10;
-            const check2 = currentLeverage >= 1;
-            const check3 = currentLeverage <= 125;
-            console.log("Check 1 (Order Size >= 10):", check1);
-            console.log("Check 2 (Leverage >= 1):", check2);
-            console.log("Check 3 (Leverage <= 125):", check3);
+            if (UIElements.subscriptionExpirySpan) {
+                UIElements.subscriptionExpirySpan.textContent = profile.subscription_expiry 
+                    ? new Date(profile.subscription_expiry).toLocaleDateString('tr-TR')
+                    : 'N/A';
+            }
             
-            const areSettingsValid = check1 && check2 && check3;
-            console.log("Calculated areSettingsValid:", areSettingsValid);
+            if (UIElements.registerDateSpan) {
+                UIElements.registerDateSpan.textContent = profile.registration_date
+                    ? new Date(profile.registration_date).toLocaleDateString('tr-TR')
+                    : 'N/A';
+            }
 
-            // Enable/disable start button based on subscription and API keys and valid settings
-            const canStartBot = profile.has_api_keys && ['active', 'trial'].includes(profile.subscription_status) && areSettingsValid;
-            console.log("Calculated canStartBot:", canStartBot);
-            console.log("startButton.disabled BEFORE:", UIElements.startButton.disabled);
-            // --- HATA AYIKLAMA SONU ---
+            if (UIElements.paymentAddressCode) {
+                UIElements.paymentAddressCode.textContent = profile.payment_address || 'Yükleniyor...';
+            }
             
-            // DÜZELTME: Bu if kontrolü kaldırıldı. Buton durumu her zaman canStartBot'a göre ayarlanmalı.
-            // if (!UIElements.startButton.disabled) { 
-                UIElements.startButton.disabled = !canStartBot;
-            // }
-            console.log("startButton.disabled AFTER:", UIElements.startButton.disabled);
+            if (UIElements.paymentInfoDiv) {
+                UIElements.paymentInfoDiv.style.display = (profile.subscription_status === 'expired' || !profile.subscription_status) ? 'block' : 'none';
+            }
 
-            // Update API status on API page
-            const apiConfigured = profile.has_api_keys;
-            UIElements.apiStatusIndicator.classList.toggle('active', apiConfigured);
-            UIElements.apiStatusIndicator.classList.toggle('inactive', !apiConfigured);
-            UIElements.apiStatusText.textContent = apiConfigured ? 'CONFIGURED' : 'NOT CONFIGURED';
-            UIElements.apiStatusText.classList.toggle('text-success', apiConfigured);
-            UIElements.apiStatusText.classList.toggle('text-muted', !apiConfigured);
+            if (UIElements.ipListElement && profile.server_ips) {
+                UIElements.ipListElement.innerHTML = profile.server_ips?.length
+                    ? profile.server_ips.map(ip => `<div class="ip-item">${ip}</div>`).join('')
+                    : '<div class="ip-item loading">Sunucu IP adresi bulunamadı.</div>';
+            }
+
+            // Bot başlatma koşullarını kontrol et
+            const canStartBot = UIActions.validateBotSettings(profile);
+            
+            if (UIElements.startButton) {
+                // Bot çalışıyor mu kontrolü - eğer bot çalışıyorsa buton her zaman disabled olmalı
+                const isBotRunning = UIElements.botStatusText && UIElements.botStatusText.textContent === 'ONLINE';
+                UIElements.startButton.disabled = isBotRunning || !canStartBot;
+            }
+
+            // API durumunu güncelle
+            UIActions.updateApiStatus(profile.has_api_keys);
+        },
+
+        /**
+         * Bot ayarlarının geçerliliğini kontrol eder
+         */
+        validateBotSettings: (profile) => {
+            if (!UIElements.orderSizeInput || !UIElements.leverageInput) return false;
+            
+            const currentOrderSize = parseFloat(UIElements.orderSizeInput.value) || 0;
+            const currentLeverage = parseInt(UIElements.leverageInput.value, 10) || 0;
+            const currentTP = parseFloat(UIElements.tpInput?.value) || 0;
+            const currentSL = parseFloat(UIElements.slInput?.value) || 0;
+
+            const hasApiKeys = profile && profile.has_api_keys;
+            const hasValidSubscription = profile && ['active', 'trial'].includes(profile.subscription_status);
+            const isOrderSizeValid = currentOrderSize >= 10;
+            const isLeverageValid = currentLeverage >= 1 && currentLeverage <= 125;
+            const areTPSLValid = currentTP > 0 && currentSL > 0 && currentTP > currentSL;
+
+            return hasApiKeys && hasValidSubscription && isOrderSizeValid && isLeverageValid && areTPSLValid;
+        },
+
+        /**
+         * API durumunu günceller
+         */
+        updateApiStatus: (hasApiKeys) => {
+            if (UIElements.apiStatusIndicator && UIElements.apiStatusText) {
+                UIElements.apiStatusIndicator.classList.toggle('active', hasApiKeys);
+                UIElements.apiStatusIndicator.classList.toggle('inactive', !hasApiKeys);
+                UIElements.apiStatusText.textContent = hasApiKeys ? 'CONFIGURED' : 'NOT CONFIGURED';
+                UIElements.apiStatusText.classList.toggle('text-success', hasApiKeys);
+                UIElements.apiStatusText.classList.toggle('text-muted', !hasApiKeys);
+            }
         },
 
         /**
@@ -259,89 +312,109 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBotStatus: async () => {
             const data = await fetchApi('/api/status');
             if (!data) {
-                UIElements.botStatusIndicator.classList.remove('active');
-                UIElements.botStatusIndicator.classList.add('inactive');
-                UIElements.botStatusText.textContent = 'ERROR';
-                UIElements.botStatusText.classList.remove('text-success');
-                UIElements.botStatusText.classList.add('text-danger');
-                UIElements.startButton.disabled = true; 
-                UIElements.stopButton.disabled = true;
-                UIElements.statusMessage.textContent = "Bot durumu alınamadı. Lütfen tekrar deneyin.";
+                if (UIElements.botStatusIndicator) {
+                    UIElements.botStatusIndicator.classList.remove('active');
+                    UIElements.botStatusIndicator.classList.add('inactive');
+                }
+                if (UIElements.botStatusText) {
+                    UIElements.botStatusText.textContent = 'ERROR';
+                    UIElements.botStatusText.classList.remove('text-success');
+                    UIElements.botStatusText.classList.add('text-danger');
+                }
+                if (UIElements.startButton) UIElements.startButton.disabled = true; 
+                if (UIElements.stopButton) UIElements.stopButton.disabled = true;
+                if (UIElements.statusMessage) {
+                    UIElements.statusMessage.textContent = "Bot durumu alınamadı. Lütfen tekrar deneyin.";
+                }
                 return;
             }
 
-            UIElements.statusMessage.textContent = data.status_message;
+            if (UIElements.statusMessage) {
+                UIElements.statusMessage.textContent = data.status_message;
+            }
+            
             const isRunning = data.is_running;
 
-            UIElements.botStatusIndicator.classList.toggle('active', isRunning);
-            UIElements.botStatusIndicator.classList.toggle('inactive', !isRunning);
-            UIElements.botStatusText.textContent = isRunning ? 'ONLINE' : 'OFFLINE';
-            UIElements.botStatusText.classList.toggle('text-success', isRunning);
-            UIElements.botStatusText.classList.toggle('text-muted', !isRunning);
+            if (UIElements.botStatusIndicator) {
+                UIElements.botStatusIndicator.classList.toggle('active', isRunning);
+                UIElements.botStatusIndicator.classList.toggle('inactive', !isRunning);
+            }
+            
+            if (UIElements.botStatusText) {
+                UIElements.botStatusText.textContent = isRunning ? 'ONLINE' : 'OFFLINE';
+                UIElements.botStatusText.classList.toggle('text-success', isRunning);
+                UIElements.botStatusText.classList.toggle('text-muted', !isRunning);
+            }
 
-            UIElements.stopButton.disabled = !isRunning;
+            if (UIElements.stopButton) {
+                UIElements.stopButton.disabled = !isRunning;
+            }
             
             if (isRunning) {
-                UIElements.startButton.disabled = true;
+                if (UIElements.startButton) UIElements.startButton.disabled = true;
             } else {
                 await UIActions.updateUserProfile(); 
             }
 
+            // Input'ları bot çalışırken devre dışı bırak
             const inputsToToggle = [
                 UIElements.symbolInput, UIElements.leverageInput, UIElements.tpInput, 
                 UIElements.slInput, UIElements.orderSizeInput
-            ];
-            inputsToToggle.forEach(el => el.disabled = isRunning);
-        },
-
-        /**
-         * İşlem büyüklüğü inputunu günceller.
-         * @param {string} value - Yeni işlem büyüklüğü değeri.
-         */
-        updateOrderSizeInput: (value) => {
-            UIElements.orderSizeInput.value = value;
+            ].filter(el => el); // Null/undefined olanları filtrele
+            
+            inputsToToggle.forEach(el => {
+                if (el) el.disabled = isRunning;
+            });
         },
 
         /**
          * Seçilen paritenin anlık fiyatını Binance WebSocket API'sından alır ve UI'ı günceller.
          */
         updatePairPrice: () => {
-            // Mevcut WebSocket bağlantısını kapat (varsa)
-            if (UIElements.pairPrice.dataset.currentWs) {
-                try {
-                    const oldWs = JSON.parse(UIElements.pairPrice.dataset.currentWs);
-                    if (oldWs && oldWs.readyState === WebSocket.OPEN) {
-                        oldWs.close();
-                    }
-                } catch (e) {
-                    console.warn("Mevcut WebSocket kapatılırken hata:", e);
-                }
-                UIElements.pairPrice.dataset.currentWs = null;
-            }
+            if (!UIElements.symbolInput || !UIElements.pairPrice) return;
+
+            // Mevcut WebSocket bağlantısını kapat
+            closeWebSocket();
 
             const symbol = UIElements.symbolInput.value.toLowerCase();
-            const ws = new WebSocket(`${WEBSOCKET_URL}${symbol}@ticker`);
+            if (!symbol) return;
 
-            ws.onopen = () => { /* console.log(`WebSocket connected for ${symbol}`); */ };
+            try {
+                currentWebSocket = new WebSocket(`${WEBSOCKET_URL}${symbol}@ticker`);
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data && data.c) { // 'c' is the last price
-                    const price = parseFloat(data.c).toFixed(2);
-                    UIElements.pairPrice.textContent = `$${price}`;
+                currentWebSocket.onopen = () => {
+                    console.log(`WebSocket connected for ${symbol}`);
+                };
+
+                currentWebSocket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data && data.c && UIElements.pairPrice) {
+                            const price = parseFloat(data.c).toFixed(2);
+                            UIElements.pairPrice.textContent = `$${price}`;
+                        }
+                    } catch (e) {
+                        console.error("WebSocket mesaj parse hatası:", e);
+                    }
+                };
+
+                currentWebSocket.onerror = (error) => {
+                    console.error('WebSocket Error:', error);
+                    if (UIElements.pairPrice) {
+                        UIElements.pairPrice.textContent = 'Fiyat Yok';
+                    }
+                };
+
+                currentWebSocket.onclose = () => {
+                    console.log(`WebSocket disconnected for ${symbol}`);
+                };
+
+            } catch (error) {
+                console.error("WebSocket oluşturma hatası:", error);
+                if (UIElements.pairPrice) {
+                    UIElements.pairPrice.textContent = 'Bağlantı Hatası';
                 }
-            };
-
-            ws.onerror = (error) => {
-                console.error('WebSocket Error:', error);
-                UIElements.pairPrice.textContent = 'Fiyat Yok';
-                ws.close(); 
-            };
-
-            ws.onclose = () => { /* console.log(`WebSocket disconnected for ${symbol}`); */ };
-
-            // Store the current WebSocket instance for future closing
-            UIElements.pairPrice.dataset.currentWs = JSON.stringify(ws);
+            }
         },
 
         /**
@@ -350,12 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateApiKeysStatus: async () => {
             const profile = await fetchApi('/api/user-profile');
             if (profile) {
-                const apiConfigured = profile.has_api_keys;
-                UIElements.apiStatusIndicator.classList.toggle('active', apiConfigured);
-                UIElements.apiStatusIndicator.classList.toggle('inactive', !apiConfigured);
-                UIElements.apiStatusText.textContent = apiConfigured ? 'CONFIGURED' : 'NOT CONFIGURED';
-                UIElements.apiStatusText.classList.toggle('text-success', apiConfigured);
-                UIElements.apiStatusText.classList.toggle('text-muted', !apiConfigured);
+                UIActions.updateApiStatus(profile.has_api_keys);
             }
         },
 
@@ -365,10 +433,43 @@ document.addEventListener('DOMContentLoaded', () => {
          * @param {HTMLElement} button - Etkilenecek buton elementi.
          */
         setLoadingState: (isLoading, button) => {
-            if(button) {
+            if (button) {
                 button.disabled = isLoading;
+                if (isLoading) {
+                    button.dataset.originalText = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yükleniyor...';
+                } else if (button.dataset.originalText) {
+                    button.innerHTML = button.dataset.originalText;
+                    delete button.dataset.originalText;
+                }
             }
-            UIElements.statusMessage.textContent = isLoading ? "İşlem yapılıyor, lütfen bekleyin..." : "";
+            if (UIElements.statusMessage && isLoading) {
+                UIElements.statusMessage.textContent = "İşlem yapılıyor, lütfen bekleyin...";
+            }
+        },
+
+        /**
+         * Hata mesajını gösterir
+         */
+        showError: (element, message) => {
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+                element.classList.add('error');
+                element.classList.remove('success');
+            }
+        },
+
+        /**
+         * Başarı mesajını gösterir
+         */
+        showSuccess: (element, message) => {
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+                element.classList.add('success');
+                element.classList.remove('error');
+            }
         }
     };
 
@@ -387,271 +488,222 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Leverage slider input
-        UIElements.leverageInput.addEventListener('input', (e) => {
-            UIElements.leverageValue.textContent = `${e.target.value}x`;
-            UIActions.updateUserProfile(); // Ayar değişikliğinde butonu güncelle
-        });
+        if (UIElements.leverageInput && UIElements.leverageValue) {
+            UIElements.leverageInput.addEventListener('input', (e) => {
+                UIElements.leverageValue.textContent = `${e.target.value}x`;
+                UIActions.updateUserProfile(); // Ayar değişikliğinde butonu güncelle
+            });
+        }
 
         // Order size input
-        UIElements.orderSizeInput.addEventListener('input', (e) => {
-            UIActions.updateUserProfile(); // Ayar değişikliğinde butonu güncelle
-        });
+        if (UIElements.orderSizeInput) {
+            UIElements.orderSizeInput.addEventListener('input', () => {
+                UIActions.updateUserProfile(); // Ayar değişikliğinde butonu güncelle
+            });
+        }
 
-        // TP/SL inputs (though not used in canStartBot, good practice for full validation later)
-        UIElements.tpInput.addEventListener('input', UIActions.updateUserProfile);
-        UIElements.slInput.addEventListener('input', UIActions.updateUserProfile);
+        // TP/SL inputs
+        if (UIElements.tpInput) {
+            UIElements.tpInput.addEventListener('input', UIActions.updateUserProfile);
+        }
+        if (UIElements.slInput) {
+            UIElements.slInput.addEventListener('input', UIActions.updateUserProfile);
+        }
 
         // Toggle auth forms
-        UIElements.showRegisterLink.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            UIActions.toggleAuthForms(true); 
-        });
-        UIElements.showLoginLink.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            UIActions.toggleAuthForms(false); 
-        });
+        if (UIElements.showRegisterLink) {
+            UIElements.showRegisterLink.addEventListener('click', (e) => { 
+                e.preventDefault(); 
+                UIActions.toggleAuthForms(true); 
+            });
+        }
+        if (UIElements.showLoginLink) {
+            UIElements.showLoginLink.addEventListener('click', (e) => { 
+                e.preventDefault(); 
+                UIActions.toggleAuthForms(false); 
+            });
+        }
 
         // Login button click
-        UIElements.loginButton.addEventListener('click', async () => {
-            UIElements.loginError.textContent = "";
-            const email = UIElements.loginEmailInput.value;
-            const password = UIElements.loginPasswordInput.value;
-            if (!email || !password) {
-                UIElements.loginError.textContent = "Lütfen e-posta ve şifrenizi girin.";
-                return;
-            }
-            UIActions.setLoadingState(true, UIElements.loginButton);
-            try {
-                await firebaseServices.auth.signInWithEmailAndPassword(email, password);
-            } catch (error) {
-                let errorMessage = "Giriş yaparken bir hata oluştu.";
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMessage = "Hatalı e-posta veya şifre.";
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "Geçersiz e-posta adresi.";
+        if (UIElements.loginButton) {
+            UIElements.loginButton.addEventListener('click', async () => {
+                UIElements.loginError.style.display = 'none';
+                const email = UIElements.loginEmailInput?.value?.trim();
+                const password = UIElements.loginPasswordInput?.value?.trim();
+                
+                if (!email || !password) {
+                    UIActions.showError(UIElements.loginError, "Lütfen e-posta ve şifrenizi girin.");
+                    return;
                 }
-                UIElements.loginError.textContent = errorMessage;
-            } finally {
-                UIActions.setLoadingState(false, UIElements.loginButton);
-            }
-        });
+                
+                UIActions.setLoadingState(true, UIElements.loginButton);
+                try {
+                    await firebaseServices.auth.signInWithEmailAndPassword(email, password);
+                } catch (error) {
+                    let errorMessage = "Giriş yaparken bir hata oluştu.";
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                        case 'auth/wrong-password':
+                        case 'auth/invalid-credential':
+                            errorMessage = "Hatalı e-posta veya şifre.";
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage = "Geçersiz e-posta adresi.";
+                            break;
+                        case 'auth/too-many-requests':
+                            errorMessage = "Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.";
+                            break;
+                    }
+                    UIActions.showError(UIElements.loginError, errorMessage);
+                } finally {
+                    UIActions.setLoadingState(false, UIElements.loginButton);
+                }
+            });
+        }
 
         // Register button click
-        UIElements.registerButton.addEventListener('click', async () => {
-            UIElements.registerError.textContent = "";
-            const email = UIElements.registerEmailInput.value;
-            const password = UIElements.registerPasswordInput.value;
-            if (!email || !password) {
-                UIElements.registerError.textContent = "Lütfen e-posta ve şifrenizi girin.";
-                return;
-            }
-            UIActions.setLoadingState(true, UIElements.registerButton);
-            try {
-                await firebaseServices.auth.createUserWithEmailAndPassword(email, password);
-            } catch (error) {
-                let errorMessage = "Hesap oluşturulurken bir hata oluştu.";
-                if (error.code === 'auth/weak-password') { 
-                    errorMessage = 'Şifre en az 6 karakter olmalıdır.'; 
-                } else if (error.code === 'auth/email-already-in-use') { 
-                    errorMessage = 'Bu e-posta adresi zaten kullanılıyor.'; 
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "Geçersiz e-posta adresi.";
+        if (UIElements.registerButton) {
+            UIElements.registerButton.addEventListener('click', async () => {
+                UIElements.registerError.style.display = 'none';
+                const email = UIElements.registerEmailInput?.value?.trim();
+                const password = UIElements.registerPasswordInput?.value?.trim();
+                
+                if (!email || !password) {
+                    UIActions.showError(UIElements.registerError, "Lütfen e-posta ve şifrenizi girin.");
+                    return;
                 }
-                UIElements.registerError.textContent = errorMessage;
-            } finally {
-                UIActions.setLoadingState(false, UIElements.registerButton);
-            }
-        });
+                
+                if (password.length < 6) {
+                    UIActions.showError(UIElements.registerError, "Şifre en az 6 karakter olmalıdır.");
+                    return;
+                }
+                
+                UIActions.setLoadingState(true, UIElements.registerButton);
+                try {
+                    await firebaseServices.auth.createUserWithEmailAndPassword(email, password);
+                } catch (error) {
+                    let errorMessage = "Hesap oluşturulurken bir hata oluştu.";
+                    switch (error.code) {
+                        case 'auth/weak-password': 
+                            errorMessage = 'Şifre en az 6 karakter olmalıdır.'; 
+                            break;
+                        case 'auth/email-already-in-use': 
+                            errorMessage = 'Bu e-posta adresi zaten kullanılıyor.'; 
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage = "Geçersiz e-posta adresi.";
+                            break;
+                    }
+                    UIActions.showError(UIElements.registerError, errorMessage);
+                } finally {
+                    UIActions.setLoadingState(false, UIElements.registerButton);
+                }
+            });
+        }
 
         // Logout button click
-        UIElements.logoutButton.addEventListener('click', async () => { 
-            try {
-                await firebaseServices.auth.signOut(); 
-            } catch (error) {
-                console.error("Çıkış yaparken hata:", error);
-                alert("Çıkış yapılırken bir hata oluştu.");
-            }
-        });
-        
-        // Save API Keys button click
-        UIElements.saveKeysButton.addEventListener('click', async () => {
-            UIElements.apiKeysStatus.style.display = 'block';
-            UIElements.apiKeysStatus.textContent = "Kaydediliyor...";
-            UIElements.apiKeysStatus.classList.remove('error', 'success');
-
-            const apiKey = UIElements.apiKeyInput.value.trim();
-            const apiSecret = UIElements.apiSecretInput.value.trim();
-
-            if (!apiKey || !apiSecret) {
-                UIElements.apiKeysStatus.textContent = "Lütfen hem API Key hem de API Secret girin.";
-                UIElements.apiKeysStatus.classList.add('error');
-                return;
-            }
-
-            UIActions.setLoadingState(true, UIElements.saveKeysButton);
-            const result = await fetchApi('/api/save-keys', { 
-                method: 'POST', 
-                body: JSON.stringify({ api_key: apiKey, api_secret: apiSecret }) 
-            });
-            
-            if (result && result.success) {
-                UIElements.apiKeysStatus.textContent = "API Anahtarları başarıyla kaydedildi!";
-                UIElements.apiKeysStatus.classList.add('success');
-                UIElements.apiKeyInput.value = ''; 
-                UIElements.apiSecretInput.value = '';
-                await UIActions.updateUserProfile(); 
-            } else {
-                UIElements.apiKeysStatus.textContent = result?.detail || "API Anahtarları kaydedilirken hata oluştu.";
-                UIElements.apiKeysStatus.classList.remove('success');
-                UIElements.apiKeysStatus.classList.add('error');
-            }
-            UIActions.setLoadingState(false, UIElements.saveKeysButton);
-        });
-
-        // Start Bot button click
-        UIElements.startButton.addEventListener('click', async () => {
-            const botSettings = {
-                symbol: UIElements.symbolInput.value.trim().toUpperCase(),
-                leverage: parseInt(UIElements.leverageInput.value, 10),
-                order_size: parseFloat(UIElements.orderSizeInput.value),
-                stop_loss: parseFloat(UIElements.slInput.value),
-                take_profit: parseFloat(UIElements.tpInput.value),
-                timeframe: "15m" // Varsayılan timeframe eklendi
-            };
-
-            // Basic validation (Updated to match backend's StartRequest model)
-            if (!botSettings.symbol || botSettings.symbol.length < 3) {
-                alert('Lütfen geçerli bir trading paritesi (örn: BTCUSDT) girin.');
-                return;
-            }
-            if (isNaN(botSettings.leverage) || botSettings.leverage < 1 || botSettings.leverage > 125) { // Updated to 125
-                alert('Kaldıraç 1 ile 125 arasında bir değer olmalıdır.');
-                return;
-            }
-            if (isNaN(botSettings.order_size) || botSettings.order_size < 10) { // Updated to 10
-                alert('İşlem büyüklüğü en az 10 USDT olmalıdır.');
-                return;
-            }
-            if (isNaN(botSettings.stop_loss) || botSettings.stop_loss <= 0) {
-                alert('Stop Loss yüzdesi pozitif bir değer olmalıdır.');
-                return;
-            }
-            if (isNaN(botSettings.take_profit) || botSettings.take_profit <= 0) {
-                alert('Take Profit yüzdesi pozitif bir değer olmalıdır.');
-                return;
-            }
-            if (botSettings.take_profit <= botSettings.stop_loss) {
-                alert('Take Profit yüzdesi Stop Loss yüzdesinden büyük olmalıdır.');
-                return;
-            }
-            
-            UIActions.setLoadingState(true, UIElements.startButton);
-            const result = await fetchApi('/api/start', { 
-                method: 'POST', 
-                body: JSON.stringify(botSettings) 
-            });
-            if (result && result.success) {
-                UIElements.statusMessage.textContent = "Bot başarıyla başlatıldı!";
-                UIElements.statusMessage.classList.remove('error');
-                UIElements.statusMessage.classList.add('success');
-            } else {
-                UIElements.statusMessage.textContent = result?.detail || "Bot başlatılırken bir hata oluştu.";
-                UIElements.statusMessage.classList.remove('success');
-                UIElements.statusMessage.classList.add('error');
-            }
-            await UIActions.updateBotStatus(); 
-            UIActions.setLoadingState(false, UIElements.startButton);
-        });
-
-        // Stop Bot button click
-        UIElements.stopButton.addEventListener('click', async () => { 
-            UIActions.setLoadingState(true, UIElements.stopButton);
-            const result = await fetchApi('/api/stop', { method: 'POST' }); 
-            if (result && result.success) {
-                UIElements.statusMessage.textContent = "Bot başarıyla durduruldu!";
-                UIElements.statusMessage.classList.remove('error');
-                UIElements.statusMessage.classList.add('success');
-            } else {
-                UIElements.statusMessage.textContent = result?.detail || "Bot durdurulurken bir hata oluştu.";
-                UIElements.statusMessage.classList.remove('success');
-                UIElements.statusMessage.classList.add('error');
-            }
-            await UIActions.updateBotStatus(); 
-            UIActions.setLoadingState(false, UIElements.stopButton);
-        });
-
-        // Pair Card click (to change symbol)
-        UIElements.pairCard.addEventListener('click', () => {
-            if (UIElements.symbolInput.disabled) { 
-                alert("Bot çalışırken parite değiştirilemez. Lütfen botu durdurun.");
-                return;
-            }
-            const newSymbol = prompt('Yeni parite girin (örn: ETHUSDT):', UIElements.symbolInput.value);
-            if (newSymbol && newSymbol.trim()) {
-                const formattedSymbol = newSymbol.trim().toUpperCase();
-                UIElements.symbolInput.value = formattedSymbol;
-                UIElements.pairSymbol.textContent = formattedSymbol;
-                UIActions.updatePairPrice(); 
-            }
-        });
-
-        // Copy to clipboard function
-        window.copyToClipboard = (elementId) => {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-
-            let textToCopy = element.textContent;
-            const tempTextArea = document.createElement('textarea');
-            tempTextArea.value = textToCopy;
-            document.body.appendChild(tempTextArea);
-            tempTextArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempTextArea);
-
-            const originalText = element.textContent;
-            element.textContent = 'Kopyalandı!';
-            setTimeout(() => {
-                element.textContent = originalText;
-            }, 1500);
-        };
-    }
-
-    /**
-     * Uygulamayı başlatan ana fonksiyon.
-     */
-    async function initializeApp() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/firebase-config`);
-            if (!response.ok) throw new Error('Firebase yapılandırması alınamadı.');
-            
-            const firebaseConfig = await response.json();
-            if (!firebaseConfig.apiKey) throw new Error('Sunucudan eksik Firebase yapılandırması alındı.');
-            
-            firebase.initializeApp(firebaseConfig);
-            firebaseServices.auth = firebase.auth();
-            firebaseServices.database = firebase.database(); 
-
-            // Kullanıcının oturum durumunu dinle
-            firebaseServices.auth.onAuthStateChanged(user => {
-                if (user) {
-                    UIActions.showAppScreen();
-                } else {
-                    UIActions.showAuthScreen();
+        if (UIElements.logoutButton) {
+            UIElements.logoutButton.addEventListener('click', async () => { 
+                try {
+                    await firebaseServices.auth.signOut(); 
+                } catch (error) {
+                    console.error("Çıkış yaparken hata:", error);
+                    alert("Çıkış yapılırken bir hata oluştu.");
                 }
             });
-
-            setupEventListeners();
-            UIActions.updatePairPrice(); 
-
-        } catch (error) {
-            console.error("Uygulama başlatılamadı:", error);
-            document.body.innerHTML = `<div style="color: #1A1A1A; text-align: center; padding: 2rem;">
-                                            <h1>Uygulama başlatılamadı.</h1>
-                                            <p>Lütfen daha sonra tekrar deneyin veya yönetici ile iletişime geçin.</p>
-                                            <p style="font-size: 0.8em; color: #666;">Hata Detayı: ${error.message}</p>
-                                        </div>`;
         }
-    }
+        
+        // Save API Keys button click
+        if (UIElements.saveKeysButton) {
+            UIElements.saveKeysButton.addEventListener('click', async () => {
+                const apiKey = UIElements.apiKeyInput?.value?.trim();
+                const apiSecret = UIElements.apiSecretInput?.value?.trim();
 
-    initializeApp();
-});
+                if (!apiKey || !apiSecret) {
+                    UIActions.showError(UIElements.apiKeysStatus, "Lütfen hem API Key hem de API Secret girin.");
+                    return;
+                }
+
+                UIActions.setLoadingState(true, UIElements.saveKeysButton);
+                const result = await fetchApi('/api/save-keys', { 
+                    method: 'POST', 
+                    body: JSON.stringify({ api_key: apiKey, api_secret: apiSecret }) 
+                });
+                
+                if (result && result.success) {
+                    UIActions.showSuccess(UIElements.apiKeysStatus, "API Anahtarları başarıyla kaydedildi!");
+                    if (UIElements.apiKeyInput) UIElements.apiKeyInput.value = ''; 
+                    if (UIElements.apiSecretInput) UIElements.apiSecretInput.value = '';
+                    await UIActions.updateUserProfile(); 
+                } else {
+                    UIActions.showError(UIElements.apiKeysStatus, result?.detail || "API Anahtarları kaydedilirken hata oluştu.");
+                }
+                UIActions.setLoadingState(false, UIElements.saveKeysButton);
+            });
+        }
+
+        // Start Bot button click
+        if (UIElements.startButton) {
+            UIElements.startButton.addEventListener('click', async () => {
+                const botSettings = {
+                    symbol: UIElements.symbolInput?.value?.trim()?.toUpperCase() || 'BTCUSDT',
+                    leverage: parseInt(UIElements.leverageInput?.value, 10) || 10,
+                    order_size: parseFloat(UIElements.orderSizeInput?.value) || 20,
+                    stop_loss: parseFloat(UIElements.slInput?.value) || 2,
+                    take_profit: parseFloat(UIElements.tpInput?.value) || 4,
+                    timeframe: "15m"
+                };
+
+                // Validation
+                if (!botSettings.symbol || botSettings.symbol.length < 3) {
+                    alert('Lütfen geçerli bir trading paritesi (örn: BTCUSDT) girin.');
+                    return;
+                }
+                if (isNaN(botSettings.leverage) || botSettings.leverage < 1 || botSettings.leverage > 125) {
+                    alert('Kaldıraç 1 ile 125 arasında bir değer olmalıdır.');
+                    return;
+                }
+                if (isNaN(botSettings.order_size) || botSettings.order_size < 10) {
+                    alert('İşlem büyüklüğü en az 10 USDT olmalıdır.');
+                    return;
+                }
+                if (isNaN(botSettings.stop_loss) || botSettings.stop_loss <= 0) {
+                    alert('Stop Loss yüzdesi pozitif bir değer olmalıdır.');
+                    return;
+                }
+                if (isNaN(botSettings.take_profit) || botSettings.take_profit <= 0) {
+                    alert('Take Profit yüzdesi pozitif bir değer olmalıdır.');
+                    return;
+                }
+                if (botSettings.take_profit <= botSettings.stop_loss) {
+                    alert('Take Profit yüzdesi Stop Loss yüzdesinden büyük olmalıdır.');
+                    return;
+                }
+                
+                UIActions.setLoadingState(true, UIElements.startButton);
+                const result = await fetchApi('/api/start', { 
+                    method: 'POST', 
+                    body: JSON.stringify(botSettings) 
+                });
+                
+                if (result && result.success) {
+                    if (UIElements.statusMessage) {
+                        UIElements.statusMessage.textContent = "Bot başarıyla başlatıldı!";
+                        UIElements.statusMessage.classList.remove('error');
+                        UIElements.statusMessage.classList.add('success');
+                    }
+                } else {
+                    if (UIElements.statusMessage) {
+                        UIElements.statusMessage.textContent = result?.detail || "Bot başlatılırken bir hata oluştu.";
+                        UIElements.statusMessage.classList.remove('success');
+                        UIElements.statusMessage.classList.add('error');
+                    }
+                }
+                await UIActions.updateBotStatus(); 
+                UIActions.setLoadingState(false, UIElements.startButton);
+            });
+        }
+
+        // Stop Bot button click
+        if (UIElements.stopButton) {
+            UIElements.
