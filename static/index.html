@@ -3,7 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>EzyagoTrading - Profesyonel Trading Bot</title>
+    <title>EzyagoTrading - Profesyonel Kripto Trading Bot | Futures Trading</title>
+    <meta name="description" content="Profesyonel kripto para futures trading botu. Binance API entegrasyonu ile otomatik trading. Risk yönetimi ve kar hedefleri ile güvenli trading.">
+    <meta name="keywords" content="kripto trading bot, futures trading, binance bot, otomatik trading, cryptocurrency, bitcoin trading">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="EzyagoTrading">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="EzyagoTrading - Profesyonel Kripto Trading Bot">
+    <meta property="og:description" content="Binance futures trading için profesyonel bot sistemi. Risk yönetimi ile güvenli otomatik trading.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ezyagotrading.com">
+    
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +22,38 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Risk Uyarısı Modal -->
+    <div id="risk-warning-modal" class="risk-modal" style="display: none;">
+        <div class="risk-modal-content">
+            <div class="risk-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2>Önemli Risk Uyarısı</h2>
+            </div>
+            <div class="risk-body">
+                <h3>⚠️ Finansal Risk Bildirimi</h3>
+                <ul>
+                    <li><strong>Yüksek Risk:</strong> Kripto para futures trading son derece risklidir ve tüm sermayenizi kaybedebilirsiniz.</li>
+                    <li><strong>Kaldıraç Riski:</strong> Kaldıraçlı işlemler kazançları artırırken kayıpları da artırır.</li>
+                    <li><strong>Volatilite:</strong> Kripto piyasaları 7/24 çok volatildir ve ani fiyat değişimleri yaşanabilir.</li>
+                    <li><strong>Bot Riski:</strong> Otomatik trading botları garanti kar vermez ve teknik arızalar olabilir.</li>
+                    <li><strong>Sadece Risk Edebileceğiniz Parayı Kullanın:</strong> Temel ihtiyaçlarınız için gerekli parayı asla riske atmayın.</li>
+                </ul>
+                <div class="risk-disclaimer">
+                    <p><strong>Bu platform finansal tavsiye vermez.</strong> Tüm yatırım kararları size aittir. Trading yapmadan önce riskleri anlayın ve gerekirse uzman görüşü alın.</p>
+                </div>
+            </div>
+            <div class="risk-footer">
+                <label class="risk-checkbox">
+                    <input type="checkbox" id="risk-understood">
+                    <span>Riskleri anladım ve kabul ediyorum</span>
+                </label>
+                <button id="accept-risk-btn" class="btn btn-danger" disabled>
+                    <i class="fas fa-check"></i> Anladım, Devam Et
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="auth-container" class="auth-wrapper flex items-center justify-center min-h-screen">
         <div class="container">
             <div id="login-card" class="auth-card fade-in">
@@ -24,7 +67,9 @@
                         <label for="login-password" class="form-label"><i class="fas fa-lock"></i> Şifre</label>
                         <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
                     </div>
-                    <button id="login-button" type="button" class="btn btn-primary w-full"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
+                    <button id="login-button" type="button" class="btn btn-primary w-full">
+                        <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                    </button>
                 </form>
                 <p id="login-error" class="status-message error mt-4" style="display: none;"></p>
                 <p class="toggle-form-text">Hesabın yok mu? <a href="#" id="show-register-link">Kayıt Ol</a></p>
@@ -41,7 +86,9 @@
                         <label for="register-password" class="form-label"><i class="fas fa-lock"></i> Şifre</label>
                         <input type="password" id="register-password" class="form-input" placeholder="En az 6 karakter" required>
                     </div>
-                    <button id="register-button" type="button" class="btn btn-primary w-full"><i class="fas fa-user-plus"></i> Kayıt Ol</button>
+                    <button id="register-button" type="button" class="btn btn-primary w-full">
+                        <i class="fas fa-user-plus"></i> Kayıt Ol
+                    </button>
                 </form>
                 <p id="register-error" class="status-message error mt-4" style="display: none;"></p>
                 <p class="toggle-form-text">Zaten hesabın var mı? <a href="#" id="show-login-link">Giriş Yap</a></p>
@@ -60,7 +107,7 @@
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-page="bot-page">
                     <i class="fas fa-robot"></i>
-                    Bot Dashboard
+                    Futures Bot
                 </button>
                 <button class="nav-item" data-page="api-page">
                     <i class="fas fa-key"></i>
@@ -70,14 +117,22 @@
                     <i class="fas fa-cog"></i>
                     Ayarlar
                 </button>
+                <button class="nav-item" data-page="education-page">
+                    <i class="fas fa-graduation-cap"></i>
+                    Eğitim
+                </button>
             </nav>
         </aside>
 
         <main class="main-content">
             <div id="bot-page" class="page active">
                 <div class="main-header">
-                    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Trading Dashboard</h1>
-                    <p class="page-subtitle">Bot kontrol merkeziniz ve trading analizi</p>
+                    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Futures Trading Dashboard</h1>
+                    <p class="page-subtitle">Binance Futures otomatik trading bot kontrol merkeziniz</p>
+                    <div class="risk-banner">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Yüksek riskli trading - Sadece kaybetmeyi göze alabileceğiniz para ile işlem yapın</span>
+                    </div>
                 </div>
                 
                 <div class="main-body">
@@ -87,7 +142,7 @@
                                 <div class="card-header">
                                     <div>
                                         <h3 class="card-title"><i class="fas fa-coins"></i> Trading Çifti</h3>
-                                        <p class="card-subtitle">Aktif parite seçimi</p>
+                                        <p class="card-subtitle">Aktif futures paritesi - Değiştirmek için tıklayın</p>
                                     </div>
                                 </div>
                                 <div class="pair-display">
@@ -100,15 +155,19 @@
                             <div class="card">
                                 <div class="card-header">
                                     <div>
-                                        <h3 class="card-title"><i class="fas fa-sliders-h"></i> Kaldıraç</h3>
-                                        <p class="card-subtitle">Risk seviyenizi ayarlayın</p>
+                                        <h3 class="card-title"><i class="fas fa-sliders-h"></i> Kaldıraç Oranı</h3>
+                                        <p class="card-subtitle">Risk seviyenizi belirler (1x-125x)</p>
                                     </div>
                                     <div class="leverage-value" id="leverage-value">10x</div>
                                 </div>
-                                <input type="range" id="leverage-input" class="leverage-slider" min="1" max="25" value="10">
+                                <input type="range" id="leverage-input" class="leverage-slider" min="1" max="125" value="10">
                                 <div class="leverage-marks">
-                                    <span>1x</span>
-                                    <span>25x</span>
+                                    <span>1x (Düşük Risk)</span>
+                                    <span>125x (Çok Yüksek Risk)</span>
+                                </div>
+                                <div class="risk-warning-small">
+                                    <i class="fas fa-info-circle"></i>
+                                    Yüksek kaldıraç = Yüksek risk
                                 </div>
                             </div>
 
@@ -116,12 +175,28 @@
                                 <div class="card-header">
                                     <div>
                                         <h3 class="card-title"><i class="fas fa-dollar-sign"></i> İşlem Büyüklüğü</h3>
-                                        <p class="card-subtitle">USDT cinsinden</p>
+                                        <p class="card-subtitle">USDT cinsinden pozisyon büyüklüğü</p>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <input type="number" id="order-size-input" class="form-input text-center text-xl font-bold" value="20" min="20" placeholder="20">
+                                    <input type="number" id="order-size-input" class="form-input text-center text-xl font-bold" value="20" min="10" step="5" placeholder="Minimum 10 USDT">
                                 </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3 class="card-title"><i class="fas fa-clock"></i> Zaman Dilimi</h3>
+                                        <p class="card-subtitle">Analiz zaman çerçevesi</p>
+                                    </div>
+                                </div>
+                                <select id="timeframe-select" class="form-input">
+                                    <option value="5m">5 Dakika</option>
+                                    <option value="15m" selected>15 Dakika</option>
+                                    <option value="30m">30 Dakika</option>
+                                    <option value="1h">1 Saat</option>
+                                    <option value="4h">4 Saat</option>
+                                </select>
                             </div>
                         </div>
 
@@ -129,41 +204,74 @@
                             <div class="card">
                                 <div class="card-header">
                                     <div>
-                                        <h3 class="card-title"><i class="fas fa-target"></i> Kar/Zarar Oranları</h3>
-                                        <p class="card-subtitle">TP ve SL yüzde değerleri</p>
+                                        <h3 class="card-title"><i class="fas fa-target"></i> Kar/Zarar Hedefleri</h3>
+                                        <p class="card-subtitle">Take Profit ve Stop Loss yüzdeleri</p>
                                     </div>
                                 </div>
                                 <div class="tp-sl-grid">
                                     <div class="tp-sl-item">
-                                        <label class="form-label text-success"><i class="fas fa-arrow-up"></i> Take Profit %</label>
-                                        <input type="number" id="tp-input" class="form-input tp-sl-input tp text-success" value="4" min="0.1" step="0.1">
+                                        <label class="form-label text-success">
+                                            <i class="fas fa-arrow-up"></i> Take Profit %
+                                        </label>
+                                        <input type="number" id="tp-input" class="form-input tp-sl-input tp text-success" 
+                                               value="4" min="0.1" step="0.1" max="50">
                                     </div>
                                     <div class="tp-sl-item">
-                                        <label class="form-label text-danger"><i class="fas fa-arrow-down"></i> Stop Loss %</label>
-                                        <input type="number" id="sl-input" class="form-input tp-sl-input sl text-danger" value="2" min="0.1" step="0.1">
+                                        <label class="form-label text-danger">
+                                            <i class="fas fa-arrow-down"></i> Stop Loss %
+                                        </label>
+                                        <input type="number" id="sl-input" class="form-input tp-sl-input sl text-danger" 
+                                               value="2" min="0.1" step="0.1" max="25">
                                     </div>
+                                </div>
+                                <div class="tp-sl-info">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb"></i>
+                                        Öneri: TP/SL oranı 2:1 olmalı (TP=4%, SL=2%)
+                                    </small>
                                 </div>
                             </div>
 
                             <div class="card">
                                 <div class="card-header">
                                     <div>
-                                        <h3 class="card-title"><i class="fas fa-chart-bar"></i> Piyasa Analizi</h3>
-                                        <p class="card-subtitle">Real-time market data</p>
+                                        <h3 class="card-title"><i class="fas fa-chart-candlestick"></i> Canlı Grafik Analizi</h3>
+                                        <p class="card-subtitle">Real-time futures market data</p>
                                     </div>
                                     <div class="market-status">
                                         <span class="status-indicator active"></span>
                                         <span class="text-sm text-success">LIVE</span>
                                     </div>
                                 </div>
-                                <div class="analysis-chart" id="analysis-chart-container"></div>
+                                <div class="analysis-chart" id="analysis-chart-container">
+                                    <div class="chart-loading">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <span>Grafik yükleniyor...</span>
+                                    </div>
+                                </div>
+                                <div class="chart-info">
+                                    <div class="chart-stats">
+                                        <div class="stat-small success">
+                                            <span class="stat-label">Yeşil Mumlar</span>
+                                            <span class="stat-value" id="green-candles">0</span>
+                                        </div>
+                                        <div class="stat-small danger">
+                                            <span class="stat-label">Kırmızı Mumlar</span>
+                                            <span class="stat-value" id="red-candles">0</span>
+                                        </div>
+                                        <div class="stat-small primary">
+                                            <span class="stat-label">Trend</span>
+                                            <span class="stat-value" id="trend-direction">Analiz ediliyor</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="card">
                                 <div class="card-header">
                                     <div>
-                                        <h3 class="card-title"><i class="fas fa-power-off"></i> Bot Kontrolü</h3>
-                                        <p class="card-subtitle">Otomatik trading sistemi</p>
+                                        <h3 class="card-title"><i class="fas fa-robot"></i> Bot Kontrolü</h3>
+                                        <p class="card-subtitle">Otomatik futures trading sistemi</p>
                                     </div>
                                     <div class="bot-status">
                                         <span class="status-indicator inactive" id="bot-status-indicator"></span>
@@ -172,16 +280,30 @@
                                 </div>
                                 <div class="status-message" id="status-message">
                                     <i class="fas fa-info-circle"></i>
-                                    Bot başlatılmadı. API anahtarlarınızı kontrol edin.
+                                    Bot hazır değil. API anahtarlarınızı ve aboneliğinizi kontrol edin.
+                                </div>
+                                <div class="bot-requirements" id="bot-requirements" style="display: none;">
+                                    <h4>Bot Başlatma Gereksinimleri:</h4>
+                                    <ul>
+                                        <li id="req-api" class="requirement-item">
+                                            <i class="fas fa-times text-danger"></i> Binance API anahtarları
+                                        </li>
+                                        <li id="req-subscription" class="requirement-item">
+                                            <i class="fas fa-times text-danger"></i> Aktif abonelik
+                                        </li>
+                                        <li id="req-settings" class="requirement-item">
+                                            <i class="fas fa-times text-danger"></i> Geçerli ayarlar
+                                        </li>
+                                    </ul>
                                 </div>
                                 <div class="control-buttons">
                                     <button id="start-button" class="btn btn-success flex-1" disabled>
                                         <i class="fas fa-play"></i>
-                                        Başlat
+                                        Botu Başlat
                                     </button>
                                     <button id="stop-button" class="btn btn-danger flex-1" disabled>
                                         <i class="fas fa-stop"></i>
-                                        Durdur
+                                        Botu Durdur
                                     </button>
                                 </div>
                             </div>
@@ -192,8 +314,8 @@
 
             <div id="api-page" class="page">
                 <div class="main-header">
-                    <h1 class="page-title"><i class="fas fa-key"></i> API Anahtarları</h1>
-                    <p class="page-subtitle">Binance API ayarlarınızı güvenli şekilde yönetin</p>
+                    <h1 class="page-title"><i class="fas fa-key"></i> Binance API Anahtarları</h1>
+                    <p class="page-subtitle">Futures trading için Binance API konfigürasyonu</p>
                 </div>
                 
                 <div class="main-body">
@@ -201,13 +323,17 @@
                         <div class="card">
                             <div class="card-header">
                                 <div>
-                                    <h3 class="card-title"><i class="fab fa-bitcoin"></i> Binance API Konfigürasyonu</h3>
-                                    <p class="card-subtitle">Trading için gerekli API bilgileri</p>
+                                    <h3 class="card-title"><i class="fab fa-bitcoin"></i> API Konfigürasyonu</h3>
+                                    <p class="card-subtitle">Futures trading yetkili API anahtarları</p>
                                 </div>
                                 <div class="api-status">
                                     <span class="status-indicator inactive" id="api-status-indicator"></span>
                                     <span class="text-sm text-muted" id="api-status-text">NOT CONFIGURED</span>
                                 </div>
+                            </div>
+                            <div class="api-warning">
+                                <i class="fas fa-shield-alt"></i>
+                                <p>API anahtarlarınız şifrelenerek güvenli şekilde saklanır. Sadece futures trading yetkisi verin.</p>
                             </div>
                             <div class="form-group">
                                 <label for="api-key-input" class="form-label"><i class="fas fa-key"></i> API Key</label>
@@ -217,21 +343,23 @@
                                 <label for="api-secret-input" class="form-label"><i class="fas fa-lock"></i> API Secret</label>
                                 <input type="password" id="api-secret-input" class="form-input" placeholder="Binance API Secret'ınızı buraya yapıştırın">
                             </div>
-                            <button id="save-keys-button" class="btn btn-primary w-full"><i class="fas fa-save"></i> Anahtarları Kaydet</button>
+                            <button id="save-keys-button" class="btn btn-primary w-full">
+                                <i class="fas fa-save"></i> Anahtarları Güvenli Kaydet
+                            </button>
                             <p id="api-keys-status" class="status-message mt-4" style="display: none;"></p>
                         </div>
 
                         <div class="card">
                             <div class="card-header">
                                 <div>
-                                    <h3 class="card-title"><i class="fas fa-shield-alt"></i> Güvenlik Ayarları</h3>
-                                    <p class="card-subtitle">Binance'e eklenecek güvenilir IP adresleri</p>
+                                    <h3 class="card-title"><i class="fas fa-shield-alt"></i> IP Whitelist</h3>
+                                    <p class="card-subtitle">Binance API güvenlik ayarları</p>
                                 </div>
                             </div>
                             <div class="ip-info">
                                 <p class="text-secondary mb-4">
                                     <i class="fas fa-info-circle"></i>
-                                    Aşağıdaki IP adreslerini Binance API ayarlarınızda beyaz listeye eklemeniz gerekmektedir.
+                                    Aşağıdaki IP adreslerini Binance API ayarlarınızda beyaz listeye ekleyin.
                                 </p>
                                 <div class="ip-list" id="ip-list">
                                     <div class="ip-item loading">
@@ -245,8 +373,8 @@
                         <div class="card">
                             <div class="card-header">
                                 <div>
-                                    <h3 class="card-title"><i class="fas fa-question-circle"></i> Kurulum Rehberi</h3>
-                                    <p class="card-subtitle">Adım adım API kurulum talimatları</p>
+                                    <h3 class="card-title"><i class="fas fa-question-circle"></i> API Kurulum Rehberi</h3>
+                                    <p class="card-subtitle">Adım adım Binance API kurulumu</p>
                                 </div>
                             </div>
                             <div class="guide-steps">
@@ -254,28 +382,28 @@
                                     <div class="step-number">1</div>
                                     <div class="step-content">
                                         <h4>Binance hesabınıza giriş yapın</h4>
-                                        <p>Binance.com adresinden hesabınızla giriş yapın</p>
+                                        <p>Binance.com adresinden futures trading hesabınızla giriş yapın</p>
                                     </div>
                                 </div>
                                 <div class="guide-step">
                                     <div class="step-number">2</div>
                                     <div class="step-content">
                                         <h4>API Management sayfasına gidin</h4>
-                                        <p>Profil menüsünden "API Management" seçeneğini seçin</p>
+                                        <p>Profil → API Management → Create API</p>
                                     </div>
                                 </div>
                                 <div class="guide-step">
                                     <div class="step-number">3</div>
                                     <div class="step-content">
-                                        <h4>Yeni API key oluşturun</h4>
-                                        <p>"Create API" butonuna tıklayıp futures trading yetkisi verin</p>
+                                        <h4>Futures trading yetkisi verin</h4>
+                                        <p>"Enable Futures" seçeneğini aktif edin, "Enable Reading" ve "Enable Spot & Margin Trading" kapalı kalabilir</p>
                                     </div>
                                 </div>
                                 <div class="guide-step">
                                     <div class="step-number">4</div>
                                     <div class="step-content">
-                                        <h4>IP adreslerini ekleyin</h4>
-                                        <p>Yukarıdaki IP adreslerini API ayarlarınızda beyaz listeye ekleyin</p>
+                                        <h4>IP kısıtlaması ekleyin</h4>
+                                        <p>Yukarıdaki IP adreslerini API ayarlarınızda whitelist'e ekleyin</p>
                                     </div>
                                 </div>
                             </div>
@@ -286,8 +414,8 @@
 
             <div id="settings-page" class="page">
                 <div class="main-header">
-                    <h1 class="page-title"><i class="fas fa-cog"></i> Ayarlar</h1>
-                    <p class="page-subtitle">Hesap bilgileri ve abonelik yönetimi</p>
+                    <h1 class="page-title"><i class="fas fa-cog"></i> Hesap Ayarları</h1>
+                    <p class="page-subtitle">Profil bilgileri ve abonelik yönetimi</p>
                 </div>
                 
                 <div class="main-body">
@@ -297,8 +425,8 @@
                                 <div>
                                     <h3 class="card-title"><i class="fas fa-user"></i> Profil Bilgileri</h3>
                                     <p class="card-subtitle">Hesap ve üyelik detayları</p>
-                                    </div>
                                 </div>
+                            </div>
                             <div class="profile-info">
                                 <div class="profile-item">
                                     <span class="profile-label"><i class="fas fa-envelope"></i> E-posta</span>
@@ -325,7 +453,7 @@
                             <div class="card-header">
                                 <div>
                                     <h3 class="card-title"><i class="fas fa-credit-card"></i> Abonelik Yenileme</h3>
-                                    <p class="card-subtitle">Ödeme bilgileri ve yenileme</p>
+                                    <p class="card-subtitle">Monthly subscription - 15 USDT</p>
                                 </div>
                             </div>
                             <div class="payment-details">
@@ -352,36 +480,36 @@
                         <div class="card">
                             <div class="card-header">
                                 <div>
-                                    <h3 class="card-title"><i class="fas fa-chart-pie"></i> İstatistikler</h3>
-                                    <p class="card-subtitle">Trading performans özeti</p>
+                                    <h3 class="card-title"><i class="fas fa-chart-pie"></i> Trading İstatistikleri</h3>
+                                    <p class="card-subtitle">Performans özeti (beta)</p>
                                 </div>
                             </div>
                             <div class="stats-grid">
                                 <div class="stat-item">
-                                    <div class="stat-icon success"><i class="fas fa-arrow-up"></i></div>
+                                    <div class="stat-icon success"><i class="fas fa-exchange-alt"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-value">0</div>
+                                        <div class="stat-value" id="total-trades">0</div>
                                         <div class="stat-label">Toplam İşlem</div>
                                     </div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-icon warning"><i class="fas fa-percentage"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-value">0%</div>
+                                        <div class="stat-value" id="win-rate">0%</div>
                                         <div class="stat-label">Başarı Oranı</div>
                                     </div>
                                 </div>
                                 <div class="stat-item">
-                                    <div class="stat-icon primary"><i class="fas fa-dollar-sign"></i></div>
+                                    <div class="stat-icon primary"><i class="fas fa-chart-line"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-value">$0.00</div>
-                                        <div class="stat-label">Toplam Kar/Zarar</div>
+                                        <div class="stat-value" id="total-pnl">$0.00</div>
+                                        <div class="stat-label">Toplam P&L</div>
                                     </div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-icon danger"><i class="fas fa-clock"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-value">0h</div>
+                                        <div class="stat-value" id="uptime">0h</div>
                                         <div class="stat-label">Aktif Süre</div>
                                     </div>
                                 </div>
@@ -396,9 +524,134 @@
                                 </div>
                             </div>
                             <div class="account-actions">
-                                <button class="btn btn-outline w-full mb-4"><i class="fas fa-key"></i> Şifre Değiştir</button>
-                                <button class="btn btn-outline w-full mb-4"><i class="fas fa-download"></i> İşlem Geçmişini İndir</button>
-                                <button id="logout-button" class="btn btn-danger w-full"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button>
+                                <button class="btn btn-outline w-full mb-4">
+                                    <i class="fas fa-key"></i> Şifre Değiştir
+                                </button>
+                                <button class="btn btn-outline w-full mb-4">
+                                    <i class="fas fa-download"></i> Trading Geçmişini İndir
+                                </button>
+                                <button id="logout-button" class="btn btn-danger w-full">
+                                    <i class="fas fa-sign-out-alt"></i> Güvenli Çıkış
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="education-page" class="page">
+                <div class="main-header">
+                    <h1 class="page-title"><i class="fas fa-graduation-cap"></i> Trading Eğitimi</h1>
+                    <p class="page-subtitle">Futures trading ve risk yönetimi rehberi</p>
+                </div>
+                
+                <div class="main-body">
+                    <div class="education-content">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Risk Yönetimi</h3>
+                                    <p class="card-subtitle">Trading'de hayatta kalmanın anahtarı</p>
+                                </div>
+                            </div>
+                            <div class="education-section">
+                                <h4>🚨 Kritik Risk Faktörleri</h4>
+                                <ul class="education-list">
+                                    <li><strong>Kaldıraç Riski:</strong> 10x kaldıraç = %10 ters hareket = %100 zarar</li>
+                                    <li><strong>Likidite Riski:</strong> Düşük hacimli coinlerde slippage yüksek olabilir</li>
+                                    <li><strong>Volatilite:</strong> Kripto piyasası 7/24 çok volatil, gap'ler oluşabilir</li>
+                                    <li><strong>Teknik Risk:</strong> Internet kesintisi, API hataları, sistem arızaları</li>
+                                </ul>
+                                
+                                <h4>📊 Pozisyon Büyüklüğü Hesaplaması</h4>
+                                <div class="calculation-example">
+                                    <p><strong>Örnek:</strong> 1000 USDT sermaye, %1 risk limiti</p>
+                                    <p>Risk edilecek miktar: 1000 × 0.01 = 10 USDT</p>
+                                    <p>%2 SL ile maksimum pozisyon: 10 ÷ 0.02 = 500 USDT</p>
+                                    <p>10x kaldıraçla: 500 ÷ 10 = 50 USDT margin gerekli</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-chart-line"></i> Futures Trading Temelleri</h3>
+                                    <p class="card-subtitle">Temel kavramlar ve stratejiler</p>
+                                </div>
+                            </div>
+                            <div class="education-section">
+                                <h4>🎯 Long vs Short Pozisyonlar</h4>
+                                <div class="concept-grid">
+                                    <div class="concept-item success">
+                                        <h5><i class="fas fa-arrow-up"></i> Long Pozisyon</h5>
+                                        <p>Fiyat artışından kar etme. "Al" emri ile açılır.</p>
+                                    </div>
+                                    <div class="concept-item danger">
+                                        <h5><i class="fas fa-arrow-down"></i> Short Pozisyon</h5>
+                                        <p>Fiyat düşüşünden kar etme. "Sat" emri ile açılır.</p>
+                                    </div>
+                                </div>
+                                
+                                <h4>⚖️ Take Profit & Stop Loss</h4>
+                                <ul class="education-list">
+                                    <li><strong>Take Profit (TP):</strong> Kar hedefi - örn %4 kazançta pozisyon kapat</li>
+                                    <li><strong>Stop Loss (SL):</strong> Zarar limiti - örn %2 kayıpta pozisyon kapat</li>
+                                    <li><strong>Risk/Reward Oranı:</strong> İdeal oran 1:2 (1 birim risk, 2 birim kar)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-brain"></i> Psikolojik Trading</h3>
+                                    <p class="card-subtitle">Duygusal kontrol ve disiplin</p>
+                                </div>
+                            </div>
+                            <div class="education-section">
+                                <h4>🧠 Trading Psikolojisi</h4>
+                                <ul class="education-list">
+                                    <li><strong>FOMO (Fear of Missing Out):</strong> Kaçırma korkusu ile aceleci kararlar almayın</li>
+                                    <li><strong>Revenge Trading:</strong> Zarar sonrası intikam almaya çalışmayın</li>
+                                    <li><strong>Overtrading:</strong> Çok fazla işlem yapmak zararlıdır</li>
+                                    <li><strong>Risk Yönetimi:</strong> Her işlemde maksimum %1-2 risk alın</li>
+                                </ul>
+                                
+                                <div class="psychology-tips">
+                                    <h5>💡 Bot Kullanım Önerileri</h5>
+                                    <p>• Bot ayarlarını sık sık değiştirmeyin</p>
+                                    <p>• Kayıp pozisyonlarda botu durdurmayın</p>
+                                    <p>• Düşük kaldıraçla başlayın (1x-5x)</p>
+                                    <p>• Demo hesapta test edin</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title"><i class="fas fa-gavel"></i> Yasal Uyarılar</h3>
+                                    <p class="card-subtitle">Önemli hukuki bildirimler</p>
+                                </div>
+                            </div>
+                            <div class="legal-section">
+                                <div class="legal-warning">
+                                    <h4>⚖️ Yasal Sorumluluk</h4>
+                                    <ul>
+                                        <li>Bu platform sadece araç sağlar, finansal tavsiye vermez</li>
+                                        <li>Tüm trading kararları ve sonuçları size aittir</li>
+                                        <li>Yerel kripto trading yasalarına uygunluk sizin sorumluluğunuzdadır</li>
+                                        <li>18 yaş altı kullanıcılar için uygun değildir</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="disclaimer">
+                                    <h4>📋 Sorumluluk Reddi</h4>
+                                    <p>Kripto para futures trading yüksek risklidir. Değer dalgalanmaları %50'yi aşabilir. 
+                                    Sadece kaybetmeyi göze alabileceğiniz para ile işlem yapın. Geçmiş performans 
+                                    gelecek sonuçların garantisi değildir.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -421,6 +674,10 @@
                 <i class="fas fa-cog"></i>
                 <span>Ayarlar</span>
             </button>
+            <button class="mobile-nav-item" data-page="education-page">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Eğitim</span>
+            </button>
         </div>
     </nav>
 
@@ -428,5 +685,36 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="/static/script.js"></script>
+
+    <script>
+        // Risk modal kontrolü
+        document.addEventListener('DOMContentLoaded', () => {
+            const riskModal = document.getElementById('risk-warning-modal');
+            const riskCheckbox = document.getElementById('risk-understood');
+            const acceptBtn = document.getElementById('accept-risk-btn');
+            
+            // Risk kabul edilmiş mi kontrol et
+            const riskAccepted = localStorage.getItem('riskAccepted');
+            
+            if (!riskAccepted) {
+                setTimeout(() => {
+                    if (riskModal) riskModal.style.display = 'flex';
+                }, 2000);
+            }
+
+            if (riskCheckbox) {
+                riskCheckbox.addEventListener('change', (e) => {
+                    if (acceptBtn) acceptBtn.disabled = !e.target.checked;
+                });
+            }
+
+            if (acceptBtn) {
+                acceptBtn.addEventListener('click', () => {
+                    localStorage.setItem('riskAccepted', 'true');
+                    if (riskModal) riskModal.style.display = 'none';
+                });
+            }
+        });
+    </script>
 </body>
 </html>
