@@ -58,6 +58,17 @@ document.addEventListener('DOMContentLoaded', () => {
         paymentInfoDiv: document.getElementById('payment-info'),
         paymentAddressCode: document.getElementById('payment-address'),
         logoutButton: document.getElementById('logout-button'),
+        
+        // New elements
+        timeframeSelect: document.getElementById('timeframe-select'),
+        botRequirements: document.getElementById('bot-requirements'),
+        greenCandlesSpan: document.getElementById('green-candles'),
+        redCandlesSpan: document.getElementById('red-candles'),
+        trendDirectionSpan: document.getElementById('trend-direction'),
+        totalTradesSpan: document.getElementById('total-trades'),
+        winRateSpan: document.getElementById('win-rate'),
+        totalPnlSpan: document.getElementById('total-pnl'),
+        uptimeSpan: document.getElementById('uptime'),
     };
 
     // Global variables
@@ -283,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 chartWebSocket = null;
             }
 
-            UIElements.chartContainer.innerHTML = '';
+            UIElements.chartContainer.innerHTML = '<div class="chart-loading"><i class="fas fa-spinner fa-spin"></i><span>Grafik yükleniyor...</span></div>';
             
             // Kline data için WebSocket bağlantısı
             const symbol = userSettings.symbol.toLowerCase();
@@ -293,6 +304,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 chartWebSocket = new WebSocket(`${WEBSOCKET_URL}${symbol}@kline_${timeframe}`);
                 
                 let candleData = [];
+                let greenCount = 0;
+                let redCount = 0;
+                
+                chartWebSocket.onopen = () => {
+                    console.log(`Chart WebSocket bağlandı: ${symbol} ${timeframe}`);
+                };
                 
                 chartWebSocket.onmessage = (event) => {
                     try {
@@ -301,16 +318,22 @@ document.addEventListener('DOMContentLoaded', () => {
                             const kline = data.k;
                             const open = parseFloat(kline.o);
                             const close = parseFloat(kline.c);
+                            const high = parseFloat(kline.h);
+                            const low = parseFloat(kline.l);
                             const isGreen = close >= open;
                             
-                            // Son 30 mumu göster
+                            // Son 30 mumu sakla
                             if (candleData.length >= 30) {
-                                candleData.shift();
+                                const removed = candleData.shift();
+                                if (removed.isGreen) greenCount--; else redCount--;
                             }
-                            candleData.push({ open, close, isGreen });
                             
-                            // Chart'ı güncelle
+                            candleData.push({ open, close, high, low, isGreen });
+                            if (isGreen) greenCount++; else redCount++;
+                            
+                            // Chart ve istatistikleri güncelle
                             UIActions.updateChartDisplay(candleData);
+                            UIActions.updateChartStats(greenCount, redCount, candleData);
                         }
                     } catch (e) {
                         console.error("Chart WebSocket parse hatası:", e);
@@ -322,6 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     UIActions.generateStaticChart(); // Fallback
                 };
                 
+                chartWebSocket.onclose = () => {
+                    console.log('Chart WebSocket bağlantısı kapandı');
+                };
+                
             } catch (error) {
                 console.error("Chart WebSocket oluşturma hatası:", error);
                 UIActions.generateStaticChart(); // Fallback
@@ -329,18 +356,54 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         updateChartDisplay: (candleData) => {
-            if (!UIElements.chartContainer) return;
+            if (!UIElements.chartContainer || !candleData.length) return;
             
             UIElements.chartContainer.innerHTML = '';
+            
+            // Fiyat aralığını hesapla
+            const allPrices = candleData.flatMap(c => [c.high, c.low]);
+            const minPrice = Math.min(...allPrices);
+            const maxPrice = Math.max(...allPrices);
+            const priceRange = maxPrice - minPrice;
             
             candleData.forEach(candle => {
                 const bar = document.createElement('div');
                 bar.classList.add('chart-bar');
+                
+                // Mumun yüksekliğini fiyat aralığına göre hesapla
+                const bodySize = Math.abs(candle.close - candle.open);
+                const bodyHeight = priceRange > 0 ? (bodySize / priceRange) * 70 + 10 : 30;
+                
                 bar.style.backgroundColor = candle.isGreen ? 'var(--success-color)' : 'var(--danger-color)';
-                bar.style.height = `${Math.random() * 70 + 20}%`;
+                bar.style.height = `${Math.min(bodyHeight, 90)}%`;
                 bar.style.flex = '1';
+                bar.title = `O: ${candle.open.toFixed(4)} H: ${candle.high.toFixed(4)} L: ${candle.low.toFixed(4)} C: ${candle.close.toFixed(4)}`;
+                
                 UIElements.chartContainer.appendChild(bar);
             });
+        },
+
+        updateChartStats: (greenCount, redCount, candleData) => {
+            if (UIElements.greenCandlesSpan) {
+                UIElements.greenCandlesSpan.textContent = greenCount;
+            }
+            if (UIElements.redCandlesSpan) {
+                UIElements.redCandlesSpan.textContent = redCount;
+            }
+            
+            // Trend analizi
+            if (UIElements.trendDirectionSpan && candleData.length >= 5) {
+                const recent = candleData.slice(-5);
+                const upTrend = recent.filter(c => c.isGreen).length;
+                let trend = 'Nötr';
+                
+                if (upTrend >= 4) trend = 'Boğa';
+                else if (upTrend <= 1) trend = 'Ayı';
+                
+                UIElements.trendDirectionSpan.textContent = trend;
+                UIElements.trendDirectionSpan.className = 'stat-value ' + 
+                    (trend === 'Boğa' ? 'text-success' : trend === 'Ayı' ? 'text-danger' : 'text-muted');
+            }
         },
 
         generateStaticChart: () => {
@@ -403,6 +466,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         : '<div class="ip-item loading">IP adresi bulunamadı.</div>';
                 }
 
+                // Bot gereksinimleri kontrolü
+                UIActions.updateBotRequirements(profile);
+
                 // Bot başlatma durumunu kontrol et
                 const canStart = UIActions.validateBotSettings(profile);
                 const isBotRunning = UIElements.botStatusText?.textContent === 'ONLINE';
@@ -413,9 +479,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // API durumunu güncelle
                 UIActions.updateApiStatus(profile.has_api_keys);
+
+                // Trading stats güncelle (eğer mevcut ise)
+                if (profile.stats) {
+                    UIActions.updateTradingStats(profile.stats);
+                }
                 
             } catch (error) {
                 console.error("Profil güncelleme hatası:", error);
+            }
+        },
+
+        updateBotRequirements: (profile) => {
+            if (!UIElements.botRequirements) return;
+
+            const hasApiKeys = profile?.has_api_keys;
+            const hasValidSubscription = profile && ['active', 'trial'].includes(profile.subscription_status);
+            const hasValidSettings = UIActions.validateBotSettings(profile);
+
+            // Requirements listesini güncelle
+            const reqApi = document.getElementById('req-api');
+            const reqSubscription = document.getElementById('req-subscription');
+            const reqSettings = document.getElementById('req-settings');
+
+            if (reqApi) {
+                reqApi.innerHTML = hasApiKeys 
+                    ? '<i class="fas fa-check text-success"></i> Binance API anahtarları'
+                    : '<i class="fas fa-times text-danger"></i> Binance API anahtarları';
+                reqApi.classList.toggle('completed', hasApiKeys);
+            }
+
+            if (reqSubscription) {
+                reqSubscription.innerHTML = hasValidSubscription 
+                    ? '<i class="fas fa-check text-success"></i> Aktif abonelik'
+                    : '<i class="fas fa-times text-danger"></i> Aktif abonelik';
+                reqSubscription.classList.toggle('completed', hasValidSubscription);
+            }
+
+            if (reqSettings) {
+                reqSettings.innerHTML = hasValidSettings 
+                    ? '<i class="fas fa-check text-success"></i> Geçerli ayarlar'
+                    : '<i class="fas fa-times text-danger"></i> Geçerli ayarlar';
+                reqSettings.classList.toggle('completed', hasValidSettings);
+            }
+
+            // Requirements panelini göster/gizle
+            const allValid = hasApiKeys && hasValidSubscription && hasValidSettings;
+            UIElements.botRequirements.style.display = allValid ? 'none' : 'block';
+        },
+
+        updateTradingStats: (stats) => {
+            if (UIElements.totalTradesSpan && stats.total_trades !== undefined) {
+                UIElements.totalTradesSpan.textContent = stats.total_trades;
+            }
+            if (UIElements.winRateSpan && stats.win_rate !== undefined) {
+                UIElements.winRateSpan.textContent = `${(stats.win_rate * 100).toFixed(1)}%`;
+            }
+            if (UIElements.totalPnlSpan && stats.total_pnl !== undefined) {
+                const pnl = stats.total_pnl;
+                UIElements.totalPnlSpan.textContent = `${pnl.toFixed(2)}`;
+                UIElements.totalPnlSpan.classList.toggle('text-success', pnl >= 0);
+                UIElements.totalPnlSpan.classList.toggle('text-danger', pnl < 0);
+            }
+            if (UIElements.uptimeSpan && stats.uptime_hours !== undefined) {
+                UIElements.uptimeSpan.textContent = `${stats.uptime_hours.toFixed(1)}h`;
             }
         },
 
@@ -580,6 +707,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         });
+
+        // Timeframe select
+        if (UIElements.timeframeSelect) {
+            UIElements.timeframeSelect.addEventListener('change', (e) => {
+                userSettings.timeframe = e.target.value;
+                saveUserSettings();
+                UIActions.generateRealTimeChart(); // Grafik'i yeni timeframe ile güncelle
+            });
+        }
 
         // Settings inputs - kullanıcı başına ayarlar
         if (UIElements.leverageInput) {
