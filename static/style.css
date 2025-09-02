@@ -47,12 +47,14 @@ body {
 .flex { display: flex; }
 .items-center { align-items: center; }
 .justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
 .flex-col { flex-direction: column; }
 .gap-6 { gap: 1.5rem; }
 .w-full { width: 100%; }
 .min-h-screen { min-height: 100vh; }
 .mt-4 { margin-top: 1rem; }
 .mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
 .text-center { text-align: center; }
 .text-xl { font-size: 1.25rem; }
 .font-bold { font-weight: 700; }
@@ -60,14 +62,14 @@ body {
 .text-danger { color: var(--danger-color); }
 .text-muted { color: var(--secondary-color); }
 .text-sm { font-size: 0.875rem; }
-.flex-1 { flex: 1; } /* For flex-grow: 1 */
+.flex-1 { flex: 1; }
 
 /* =================================================================== */
 /* 3. Kimlik Doğrulama Sayfası (Auth Container)                        */
 /* =================================================================== */
 
 .auth-wrapper {
-    background: linear-gradient(135deg, #1e3a8a, #3b82f6); /* Darker blue to primary blue */
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
 }
 
 .auth-card {
@@ -119,7 +121,6 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-
 /* =================================================================== */
 /* 4. Form Elemanları ve Butonlar (Forms & Buttons)                    */
 /* =================================================================== */
@@ -139,7 +140,7 @@ body {
 
 .form-label i {
     margin-right: 0.5rem;
-    width: 16px; /* Ensure icon alignment */
+    width: 16px;
     text-align: center;
 }
 
@@ -150,13 +151,20 @@ body {
     border-radius: 0.5rem;
     font-size: 1rem;
     transition: var(--transition);
-    background-color: #f9fafb; /* Lighter input background */
+    background-color: #f9fafb;
 }
 
 .form-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); /* Focus ring */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.form-input:disabled {
+    background-color: #f3f4f6;
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .btn {
@@ -171,17 +179,23 @@ body {
     cursor: pointer;
     transition: var(--transition);
     text-decoration: none;
+    user-select: none;
 }
 
 .btn i {
     margin-right: 0.5rem;
 }
 
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
 }
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background-color: var(--primary-hover);
 }
 
@@ -189,26 +203,16 @@ body {
     background-color: var(--success-color);
     color: white;
 }
-.btn-success:hover {
-    background-color: #059669; /* Darker green */
-}
-.btn-success:disabled {
-    background-color: #d1fae5; /* Lighter green for disabled */
-    cursor: not-allowed;
-    opacity: 0.6;
+.btn-success:hover:not(:disabled) {
+    background-color: #059669;
 }
 
 .btn-danger {
     background-color: var(--danger-color);
     color: white;
 }
-.btn-danger:hover {
-    background-color: #dc2626; /* Darker red */
-}
-.btn-danger:disabled {
-    background-color: #fee2e2; /* Lighter red for disabled */
-    cursor: not-allowed;
-    opacity: 0.6;
+.btn-danger:hover:not(:disabled) {
+    background-color: #dc2626;
 }
 
 .btn-outline {
@@ -216,7 +220,7 @@ body {
     border: 1px solid var(--border-color);
     color: var(--text-primary);
 }
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
     background-color: var(--background-color);
     border-color: var(--secondary-color);
 }
@@ -233,13 +237,17 @@ body {
     color: var(--primary-color);
 }
 
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
 
 /* =================================================================== */
 /* 5. Uygulama Ana Düzeni (App Layout)                                 */
 /* =================================================================== */
 
 #app-container {
-    display: none; /* Initially hidden, shown by JS */
+    display: none;
 }
 
 .app-layout {
@@ -257,7 +265,7 @@ body {
     flex-direction: column;
     padding: 1.5rem;
     transition: width 0.3s ease;
-    flex-shrink: 0; /* Prevent shrinking on smaller screens */
+    flex-shrink: 0;
 }
 
 .sidebar-header .logo {
@@ -293,12 +301,12 @@ body {
     cursor: pointer;
     text-align: left;
     transition: var(--transition);
-    width: 100%; /* Ensure full width clickable area */
+    width: 100%;
 }
 
 .nav-item i {
     margin-right: 1rem;
-    width: 20px; /* Consistent icon width */
+    width: 20px;
     text-align: center;
 }
 
@@ -308,7 +316,7 @@ body {
 }
 
 .nav-item.active {
-    background-color: #e0e7ff; /* Lighter blue for active state */
+    background-color: #e0e7ff;
     color: var(--primary-color);
     font-weight: 600;
 }
@@ -317,12 +325,12 @@ body {
 .main-content {
     flex: 1;
     padding: 2.5rem;
-    overflow-y: auto; /* Enable scrolling for long content */
+    overflow-y: auto;
 }
 
 .main-header {
     margin-bottom: 2.5rem;
-    text-align: left; /* Default alignment */
+    text-align: left;
 }
 
 .page-title {
@@ -349,15 +357,14 @@ body {
 }
 .page.active {
     display: block;
-    animation: fadeIn 0.5s ease; /* Reuse fadeIn for page transitions */
+    animation: fadeIn 0.5s ease;
 }
 
 .content-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Adjusted minmax for better fit */
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 1.5rem;
 }
-
 
 /* =================================================================== */
 /* 6. Kart Bileşenleri (Card Components)                               */
@@ -370,18 +377,18 @@ body {
     box-shadow: var(--box-shadow);
     display: flex;
     flex-direction: column;
-    gap: 1rem; /* Spacing between card elements */
+    gap: 1rem;
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start; /* Align items to the start for multiline titles */
+    align-items: flex-start;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 1rem;
     margin-bottom: 0.5rem;
-    flex-wrap: wrap; /* Allow wrapping on small screens */
-    gap: 0.5rem; /* Space between title and status if wrapped */
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .card-title {
@@ -413,7 +420,7 @@ body {
     height: 10px;
     border-radius: 50%;
     margin-right: 0.5rem;
-    display: inline-block; /* Ensure it's not a block element */
+    display: inline-block;
 }
 .status-indicator.active { background-color: var(--success-color); }
 .status-indicator.inactive { background-color: var(--danger-color); }
@@ -426,16 +433,16 @@ body {
     background-color: var(--background-color);
     color: var(--text-secondary);
     font-size: 0.9rem;
-    word-break: break-word; /* Prevent overflow for long messages */
+    word-break: break-word;
 }
 
 .status-message i { margin-right: 0.75rem; }
-.status-message.error { background-color: #fee2e2; color: #b91c1c; } /* Red 100 / Red 800 */
-.status-message.success { background-color: #d1fae5; color: #065f46; } /* Green 100 / Green 800 */
+.status-message.error { background-color: #fee2e2; color: #b91c1c; }
+.status-message.success { background-color: #d1fae5; color: #065f46; }
 
 /* Pair Display */
 .pair-card {
-    cursor: pointer; /* Indicate it's clickable */
+    cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .pair-card:hover {
@@ -474,11 +481,15 @@ body {
     background: var(--border-color);
     border-radius: 5px;
     outline: none;
-    cursor: grab; /* Indicate draggable */
+    cursor: grab;
     margin-top: 0.5rem;
 }
 .leverage-slider:active {
     cursor: grabbing;
+}
+.leverage-slider:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 .leverage-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -515,22 +526,22 @@ body {
 
 /* Analysis Chart */
 .analysis-chart {
-    height: 150px; /* Fixed height for the chart */
+    height: 150px;
     background-color: #f9fafb;
     border-radius: 0.5rem;
     display: flex;
-    align-items: flex-end; /* Bars start from bottom */
+    align-items: flex-end;
     padding: 0.5rem;
     gap: 2px;
-    overflow: hidden; /* Ensure bars don't exceed container */
+    overflow: hidden;
     border: 1px solid var(--border-color);
 }
 .chart-bar {
-    width: 100%; /* Will be overridden by flex-basis in JS if needed */
+    width: 100%;
     background-color: var(--success-color);
     border-radius: 2px;
     transition: height 0.3s ease;
-    flex-grow: 1; /* Bars grow to fill space */
+    flex-grow: 1;
 }
 .chart-bar.down {
     background-color: var(--danger-color);
@@ -548,7 +559,7 @@ body {
     gap: 0.5rem;
 }
 .bot-status .text-sm, .api-status .text-sm {
-    min-width: 90px; /* Ensure text doesn't jump */
+    min-width: 90px;
     text-align: right;
 }
 
@@ -559,13 +570,13 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
     padding: 1rem;
-    max-height: 150px; /* Limit height for scrollability */
+    max-height: 150px;
     overflow-y: auto;
 }
 .ip-item {
     font-family: 'Courier New', Courier, monospace;
     padding: 0.5rem 0;
-    border-bottom: 1px dashed #e5e7eb; /* Dashed border for visual separation */
+    border-bottom: 1px dashed #e5e7eb;
     color: var(--text-primary);
 }
 .ip-item:last-child { border-bottom: none; }
@@ -606,12 +617,12 @@ body {
 .profile-info, .account-actions { 
     display: flex; 
     flex-direction: column; 
-    gap: 0.75rem; /* Slightly tighter spacing */
+    gap: 0.75rem;
 }
 .profile-item {
     display: flex;
     justify-content: space-between;
-    align-items: center; /* Align label and value vertically */
+    align-items: center;
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--border-color);
 }
@@ -621,15 +632,15 @@ body {
 .profile-value { font-weight: 500; color: var(--text-primary); }
 .status-badge {
     padding: 0.25rem 0.75rem;
-    border-radius: 99px; /* Pill shape */
+    border-radius: 99px;
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
 }
-.status-badge.active { background-color: #d1fae5; color: #065f46; } /* Green 100 / Green 800 */
-.status-badge.inactive { background-color: #fee2e2; color: #991b1b; } /* Red 100 / Red 800 */
-.status-badge.trial { background-color: #fef3c7; color: #b45309; } /* Amber 100 / Amber 800 */
-
+.status-badge.active { background-color: #d1fae5; color: #065f46; }
+.status-badge.inactive { background-color: #fee2e2; color: #991b1b; }
+.status-badge.trial { background-color: #fef3c7; color: #b45309; }
+.status-badge.warning { background-color: #fef3c7; color: #b45309; }
 
 .payment-details { text-align: center; }
 .payment-amount { 
@@ -644,17 +655,17 @@ body {
 .payment-amount .period { font-size: 1rem; color: var(--text-secondary); font-weight: 400; }
 .payment-description { margin: 1rem 0; color: var(--text-secondary); line-height: 1.6; }
 .payment-address {
-    text-align: left; /* Align label to left */
+    text-align: left;
 }
 .address-container {
     display: flex;
     align-items: center;
     background-color: #f9fafb;
-    padding: 0.75rem 1rem; /* Increased padding for better tap target */
+    padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border-color);
     gap: 0.5rem;
-    word-break: break-all; /* Allow long addresses to break */
+    word-break: break-all;
 }
 .payment-code { 
     flex-grow: 1; 
@@ -662,29 +673,29 @@ body {
     font-size: 0.9rem; 
     font-weight: 600; 
     color: var(--text-primary);
-    user-select: all; /* Allow easy selection */
+    user-select: all;
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Adjusted for smaller screens */
-    gap: 1rem; /* Slightly tighter gap */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
 }
 .stat-item { 
     display: flex; 
     align-items: center; 
-    gap: 0.75rem; /* Consistent gap */
+    gap: 0.75rem;
     background-color: var(--background-color);
     padding: 1rem;
     border-radius: 0.5rem;
 }
 .stat-icon {
-    width: 44px; height: 44px; /* Slightly smaller icons */
+    width: 44px; height: 44px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     color: white;
-    font-size: 1.1rem; /* Adjusted font size */
+    font-size: 1.1rem;
     flex-shrink: 0;
 }
 .stat-icon.success { background-color: var(--success-color); }
@@ -695,30 +706,125 @@ body {
 .stat-label { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; }
 
 .account-actions button {
-    margin-bottom: 0.75rem; /* Consistent spacing */
+    margin-bottom: 0.75rem;
 }
 .account-actions button:last-child {
     margin-bottom: 0;
 }
 
 /* =================================================================== */
-/* 8. Mobil Navigasyon ve Duyarlılık (Mobile Nav & Responsive)       */
+/* 8. Admin Panel Styles                                              */
+/* =================================================================== */
+
+.admin-layout {
+    min-height: 100vh;
+    background-color: var(--background-color);
+}
+
+.admin-header {
+    background-color: var(--card-background);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+    box-shadow: var(--box-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.admin-header .logo {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.admin-header .logo i {
+    color: var(--primary-color);
+    margin-right: 0.75rem;
+}
+
+.admin-footer {
+    background-color: var(--card-background);
+    border-top: 1px solid var(--border-color);
+    padding: 1.5rem 0;
+    margin-top: auto;
+}
+
+.main-body {
+    padding: 2rem 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--card-background);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.data-table thead {
+    background-color: #f9fafb;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table tr:hover {
+    background-color: #f9fafb;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.user-id-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.loading-message {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+/* =================================================================== */
+/* 9. Mobil Navigasyon ve Duyarlılık (Mobile Nav & Responsive)        */
 /* =================================================================== */
 
 .mobile-nav {
-    display: none; /* Initially hidden on desktop */
+    display: none;
 }
 
 @media (max-width: 768px) {
-    /* Hide desktop sidebar */
     .sidebar {
         display: none;
     }
 
-    /* Adjust main content for mobile */
     .main-content {
-        padding: 1.5rem 1rem 6rem 1rem; /* Add padding-bottom for mobile nav */
-        width: 100%; /* Ensure it takes full width */
+        padding: 1.5rem 1rem 6rem 1rem;
+        width: 100%;
     }
 
     .main-header {
@@ -727,14 +833,13 @@ body {
 
     .page-title {
         font-size: 1.75rem;
-        justify-content: center; /* Center icon and title */
+        justify-content: center;
     }
 
     .content-grid {
-        grid-template-columns: 1fr; /* Single column layout */
+        grid-template-columns: 1fr;
     }
 
-    /* Show and style mobile navigation */
     .mobile-nav {
         display: block;
         position: fixed;
@@ -745,7 +850,7 @@ body {
         border-top: 1px solid var(--border-color);
         box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         z-index: 1000;
-        padding-bottom: env(safe-area-inset-bottom); /* For iPhone notches */
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .mobile-nav-grid {
@@ -761,11 +866,11 @@ body {
         padding: 0.75rem 0.5rem;
         background: none;
         border: none;
-        font-size: 0.75rem; /* Smaller font size for labels */
+        font-size: 0.75rem;
         color: var(--text-secondary);
         cursor: pointer;
         transition: var(--transition);
-        flex: 1; /* Distribute space evenly */
+        flex: 1;
     }
 
     .mobile-nav-item i {
@@ -780,11 +885,33 @@ body {
     .mobile-nav-item:hover {
         background-color: var(--background-color);
     }
+
+    /* Admin panel mobile adjustments */
+    .admin-header .container {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .data-table {
+        font-size: 0.875rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
 }
 
 @media (max-width: 480px) {
     .auth-card {
         padding: 1.5rem;
+        margin: 1rem;
     }
     .auth-card h2 {
         font-size: 1.5rem;
@@ -806,6 +933,36 @@ body {
         padding: 0.6rem 0.8rem;
     }
     .stats-grid {
-        grid-template-columns: 1fr; /* Stack stats on very small screens */
+        grid-template-columns: 1fr;
     }
+    .tp-sl-grid {
+        grid-template-columns: 1fr;
+    }
+    .control-buttons {
+        flex-direction: column;
+    }
+
+    /* Admin panel very small screen adjustments */
+    .data-table th,
+    .data-table td {
+        padding: 0.375rem;
+        font-size: 0.8rem;
+    }
+
+    .user-id-text {
+        font-size: 0.7rem;
+    }
+}
+
+/* Dark mode support (optional - can be enabled later) */
+@media (prefers-color-scheme: dark) {
+    /*
+    :root {
+        --background-color: #111827;
+        --card-background: #1f2937;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --border-color: #374151;
+    }
+    */
 }
