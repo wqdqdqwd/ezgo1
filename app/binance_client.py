@@ -66,31 +66,22 @@ class BinanceClient:
         except BinanceAPIException as e: print(f"Hata: {symbol} fiyatı alınamadı: {e}"); return None
 
     # (GÜNCELLENDİ) TP ve SL ile birlikte emir oluşturma
-    async def create_order_with_tp_sl(self, symbol: str, side: str, quantity: float, entry_price: float, price_precision: int, quantity_precision: int, stop_loss_percent: float, take_profit_percent: float):
-        
-        def format_value(value, precision):
-            return f"{value:.{precision}f}"
+    async def create_order_with_tp_sl(self, symbol: str, side: str, quantity: float, entry_price: float, price_precision: int, stop_loss_percent: float, take_profit_percent: float):
+        def format_price(price):
+            return f"{price:.{price_precision}f}"
         
         try:
-            # Gerekli hassasiyetlere göre miktarları ve fiyatları yuvarla
-            formatted_quantity = format_value(quantity, quantity_precision)
-            
             # 1. Ana piyasa emrini oluştur
-            main_order = await self.client.futures_create_order(
-                symbol=symbol, 
-                side=side, 
-                type='MARKET', 
-                quantity=formatted_quantity
-            )
-            print(f"Başarılı: {symbol} {side} {formatted_quantity} PİYASA EMRİ oluşturuldu.")
+            main_order = await self.client.futures_create_order(symbol=symbol, side=side, type='MARKET', quantity=quantity)
+            print(f"Başarılı: {symbol} {side} {quantity} PİYASA EMRİ oluşturuldu.")
             await asyncio.sleep(0.5)
 
             # 2. TP ve SL fiyatlarını hesapla
             sl_price = entry_price * (1 - stop_loss_percent / 100) if side == 'BUY' else entry_price * (1 + stop_loss_percent / 100)
             tp_price = entry_price * (1 + take_profit_percent / 100) if side == 'BUY' else entry_price * (1 - take_profit_percent / 100)
             
-            formatted_sl_price = format_value(sl_price, price_precision)
-            formatted_tp_price = format_value(tp_price, price_precision)
+            formatted_sl_price = format_price(sl_price)
+            formatted_tp_price = format_price(tp_price)
 
             # 3. TP ve SL emirlerini oluştur
             opposite_side = 'SELL' if side == 'BUY' else 'BUY'
@@ -99,7 +90,7 @@ class BinanceClient:
                 stopPrice=formatted_sl_price, closePosition=True
             )
             await self.client.futures_create_order(
-                symbol=opposite_side, side=opposite_side, type='TAKE_PROFIT_MARKET', 
+                symbol=symbol, side=opposite_side, type='TAKE_PROFIT_MARKET', 
                 stopPrice=formatted_tp_price, closePosition=True
             )
             print(f"Başarılı: {symbol} için SL({formatted_sl_price}) ve TP({formatted_tp_price}) emirleri kuruldu.")
