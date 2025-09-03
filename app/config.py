@@ -27,13 +27,13 @@ class Settings:
     WEBSOCKET_URL: str = os.getenv("BINANCE_WS_URL", "wss://fstream.binance.com")
     
     # Yeni Kaldıraç ayarı: .env'den alınacak, yoksa varsayılan 10x
-    LEVERAGE: int = int(os.getenv("LEVERAGE", "10"))
+    LEVERAGE: int = int(os.getenv("DEFAULT_LEVERAGE", "10"))
 
     # İşlem büyüklüğü: .env'den alınacak, yoksa varsayılan 100 USDT
-    ORDER_SIZE_USDT: float = float(os.getenv("ORDER_SIZE_USDT", "100.0"))
+    ORDER_SIZE_USDT: float = float(os.getenv("DEFAULT_ORDER_SIZE_USDT", "100.0"))
 
     # Zaman dilimi: .env'den alınacak, yoksa varsayılan 15m
-    TIMEFRAME: str = os.getenv("TIMEFRAME", "15m")
+    TIMEFRAME: str = os.getenv("DEFAULT_TIMEFRAME", "15m")
     
     # STOP_LOSS_PERCENT ayarı artık kullanılmayacak.
     
@@ -42,14 +42,13 @@ class Settings:
     # Örneğin, 5m için %3 kar hedefi, 10x kaldıraç ile %0.3'lük bir fiyat değişimine denk gelir.
     TIMEFRAME_SETTINGS = {
         "5m": {
-            "TP_PNL": 3.0,  # %3 Gerçek Kar Al
-            "SL_PNL": 2.0   # %2 Gerçek Zarar Durdur
+            "TP_PNL": 3.0,  # %3 Gerçek Kar Al (Kaldıraçlı PnL)
+            "SL_PNL": 2.0   # %2 Gerçek Zarar Durdur (Kaldıraçlı PnL)
         },
         "15m": {
             "TP_PNL": 10.0, # %10 Gerçek Kar Al
             "SL_PNL": 3.0   # %3 Gerçek Zarar Durdur
         },
-        # Eğer botunuz başka zaman dilimlerini de destekliyorsa, buraya ekleyebilirsiniz.
     }
 
     # --- Firebase Web App Yapılandırması (Frontend için Güvenli) ---
@@ -60,6 +59,4 @@ class Settings:
     FIREBASE_WEB_MESSAGING_SENDER_ID: str = os.getenv("FIREBASE_WEB_MESSAGING_SENDER_ID")
     FIREBASE_WEB_APP_ID: str = os.getenv("FIREBASE_WEB_APP_ID")
 
-
-# Ayarları projenin her yerinden erişilebilir hale getirmek için bir nesne oluşturulur.
 settings = Settings()
