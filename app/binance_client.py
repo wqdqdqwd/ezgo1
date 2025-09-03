@@ -161,6 +161,3 @@ class BinanceClient:
         except BinanceAPIException as e:
             print(f"Hata: Pozisyon ve emirler kapatılırken sorun oluştu: {e}")
             return False
-
-# Strateji sınıfı aynı kalacak, onda bir değişiklik yapmanıza gerek yok.
-# trading_strategy.py
