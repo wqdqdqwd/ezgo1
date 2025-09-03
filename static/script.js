@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         orderSizeValue: document.getElementById('order-size-value'),
         symbolSelect: document.getElementById('symbol-select'),
         timeframeSelect: document.getElementById('timeframe-select'),
+        tpInput: document.getElementById('tp-input'), // YENİ: TP girişi
+        slInput: document.getElementById('sl-input'), // YENİ: SL girişi
         startBotButton: document.getElementById('start-bot-button'),
         stopBotButton: document.getElementById('stop-bot-button'),
         botStatusMessage: document.getElementById('bot-status-message'),
@@ -122,10 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`Chart WebSocket bağlantısı kapatıldı: ${symbol}`);
         }
 
-        // --- DÜZELTME BAŞLANGICI ---
         // Futures piyasası için doğru WebSocket URL'ini kullan
         const socket_url = `wss://fstream.binance.com/ws/${symbol.toLowerCase()}@ticker`;
-        // --- DÜZELTME SONU ---
         
         console.log(`Yeni WebSocket'e bağlanılıyor: ${socket_url}`);
 
@@ -259,9 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
             timeframe: UIElements.timeframeSelect.value,
             leverage: parseInt(UIElements.leverageInput.value),
             order_size: parseFloat(UIElements.orderSizeInput.value),
-            // TP ve SL ayarları config.py'den alınacağı için burada sabit değerler kullanılabilir
-            stop_loss: 0.006,
-            take_profit: 0.006
+            take_profit: parseFloat(UIElements.tpInput.value), // YENİ: TP değerini al
+            stop_loss: parseFloat(UIElements.slInput.value) // YENİ: SL değerini al
         };
 
         UIElements.startBotButton.disabled = true;
@@ -404,7 +403,32 @@ document.addEventListener('DOMContentLoaded', () => {
         UIElements.copyPaymentAddress.addEventListener('click', () => {
             const address = UIElements.paymentAddress.textContent;
             navigator.clipboard.writeText(address).then(() => {
-                alert('Ödeme adresi kopyalandı!');
+                // Modalsız uyarı mesajı
+                const message = document.createElement('div');
+                message.textContent = 'Ödeme adresi kopyalandı!';
+                message.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    z-index: 1000;
+                    opacity: 0;
+                    transition: opacity 0.5s;
+                `;
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    message.style.opacity = 1;
+                }, 10);
+
+                setTimeout(() => {
+                    message.style.opacity = 0;
+                    setTimeout(() => message.remove(), 500);
+                }, 2000);
             });
         });
 
