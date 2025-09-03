@@ -1,9 +1,12 @@
+# bot_manager.py
+
 import asyncio
 from typing import Dict
 from app.bot_core import BotCore
 from app.binance_client import BinanceClient
 from app.firebase_manager import firebase_manager
-from pydantic import BaseModel # Bot ayarları için import edildi
+from pydantic import BaseModel
+from config import settings # settings nesnesi eklendi
 
 # main.py'deki StartRequest modelini buraya da ekleyebiliriz
 # Veya sadece dict olarak geçiş yapmaya devam edebiliriz.
@@ -25,7 +28,7 @@ class BotManager:
         # Aktif botları kullanıcı UID'si ile eşleştirerek bir sözlükte tutar
         self.active_bots: Dict[str, BotCore] = {}
 
-    async def start_bot_for_user(self, uid: str, bot_settings: StartRequest) -> Dict: # bot_settings tipi StartRequest olarak güncellendi
+    async def start_bot_for_user(self, uid: str, bot_settings: StartRequest) -> Dict:
         """
         Belirtilen kullanıcı için botu başlatır.
         """
@@ -48,13 +51,24 @@ class BotManager:
         client = BinanceClient(api_key=api_key, api_secret=api_secret)
         
         # BotCore nesnesine tüm ayarları geçir
-        bot = BotCore(user_id=uid, binance_client=client, settings=bot_settings.model_dump()) # Pydantic modelini dict'e dönüştürdük
+        # Burada bot_settings'ten gelen değerler yerine config.py'den gelenleri kullanıyoruz
+        # Web arayüzünüzdeki değerler ile manuel olarak değiştirebilirsiniz
+        final_settings = {
+            "symbol": bot_settings.symbol,
+            "timeframe": bot_settings.timeframe,
+            "leverage": bot_settings.leverage,
+            "order_size_usdt": bot_settings.order_size,
+            "tp_pnl_percent": settings.TIMEFRAME_SETTINGS[bot_settings.timeframe]["TP_PNL"],
+            "sl_pnl_percent": settings.TIMEFRAME_SETTINGS[bot_settings.timeframe]["SL_PNL"]
+        }
+        
+        bot = BotCore(user_id=uid, binance_client=client, settings=final_settings)
         
         # Botu aktif botlar listesine ekle
         self.active_bots[uid] = bot
         
         # Botun başlangıç işlemini arka planda çalışacak bir görev olarak başlat
-        asyncio.create_task(bot.start()) # start metoduna symbol argümanı kaldırıldı
+        asyncio.create_task(bot.start()) 
         
         # Botun başlangıç durumunu alması için kısa bir bekleme
         await asyncio.sleep(2) 
@@ -68,7 +82,6 @@ class BotManager:
         if uid in self.active_bots and self.active_bots[uid].status["is_running"]:
             bot = self.active_bots[uid]
             await bot.stop()
-            # Bot durduktan sonra listeden kaldırmak bellek yönetimi için iyidir
             del self.active_bots[uid]
             print(f"BotManager: Kullanıcı {uid} için bot durduruldu ve hafızadan kaldırıldı.")
             return {"success": True, "message": "Bot başarıyla durduruldu."}
@@ -81,7 +94,6 @@ class BotManager:
         """
         if uid in self.active_bots:
             return self.active_bots[uid].status
-        # Eğer kullanıcı için çalışan bir bot yoksa, varsayılan durumu döndür
         return {"is_running": False, "symbol": None, "position_side": None, "status_message": "Bot başlatılmadı."}
 
     async def shutdown_all_bots(self):
@@ -94,7 +106,7 @@ class BotManager:
             if bot.status["is_running"]
         ]
         await asyncio.gather(*tasks)
-        self.active_bots.clear() # Tüm botları temizle
+        self.active_bots.clear() 
         print("Tüm botlar başarıyla durduruldu.")
 
 # Projenin her yerinden erişmek için bir nesne oluştur
