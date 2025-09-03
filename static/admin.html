@@ -2,72 +2,277 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>EzyagoTrading - Yönetici Paneli</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EzyagoTrading - Admin Panel</title>
+    <meta name="description" content="EzyagoTrading admin panel for user management and subscription control">
+    <meta name="robots" content="noindex, nofollow">
+    
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div id="admin-container" class="admin-layout flex flex-col min-h-screen">
+    <div id="admin-container" class="admin-layout" style="display: none;">
+        <!-- Admin Header -->
         <header class="admin-header">
-            <div class="container flex items-center justify-between">
-                <div class="logo">
-                    <i class="fas fa-user-shield"></i>
-                    Yönetici Paneli
+            <div class="container">
+                <div class="admin-header-content">
+                    <div class="admin-logo">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <h1>EzyagoTrading Admin</h1>
+                            <p>User Management & Subscription Control</p>
+                        </div>
+                    </div>
+                    <div class="admin-actions">
+                        <button id="admin-logout-button" class="btn btn-outline">
+                            <i class="fas fa-sign-out-alt"></i> 
+                            Logout
+                        </button>
+                    </div>
                 </div>
-                <button id="admin-logout-button" class="btn btn-danger btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Çıkış Yap
-                </button>
             </div>
         </header>
 
-        <main class="main-content flex-1">
+        <!-- Admin Main Content -->
+        <main class="admin-main">
             <div class="container">
-                <h1 class="page-title mb-4">
-                    <i class="fas fa-users-cog"></i> Kullanıcı Yönetimi
-                </h1>
-                <p class="page-subtitle mb-6">Sistemdeki tüm kullanıcıları ve abonelik durumlarını buradan yönetin.</p>
+                <div class="admin-content">
+                    <!-- Stats Overview -->
+                    <div class="admin-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon primary">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="user-count">Loading...</div>
+                                <div class="stat-label">Total Users</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="active-users-count">-</div>
+                                <div class="stat-label">Active Subscriptions</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="trial-users-count">-</div>
+                                <div class="stat-label">Trial Users</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon danger">
+                                <i class="fas fa-user-times"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="expired-users-count">-</div>
+                                <div class="stat-label">Expired</div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">
-                            <i class="fas fa-list"></i> Kullanıcı Listesi
-                        </h2>
-                        <span class="text-sm text-muted" id="user-count">Toplam Kullanıcı: 0</span>
+                    <!-- Users Management -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-users-cog"></i>
+                                User Management
+                            </h2>
+                            <div class="section-actions">
+                                <button class="btn btn-primary" onclick="location.reload()">
+                                    <i class="fas fa-sync"></i> 
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-envelope"></i> Email</th>
+                                            <th><i class="fas fa-crown"></i> Status</th>
+                                            <th><i class="fas fa-calendar"></i> Expires</th>
+                                            <th><i class="fas fa-user"></i> User ID</th>
+                                            <th class="text-center"><i class="fas fa-cogs"></i> Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table-body">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted loading-message">
+                                                <i class="fas fa-spinner fa-spin"></i> 
+                                                Loading users...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="table-error-message" class="status-message error" style="display: none;"></div>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table id="users-table" class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>E-posta</th>
-                                    <th>Durum</th>
-                                    <th>Bitiş Tarihi</th>
-                                    <th>Kullanıcı ID</th>
-                                    <th class="text-center">İşlem</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-table-body">
-                                <tr><td colspan="5" class="text-center text-muted loading-message"><i class="fas fa-spinner fa-spin mr-2"></i> Kullanıcılar yükleniyor...</td></tr>
-                            </tbody>
-                        </table>
+
+                    <!-- Quick Actions -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-bolt"></i>
+                                Quick Actions
+                            </h2>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="action-card" onclick="downloadUserReport()">
+                                <i class="fas fa-download"></i>
+                                <h3>Export Report</h3>
+                                <p>Download user data as CSV</p>
+                            </button>
+                            <button class="action-card" onclick="showBulkActions()">
+                                <i class="fas fa-users"></i>
+                                <h3>Bulk Actions</h3>
+                                <p>Manage multiple users</p>
+                            </button>
+                            <button class="action-card" onclick="viewSystemStatus()">
+                                <i class="fas fa-server"></i>
+                                <h3>System Status</h3>
+                                <p>Check platform health</p>
+                            </button>
+                            <button class="action-card" onclick="viewTradingStats()">
+                                <i class="fas fa-chart-bar"></i>
+                                <h3>Trading Stats</h3>
+                                <p>Platform trading statistics</p>
+                            </button>
+                        </div>
                     </div>
-                    <p id="table-error-message" class="status-message error mt-4" style="display: none;"></p>
                 </div>
             </div>
         </main>
 
+        <!-- Admin Footer -->
         <footer class="admin-footer">
-            <div class="container text-center text-muted">
-                &copy; <span id="current-year"></span> EzyagoTrading Admin Paneli. Tüm hakları saklıdır.
+            <div class="container">
+                <div class="admin-footer-content">
+                    <p>&copy; <span id="current-year">2025</span> EzyagoTrading. Admin Panel v2.0</p>
+                    <p class="footer-warning">
+                        <i class="fas fa-shield-alt"></i>
+                        Confidential system - Authorized personnel only
+                    </p>
+                </div>
             </div>
         </footer>
     </div>
 
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="/static/admin.js"></script>
+
+    <script>
+        // Quick action functions
+        function downloadUserReport() {
+            alert('Export functionality will be implemented');
+        }
+
+        function showBulkActions() {
+            alert('Bulk actions panel will be implemented');
+        }
+
+        function viewSystemStatus() {
+            alert('System status dashboard will be implemented');
+        }
+
+        function viewTradingStats() {
+            alert('Trading statistics dashboard will be implemented');
+        }
+    </script>
+
+    <style>
+        /* Additional admin-specific styles */
+        .user-details-modal {
+            max-width: 500px;
+        }
+
+        .user-details-content {
+            padding: 1.5rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .detail-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-group:last-child {
+            border-bottom: none;
+        }
+
+        .detail-group label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 140px;
+            text-align: left;
+        }
+
+        .detail-group span,
+        .detail-group code {
+            color: var(--text-primary);
+            word-break: break-word;
+        }
+
+        .user-id-full {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            background: var(--background-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-actions {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+        }
+
+        .user-language {
+            font-size: 0.7rem;
+            color: var(--info-color);
+            background: rgba(8, 145, 178, 0.2);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .detail-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+
+            .detail-group label {
+                min-width: auto;
+            }
+
+            .user-details-content {
+                padding: 1rem;
+            }
+        }
+    </style>
 </body>
 </html>
