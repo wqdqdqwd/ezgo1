@@ -1,16 +1,11 @@
-# bot_manager.py
-
 import asyncio
 from typing import Dict
 from app.bot_core import BotCore
 from app.binance_client import BinanceClient
 from app.firebase_manager import firebase_manager
 from pydantic import BaseModel
-from config import settings # settings nesnesi eklendi
+from .config import settings  # Bu satır güncellendi
 
-# main.py'deki StartRequest modelini buraya da ekleyebiliriz
-# Veya sadece dict olarak geçiş yapmaya devam edebiliriz.
-# Temizlik için main.py'deki modeli doğrudan buraya geçirelim.
 class StartRequest(BaseModel):
     symbol: str
     timeframe: str
@@ -32,11 +27,9 @@ class BotManager:
         """
         Belirtilen kullanıcı için botu başlatır.
         """
-        # Bot zaten çalışıyorsa ve abonelik aktifse hata döndür
         if uid in self.active_bots and self.active_bots[uid].status["is_running"]:
             return {"error": "Bot zaten çalışıyor."}
 
-        # Kullanıcının API anahtarlarını Firebase'den al
         user_data = firebase_manager.get_user_data(uid)
         if not user_data:
             return {"error": "Kullanıcı verisi bulunamadı."}
@@ -47,30 +40,32 @@ class BotManager:
         if not api_key or not api_secret:
             return {"error": "Lütfen önce Binance API anahtarlarınızı kaydedin."}
 
-        # Kullanıcıya özel Binance istemcisi ve BotCore nesnesi oluştur
         client = BinanceClient(api_key=api_key, api_secret=api_secret)
+        await client.initialize() # İstemciyi başlatma
         
-        # BotCore nesnesine tüm ayarları geçir
-        # Burada bot_settings'ten gelen değerler yerine config.py'den gelenleri kullanıyoruz
-        # Web arayüzünüzdeki değerler ile manuel olarak değiştirebilirsiniz
-        final_settings = {
-            "symbol": bot_settings.symbol,
-            "timeframe": bot_settings.timeframe,
-            "leverage": bot_settings.leverage,
-            "order_size_usdt": bot_settings.order_size,
-            "tp_pnl_percent": settings.TIMEFRAME_SETTINGS[bot_settings.timeframe]["TP_PNL"],
-            "sl_pnl_percent": settings.TIMEFRAME_SETTINGS[bot_settings.timeframe]["SL_PNL"]
-        }
+        # Sembol için hassasiyet bilgilerini al ve ayarlara ekle
+        symbol_info = await client.get_symbol_info(bot_settings.symbol)
+        if not symbol_info:
+            return {"error": f"{bot_settings.symbol} için sembol bilgisi bulunamadı."}
+            
+        quantity_precision = 8
+        price_precision = 8
         
-        bot = BotCore(user_id=uid, binance_client=client, settings=final_settings)
+        for f in symbol_info['filters']:
+            if f['filterType'] == 'LOT_SIZE':
+                quantity_precision = int(abs(math.log10(float(f['stepSize']))))
+            if f['filterType'] == 'PRICE_FILTER':
+                price_precision = int(abs(math.log10(float(f['tickSize']))))
+
+        # Pydantic modelini sözlüğe dönüştür ve hassasiyetleri ekle
+        settings_dict = bot_settings.model_dump()
+        settings_dict['quantity_precision'] = quantity_precision
+        settings_dict['price_precision'] = price_precision
         
-        # Botu aktif botlar listesine ekle
+        bot = BotCore(user_id=uid, binance_client=client, settings=settings_dict)
         self.active_bots[uid] = bot
         
-        # Botun başlangıç işlemini arka planda çalışacak bir görev olarak başlat
-        asyncio.create_task(bot.start()) 
-        
-        # Botun başlangıç durumunu alması için kısa bir bekleme
+        asyncio.create_task(bot.start())
         await asyncio.sleep(2) 
         
         return bot.status
@@ -106,8 +101,7 @@ class BotManager:
             if bot.status["is_running"]
         ]
         await asyncio.gather(*tasks)
-        self.active_bots.clear() 
+        self.active_bots.clear()
         print("Tüm botlar başarıyla durduruldu.")
 
-# Projenin her yerinden erişmek için bir nesne oluştur
 bot_manager = BotManager()
