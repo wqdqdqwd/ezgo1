@@ -1,20 +1,28 @@
-# Flask-based minimal setup (no FastAPI/Pydantic issues)
+# Web Framework and HTTP Server
 flask==2.3.3
 flask-cors==4.0.0
 gunicorn==20.1.0
+
+# Environment variables
 python-dotenv==0.19.0
 
-# Firebase (essential) 
+# Firebase
 firebase-admin==5.4.0
 
-# Binance API (essential)
+# Binance API
 python-binance==1.0.15
 
-# Security & Crypto (minimal version)
-cryptography==3.4.8
-
-# HTTP client
+# HTTP Client
 requests==2.28.0
 
-# Basic dependencies
+# Type Hinting
 typing-extensions==3.10.0
+
+# Security
+cryptography==3.4.8
+
+# WebSocket support
+websockets==9.1
+
+# Error handling and resilience
+tenacity==8.2.3
