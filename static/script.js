@@ -75,7 +75,23 @@ UIElements.mobileTabs.forEach(tab => {
             });
         });
         
-  // Leaderboard tabs
+ // Mobile tabs
+const mobileTabs = document.querySelectorAll('.mobile-tab');
+
+mobileTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        const targetPage = tab.dataset.page;
+        if (targetPage) {
+            showPage(targetPage);
+
+            // Update active state
+            mobileTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        }
+    });
+});
+
+// Leaderboard tabs
 const leaderboardTabs = document.querySelectorAll('.leaderboard-tab');
 
 leaderboardTabs.forEach(tab => {
@@ -91,24 +107,25 @@ leaderboardTabs.forEach(tab => {
     });
 });
 
+// Show specific page
+function showPage(pageId) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
 
-    function showPage(pageId) {
-        // Hide all pages
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('active');
-        });
-        
-        // Show target page
-        const targetPage = document.getElementById(pageId);
-        if (targetPage) {
-            targetPage.classList.add('active');
-            
-            // Load page-specific data
-            if (pageId === 'leaderboard-page') {
-                loadLeaderboard('daily');
-            }
+    // Show target page
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.add('active');
+
+        // Load page-specific data
+        if (pageId === 'leaderboard-page') {
+            loadLeaderboard('daily');
         }
     }
+}
+
 
     // Modal management
     function initializeModals() {
