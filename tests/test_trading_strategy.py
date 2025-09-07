@@ -1,5 +1,4 @@
 import pytest
-import pandas as pd
 from app.trading_strategy import TradingStrategy
 
 class TestTradingStrategy:
@@ -64,3 +63,22 @@ class TestTradingStrategy:
         custom_strategy = TradingStrategy(short_ema_period=5, long_ema_period=15)
         assert custom_strategy.short_ema_period == 5
         assert custom_strategy.long_ema_period == 15
+    
+    def test_ema_calculation(self):
+        """EMA hesaplama testi"""
+        prices = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        emas = self.strategy._calculate_ema(prices, 5)
+        
+        # EMA listesi boş olmamalı
+        assert len(emas) > 0
+        
+        # Son EMA değeri ilk değerden büyük olmalı (artan trend)
+        assert emas[-1] > emas[0]
+    
+    def test_strategy_info(self):
+        """Strateji bilgi testi"""
+        info = self.strategy.get_strategy_info()
+        assert info["name"] == "EMA Crossover Strategy"
+        assert info["short_period"] == 9
+        assert info["long_period"] == 21
+        assert "EMA(9)" in info["description"]
