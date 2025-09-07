@@ -14,24 +14,121 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // DOM elements
-const UIElements = {
-    mobileTabs: document.querySelectorAll('.mobile-tab')
-};
+    const UIElements = {
+        // Auth elements
+        authContainer: document.getElementById('auth-container'),
+        appContainer: document.getElementById('app-container'),
+        loginCard: document.getElementById('login-card'),
+        registerCard: document.getElementById('register-card'),
+        loginButton: document.getElementById('login-button'),
+        registerButton: document.getElementById('register-button'),
+        logoutButton: document.getElementById('logout-button'),
+        
+        // Language elements
+        languageSelector: document.getElementById('language-selector'),
+        registerLanguage: document.getElementById('register-language'),
+        
+        // Trading elements
+        pairSelectorBtn: document.getElementById('pair-selector-btn'),
+        mobilePairSymbol: document.getElementById('mobile-pair-symbol'),
+        currentPrice: document.getElementById('current-price'),
+        priceChange: document.getElementById('price-change'),
+        
+        // Bot controls
+        startButton: document.getElementById('start-button'),
+        stopButton: document.getElementById('stop-button'),
+        botStatusDot: document.getElementById('bot-status-dot'),
+        botStatusText: document.getElementById('bot-status-text'),
+        
+        // Settings
+        orderSizeInput: document.getElementById('order-size-input'),
+        leverageInput: document.getElementById('leverage-input'),
+        leverageValue: document.getElementById('leverage-value'),
+        tpInput: document.getElementById('tp-input'),
+        slInput: document.getElementById('sl-input'),
+        
+        // Modals
+        pairSelectorModal: document.getElementById('pair-selector-modal'),
+        timeframeModal: document.getElementById('timeframe-modal'),
+        pairsList: document.getElementById('pairs-list'),
+        
+        // Leaderboard
+        leaderboardList: document.getElementById('leaderboard-list'),
+        totalTraders: document.getElementById('total-traders'),
+        avgProfit: document.getElementById('avg-profit')
+    };
 
-// Event listeners for mobile navigation
-UIElements.mobileTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        const targetPage = tab.dataset.page;
-        if (targetPage) {
-            showPage(targetPage);
+    // Firebase services
+    const firebaseServices = {
+        auth: null,
+        database: null
+    };
 
-            // Update active state
-            UIElements.mobileTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+    // Language translations
+    const translations = {
+        tr: {
+            // Auth
+            login_welcome: "Futures Trading'e Hoş Geldin",
+            login_subtitle: "Professional crypto bot ile automated trading",
+            register_title: "Hesap Oluştur",
+            register_subtitle: "Professional trading bot'a erişim kazanın",
+            email_label: "E-posta Adresi",
+            password_label: "Şifre",
+            language_label: "Dil / Language",
+            login_btn: "Giriş Yap",
+            register_btn: "Hesap Oluştur",
+            no_account_text: "Hesabın yok mu?",
+            have_account_text: "Zaten hesabın var mı?",
+            register_link: "Kayıt Ol",
+            login_link: "Giriş Yap",
+            
+            // Navigation
+            nav_trading: "Trading",
+            nav_positions: "Pozisyonlar",
+            nav_leaderboard: "Liderlik",
+            nav_api: "API Keys",
+            nav_settings: "Ayarlar"
+        },
+        en: {
+            // Auth
+            login_welcome: "Welcome to Futures Trading",
+            login_subtitle: "Professional crypto bot with automated trading",
+            register_title: "Create Account",
+            register_subtitle: "Get access to professional trading bot",
+            email_label: "Email Address",
+            password_label: "Password",
+            language_label: "Language",
+            login_btn: "Login",
+            register_btn: "Create Account",
+            no_account_text: "Don't have an account?",
+            have_account_text: "Already have an account?",
+            register_link: "Sign Up",
+            login_link: "Login",
+            
+            // Navigation
+            nav_trading: "Trading",
+            nav_positions: "Positions",
+            nav_leaderboard: "Leaderboard",
+            nav_api: "API Keys",
+            nav_settings: "Settings"
         }
-    });
-});
+    };
 
+    // Initialize event listeners
+    function initializeEventListeners() {
+        // Mobile navigation
+        document.querySelectorAll('.mobile-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetPage = tab.dataset.page;
+                if (targetPage) {
+                    showPage(targetPage);
+                    
+                    // Update active state
+                    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                }
+            });
+        });
         
         // Trading mode tabs
         document.querySelectorAll('.trading-tab').forEach(tab => {
@@ -75,57 +172,36 @@ UIElements.mobileTabs.forEach(tab => {
             });
         });
         
- // Mobile tabs
-const mobileTabs = document.querySelectorAll('.mobile-tab');
+        // Leaderboard tabs
+        document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const period = tab.dataset.period;
+                
+                document.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                loadLeaderboard(period);
+            });
+        });
+    }
 
-mobileTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        const targetPage = tab.dataset.page;
+    function showPage(pageId) {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+        
+        // Show target page
+        const targetPage = document.getElementById(pageId);
         if (targetPage) {
-            showPage(targetPage);
-
-            // Update active state
-            mobileTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-        }
-    });
-});
-
-// Leaderboard tabs
-const leaderboardTabs = document.querySelectorAll('.leaderboard-tab');
-
-leaderboardTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        const period = tab.dataset.period;
-
-        // Update active state
-        leaderboardTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        // Load leaderboard for the selected period
-        loadLeaderboard(period);
-    });
-});
-
-// Show specific page
-function showPage(pageId) {
-    // Hide all pages
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-
-    // Show target page
-    const targetPage = document.getElementById(pageId);
-    if (targetPage) {
-        targetPage.classList.add('active');
-
-        // Load page-specific data
-        if (pageId === 'leaderboard-page') {
-            loadLeaderboard('daily');
+            targetPage.classList.add('active');
+            
+            // Load page-specific data
+            if (pageId === 'leaderboard-page') {
+                loadLeaderboard('daily');
+            }
         }
     }
-}
-
 
     // Modal management
     function initializeModals() {
@@ -849,340 +925,6 @@ function showPage(pageId) {
         }
     }
 
-    // Main app initialization with better error handling
-    async function initializeApp() {
-        try {
-            // Try to get Firebase configuration
-            let firebaseConfig;
-            try {
-                const response = await fetch('/api/firebase-config');
-                if (response.ok) {
-                    firebaseConfig = await response.json();
-                    if (!firebaseConfig || !firebaseConfig.apiKey) {
-                        throw new Error('Invalid Firebase configuration');
-                    }
-                } else {
-                    throw new Error(`Could not fetch Firebase config: ${response.status}`);
-                }
-            } catch (configError) {
-                console.warn('Firebase config not available, using demo mode');
-                // Use a mock configuration for demo purposes
-                firebaseConfig = {
-                    apiKey: "demo-api-key",
-                    authDomain: "demo.firebaseapp.com",
-                    projectId: "demo-project",
-                    storageBucket: "demo-project.appspot.com",
-                    messagingSenderId: "123456789",
-                    appId: "1:123456789:web:abcdef123456"
-                };
-            }
-
-            // Initialize Firebase
-            try {
-                firebase.initializeApp(firebaseConfig);
-                firebaseServices.auth = firebase.auth();
-                firebaseServices.database = firebase.database();
-            } catch (firebaseError) {
-                console.warn('Firebase initialization failed, continuing with limited functionality');
-                // Create mock auth service for demo
-                firebaseServices.auth = createMockAuth();
-                firebaseServices.database = createMockDatabase();
-            }
-
-            // Set initial language
-            updateLanguage(AppState.currentLanguage);
-
-            // Initialize components
-            initializeAuth();
-            initializeNavigation();
-            initializeModals();
-            initializeTradingControls();
-            
-            // Load futures pairs
-            await loadFuturesPairs();
-            
-            // Initialize WebSocket
-            initializeWebSocket();
-            
-            // Initialize mock leaderboard
-            initializeMockLeaderboard();
-
-            // Auth state listener
-            if (firebaseServices.auth && typeof firebaseServices.auth.onAuthStateChanged === 'function') {
-                firebaseServices.auth.onAuthStateChanged(async (user) => {
-                    if (user) {
-                        AppState.currentUser = user;
-                        
-                        // Show main app
-                        if (UIElements.authContainer) UIElements.authContainer.style.display = 'none';
-                        if (UIElements.appContainer) UIElements.appContainer.style.display = 'flex';
-                        
-                        // Load user data
-                        await loadUserData();
-                        
-                    } else {
-                        AppState.currentUser = null;
-                        
-                        // Show auth
-                        if (UIElements.authContainer) UIElements.authContainer.style.display = 'flex';
-                        if (UIElements.appContainer) UIElements.appContainer.style.display = 'none';
-                    }
-                });
-            } else {
-                // If no real auth, show app directly for demo
-                console.log('Running in demo mode without authentication');
-                if (UIElements.authContainer) UIElements.authContainer.style.display = 'none';
-                if (UIElements.appContainer) UIElements.appContainer.style.display = 'flex';
-            }
-
-        } catch (error) {
-            console.error('Failed to initialize app:', error);
-            
-            // Show error page only if critical elements are missing
-            const criticalElementsMissing = !document.getElementById('app-container') && !document.getElementById('auth-container');
-            
-            if (criticalElementsMissing) {
-                document.body.innerHTML = `
-                    <div style="
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        min-height: 100vh;
-                        padding: 2rem;
-                        background: var(--background-color);
-                        font-family: var(--font-family);
-                        color: var(--text-primary);
-                    ">
-                        <div style="
-                            background: var(--card-background);
-                            padding: 2.5rem;
-                            border-radius: 1rem;
-                            box-shadow: var(--box-shadow-lg);
-                            max-width: 600px;
-                            width: 100%;
-                            text-align: center;
-                            border: 1px solid var(--border-color);
-                        ">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger-color); margin-bottom: 1rem;"></i>
-                            <h1 style="font-size: 1.75rem; margin-bottom: 1rem; color: var(--text-primary);">
-                                Application Initialization Failed
-                            </h1>
-                            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
-                                An error occurred while starting the system. Please refresh the page or contact support.
-                            </p>
-                            <button onclick="location.reload()" style="
-                                background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-                                color: white;
-                                border: none;
-                                padding: 0.875rem 1.5rem;
-                                border-radius: 0.5rem;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: var(--transition);
-                            ">
-                                <i class="fas fa-redo"></i> Refresh Page
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Try to continue with limited functionality
-                console.log('Continuing with limited functionality');
-                if (UIElements.appContainer) {
-                    UIElements.appContainer.style.display = 'flex';
-                }
-                if (UIElements.authContainer) {
-                    UIElements.authContainer.style.display = 'none';
-                }
-            }
-        }
-    }
-
-    // Mock auth service for demo mode
-    function createMockAuth() {
-        let currentUser = null;
-        let authStateListeners = [];
-        
-        return {
-            currentUser: currentUser,
-            onAuthStateChanged: (callback) => {
-                authStateListeners.push(callback);
-                callback(currentUser);
-            },
-            signInWithEmailAndPassword: async (email, password) => {
-                // Simulate successful login
-                currentUser = {
-                    uid: 'demo-user-' + Date.now(),
-                    email: email,
-                    getIdToken: async () => 'mock-id-token'
-                };
-                authStateListeners.forEach(listener => listener(currentUser));
-                return { user: currentUser };
-            },
-            createUserWithEmailAndPassword: async (email, password) => {
-                // Simulate successful registration
-                currentUser = {
-                    uid: 'demo-user-' + Date.now(),
-                    email: email,
-                    getIdToken: async () => 'mock-id-token'
-                };
-                authStateListeners.forEach(listener => listener(currentUser));
-                return { user: currentUser };
-            },
-            signOut: async () => {
-                currentUser = null;
-                authStateListeners.forEach(listener => listener(null));
-            }
-        };
-    }
-
-    // Mock database service for demo mode
-    function createMockDatabase() {
-        return {
-            ref: () => ({
-                set: () => Promise.resolve(),
-                once: () => Promise.resolve({ val: () => null })
-            })
-        };
-    }
-
-    // DOM elements
-const UIElements = {
-    orderSizeInput: document.getElementById('order-size-input'),
-    leverageInput: document.getElementById('leverage-input')
-};
-
-// Make functions globally available
-window.adjustOrderSize = function(amount) {
-    if (UIElements.orderSizeInput) {
-        const currentValue = parseFloat(UIElements.orderSizeInput.value) || 20;
-        const newValue = Math.max(10, currentValue + amount);
-        UIElements.orderSizeInput.value = newValue;
-        saveUserSetting('positionSize', newValue);
-    }
-};
-
-window.adjustManualSize = function(amount) {
-    const input = document.getElementById('manual-amount-input');
-    if (input) {
-        const currentValue = parseFloat(input.value) || 20;
-        const newValue = Math.max(10, currentValue + amount);
-        input.value = newValue;
-    }
-};
-
-window.setLeverage = function(value) {
-    if (UIElements.leverageInput) {
-        UIElements.leverageInput.value = value;
-        updateLeverageDisplay();
-        saveUserSetting('leverage', value);
-    }
-};
-
-    window.copyToClipboard = copyToClipboard;
-
-    // Start the application
-    initializeApp();
-}); Auth elements
-        authContainer: document.getElementById('auth-container'),
-        appContainer: document.getElementById('app-container'),
-        loginCard: document.getElementById('login-card'),
-        registerCard: document.getElementById('register-card'),
-        loginButton: document.getElementById('login-button'),
-        registerButton: document.getElementById('register-button'),
-        logoutButton: document.getElementById('logout-button'),
-        
-        // Language elements
-        languageSelector: document.getElementById('language-selector'),
-        registerLanguage: document.getElementById('register-language'),
-        
-        // Trading elements
-        pairSelectorBtn: document.getElementById('pair-selector-btn'),
-        mobilePairSymbol: document.getElementById('mobile-pair-symbol'),
-        currentPrice: document.getElementById('current-price'),
-        priceChange: document.getElementById('price-change'),
-        
-        // Bot controls
-        startButton: document.getElementById('start-button'),
-        stopButton: document.getElementById('stop-button'),
-        botStatusDot: document.getElementById('bot-status-dot'),
-        botStatusText: document.getElementById('bot-status-text'),
-        
-        // Settings
-        orderSizeInput: document.getElementById('order-size-input'),
-        leverageInput: document.getElementById('leverage-input'),
-        leverageValue: document.getElementById('leverage-value'),
-        tpInput: document.getElementById('tp-input'),
-        slInput: document.getElementById('sl-input'),
-        
-        // Modals
-        pairSelectorModal: document.getElementById('pair-selector-modal'),
-        timeframeModal: document.getElementById('timeframe-modal'),
-        pairsList: document.getElementById('pairs-list'),
-        
-        // Leaderboard
-        leaderboardList: document.getElementById('leaderboard-list'),
-        totalTraders: document.getElementById('total-traders'),
-        avgProfit: document.getElementById('avg-profit')
-    };
-
-    // Firebase services
-    const firebaseServices = {
-        auth: null,
-        database: null
-    };
-
-    // Language translations
-    const translations = {
-        tr: {
-            // Auth
-            login_welcome: "Futures Trading'e Hoş Geldin",
-            login_subtitle: "Professional crypto bot ile automated trading",
-            register_title: "Hesap Oluştur",
-            register_subtitle: "Professional trading bot'a erişim kazanın",
-            email_label: "E-posta Adresi",
-            password_label: "Şifre",
-            language_label: "Dil / Language",
-            login_btn: "Giriş Yap",
-            register_btn: "Hesap Oluştur",
-            no_account_text: "Hesabın yok mu?",
-            have_account_text: "Zaten hesabın var mı?",
-            register_link: "Kayıt Ol",
-            login_link: "Giriş Yap",
-            
-            // Navigation
-            nav_trading: "Trading",
-            nav_positions: "Pozisyonlar",
-            nav_leaderboard: "Liderlik",
-            nav_api: "API Keys",
-            nav_settings: "Ayarlar"
-        },
-        en: {
-            // Auth
-            login_welcome: "Welcome to Futures Trading",
-            login_subtitle: "Professional crypto bot with automated trading",
-            register_title: "Create Account",
-            register_subtitle: "Get access to professional trading bot",
-            email_label: "Email Address",
-            password_label: "Password",
-            language_label: "Language",
-            login_btn: "Login",
-            register_btn: "Create Account",
-            no_account_text: "Don't have an account?",
-            have_account_text: "Already have an account?",
-            register_link: "Sign Up",
-            login_link: "Login",
-            
-            // Navigation
-            nav_trading: "Trading",
-            nav_positions: "Positions",
-            nav_leaderboard: "Leaderboard",
-            nav_api: "API Keys",
-            nav_settings: "Settings"
-        }
-    };
-
     // Language management
     function updateLanguage(lang) {
         AppState.currentLanguage = lang;
@@ -1455,7 +1197,7 @@ window.setLeverage = function(value) {
         updatePairsModal();
     }
 
-    // FIXED: Load leaderboard data
+    // Load leaderboard data
     async function loadLeaderboard(period = 'daily') {
         try {
             // Use mock data instead of API call to avoid 404 errors
@@ -1706,7 +1448,7 @@ window.setLeverage = function(value) {
         }
     }
 
-    // FIXED: Bot control functions
+    // Bot control functions
     async function startBot() {
         if (!validateBotSettings()) return;
         
@@ -1878,5 +1620,236 @@ window.setLeverage = function(value) {
                 }
             });
         });
+    }
+
+    // Main app initialization with better error handling
+    async function initializeApp() {
+        try {
+            // Try to get Firebase configuration
+            let firebaseConfig;
+            try {
+                const response = await fetch('/api/firebase-config');
+                if (response.ok) {
+                    firebaseConfig = await response.json();
+                    if (!firebaseConfig || !firebaseConfig.apiKey) {
+                        throw new Error('Invalid Firebase configuration');
+                    }
+                } else {
+                    throw new Error(`Could not fetch Firebase config: ${response.status}`);
+                }
+            } catch (configError) {
+                console.warn('Firebase config not available, using demo mode');
+                // Use a mock configuration for demo purposes
+                firebaseConfig = {
+                    apiKey: "demo-api-key",
+                    authDomain: "demo.firebaseapp.com",
+                    projectId: "demo-project",
+                    storageBucket: "demo-project.appspot.com",
+                    messagingSenderId: "123456789",
+                    appId: "1:123456789:web:abcdef123456"
+                };
+            }
+
+            // Initialize Firebase
+            try {
+                firebase.initializeApp(firebaseConfig);
+                firebaseServices.auth = firebase.auth();
+                firebaseServices.database = firebase.database();
+            } catch (firebaseError) {
+                console.warn('Firebase initialization failed, continuing with limited functionality');
+                // Create mock auth service for demo
+                firebaseServices.auth = createMockAuth();
+                firebaseServices.database = createMockDatabase();
+            }
+
+            // Set initial language
+            updateLanguage(AppState.currentLanguage);
+
+            // Initialize components
+            initializeAuth();
+            initializeNavigation();
+            initializeEventListeners();
+            initializeModals();
+            initializeTradingControls();
+            
+            // Load futures pairs
+            await loadFuturesPairs();
+            
+            // Initialize WebSocket
+            initializeWebSocket();
+            
+            // Initialize mock leaderboard
+            initializeMockLeaderboard();
+
+            // Auth state listener
+            if (firebaseServices.auth && typeof firebaseServices.auth.onAuthStateChanged === 'function') {
+                firebaseServices.auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        AppState.currentUser = user;
+                        
+                        // Show main app
+                        if (UIElements.authContainer) UIElements.authContainer.style.display = 'none';
+                        if (UIElements.appContainer) UIElements.appContainer.style.display = 'flex';
+                        
+                        // Load user data
+                        await loadUserData();
+                        
+                    } else {
+                        AppState.currentUser = null;
+                        
+                        // Show auth
+                        if (UIElements.authContainer) UIElements.authContainer.style.display = 'flex';
+                        if (UIElements.appContainer) UIElements.appContainer.style.display = 'none';
+                    }
+                });
+            } else {
+                // If no real auth, show app directly for demo
+                console.log('Running in demo mode without authentication');
+                if (UIElements.authContainer) UIElements.authContainer.style.display = 'none';
+                if (UIElements.appContainer) UIElements.appContainer.style.display = 'flex';
+            }
+
+        } catch (error) {
+            console.error('Failed to initialize app:', error);
+            
+            // Show error page only if critical elements are missing
+            const criticalElementsMissing = !document.getElementById('app-container') && !document.getElementById('auth-container');
+            
+            if (criticalElementsMissing) {
+                document.body.innerHTML = `
+                    <div style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        padding: 2rem;
+                        background: var(--background-color);
+                        font-family: var(--font-family);
+                        color: var(--text-primary);
+                    ">
+                        <div style="
+                            background: var(--card-background);
+                            padding: 2.5rem;
+                            border-radius: 1rem;
+                            box-shadow: var(--box-shadow-lg);
+                            max-width: 600px;
+                            width: 100%;
+                            text-align: center;
+                            border: 1px solid var(--border-color);
+                        ">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger-color); margin-bottom: 1rem;"></i>
+                            <h1 style="font-size: 1.75rem; margin-bottom: 1rem; color: var(--text-primary);">
+                                Application Initialization Failed
+                            </h1>
+                            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                                An error occurred while starting the system. Please refresh the page or contact support.
+                            </p>
+                            <button onclick="location.reload()" style="
+                                background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+                                color: white;
+                                border: none;
+                                padding: 0.875rem 1.5rem;
+                                border-radius: 0.5rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: var(--transition);
+                            ">
+                                <i class="fas fa-redo"></i> Refresh Page
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Try to continue with limited functionality
+                console.log('Continuing with limited functionality');
+                if (UIElements.appContainer) {
+                    UIElements.appContainer.style.display = 'flex';
+                }
+                if (UIElements.authContainer) {
+                    UIElements.authContainer.style.display = 'none';
+                }
+            }
+        }
+    }
+
+    // Mock auth service for demo mode
+    function createMockAuth() {
+        let currentUser = null;
+        let authStateListeners = [];
         
-        //
+        return {
+            currentUser: currentUser,
+            onAuthStateChanged: (callback) => {
+                authStateListeners.push(callback);
+                callback(currentUser);
+            },
+            signInWithEmailAndPassword: async (email, password) => {
+                // Simulate successful login
+                currentUser = {
+                    uid: 'demo-user-' + Date.now(),
+                    email: email,
+                    getIdToken: async () => 'mock-id-token'
+                };
+                authStateListeners.forEach(listener => listener(currentUser));
+                return { user: currentUser };
+            },
+            createUserWithEmailAndPassword: async (email, password) => {
+                // Simulate successful registration
+                currentUser = {
+                    uid: 'demo-user-' + Date.now(),
+                    email: email,
+                    getIdToken: async () => 'mock-id-token'
+                };
+                authStateListeners.forEach(listener => listener(currentUser));
+                return { user: currentUser };
+            },
+            signOut: async () => {
+                currentUser = null;
+                authStateListeners.forEach(listener => listener(null));
+            }
+        };
+    }
+
+    // Mock database service for demo mode
+    function createMockDatabase() {
+        return {
+            ref: () => ({
+                set: () => Promise.resolve(),
+                once: () => Promise.resolve({ val: () => null })
+            })
+        };
+    }
+
+    // Make functions globally available
+    window.adjustOrderSize = function(amount) {
+        if (UIElements.orderSizeInput) {
+            const currentValue = parseFloat(UIElements.orderSizeInput.value) || 20;
+            const newValue = Math.max(10, currentValue + amount);
+            UIElements.orderSizeInput.value = newValue;
+            saveUserSetting('positionSize', newValue);
+        }
+    };
+
+    window.adjustManualSize = function(amount) {
+        const input = document.getElementById('manual-amount-input');
+        if (input) {
+            const currentValue = parseFloat(input.value) || 20;
+            const newValue = Math.max(10, currentValue + amount);
+            input.value = newValue;
+        }
+    };
+
+    window.setLeverage = function(value) {
+        if (UIElements.leverageInput) {
+            UIElements.leverageInput.value = value;
+            updateLeverageDisplay();
+            saveUserSetting('leverage', value);
+        }
+    };
+
+    window.copyToClipboard = copyToClipboard;
+
+    // Start the application
+    initializeApp();
+});
