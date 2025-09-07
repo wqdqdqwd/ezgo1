@@ -1,4 +1,11 @@
-import pandas as pd
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+    # Fallback implementation without pandas
+    import json
+    from typing import List, Dict
 
 class TradingStrategy:
     """
@@ -26,6 +33,13 @@ class TradingStrategy:
         if len(klines) < self.long_ema_period:
             return "HOLD"
 
+        if PANDAS_AVAILABLE:
+            return self._analyze_with_pandas(klines)
+        else:
+            return self._analyze_without_pandas(klines)
+    
+    def _analyze_with_pandas(self, klines: list) -> str:
+        """Pandas ile analiz"""
         # Gelen listeyi bir pandas DataFrame'e dönüştür
         df = pd.DataFrame(klines, columns=[
             'open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time',
@@ -54,6 +68,49 @@ class TradingStrategy:
             signal = "SHORT"
         
         return signal
+    
+    def _analyze_without_pandas(self, klines: list) -> str:
+        """Pandas olmadan basit analiz"""
+        # Kapanış fiyatlarını al
+        closes = [float(kline[4]) for kline in klines]
+        
+        # Basit EMA hesaplama
+        short_emas = self._calculate_ema(closes, self.short_ema_period)
+        long_emas = self._calculate_ema(closes, self.long_ema_period)
+        
+        if len(short_emas) < 2 or len(long_emas) < 2:
+            return "HOLD"
+        
+        # Son iki değeri karşılaştır
+        prev_short, curr_short = short_emas[-2], short_emas[-1]
+        prev_long, curr_long = long_emas[-2], long_emas[-1]
+        
+        # Crossover kontrolü
+        if prev_short < prev_long and curr_short > curr_long:
+            return "LONG"
+        elif prev_short > prev_long and curr_short < curr_long:
+            return "SHORT"
+        
+        return "HOLD"
+    
+    def _calculate_ema(self, prices: list, period: int) -> list:
+        """Basit EMA hesaplama"""
+        if len(prices) < period:
+            return []
+        
+        multiplier = 2 / (period + 1)
+        emas = []
+        
+        # İlk EMA = SMA
+        sma = sum(prices[:period]) / period
+        emas.append(sma)
+        
+        # Sonraki EMA'lar
+        for i in range(period, len(prices)):
+            ema = (prices[i] * multiplier) + (emas[-1] * (1 - multiplier))
+            emas.append(ema)
+        
+        return emas
 
 # Stratejiyi projenin her yerinden kullanmak için bir nesne oluştur
 trading_strategy = TradingStrategy(short_ema_period=9, long_ema_period=21)
