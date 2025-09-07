@@ -3,7 +3,7 @@ import time
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -15,15 +15,41 @@ import os
 from app.bot_manager import bot_manager, StartRequest
 from app.config import settings
 from app.firebase_manager import firebase_manager, db
-from app.utils.logger import setup_logging, get_logger
-from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
-from app.utils.metrics import metrics, get_metrics_data, get_metrics_content_type
-from app.utils.validation import EnhancedStartRequest, EnhancedApiKeysRequest, validate_user_input
-from slowapi.errors import RateLimitExceeded
 
-# Setup logging
-setup_logging()
-logger = get_logger("main")
+# Optional imports for production features
+try:
+    from app.utils.logger import setup_logging, get_logger
+    from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
+    from app.utils.metrics import metrics, get_metrics_data, get_metrics_content_type
+    from app.utils.validation import EnhancedStartRequest, EnhancedApiKeysRequest, validate_user_input
+    from slowapi.errors import RateLimitExceeded
+    PRODUCTION_FEATURES = True
+except ImportError as e:
+    print(f"Production features not available: {e}")
+    PRODUCTION_FEATURES = False
+    # Fallback logger
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("main")
+    
+    # Fallback validation models
+    class EnhancedStartRequest(BaseModel):
+        symbol: str
+        timeframe: str
+        leverage: int
+        order_size: float
+        stop_loss: float
+        take_profit: float
+    
+    class EnhancedApiKeysRequest(BaseModel):
+        api_key: str
+        api_secret: str
+
+# Setup logging if available
+if PRODUCTION_FEATURES:
+    setup_logging()
+    logger = get_logger("main")
+
 app = FastAPI(
     title="EzyagoTrading - Futures Bot SaaS", 
     version="4.1.0",
@@ -43,8 +69,9 @@ app.add_middleware(
 )
 
 # Add rate limiting
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+if PRODUCTION_FEATURES:
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Middleware for request logging and metrics
 @app.middleware("http")
@@ -52,12 +79,13 @@ async def log_requests(request: Request, call_next):
     start_time = time.time()
     
     # Log request
-    logger.info(
-        "Request started",
-        method=request.method,
-        path=request.url.path,
-        client_ip=request.client.host if request.client else "unknown"
-    )
+    if PRODUCTION_FEATURES:
+        logger.info(
+            "Request started",
+            method=request.method,
+            path=request.url.path,
+            client_ip=request.client.host if request.client else "unknown"
+        )
     
     response = await call_next(request)
     
@@ -65,21 +93,23 @@ async def log_requests(request: Request, call_next):
     duration = time.time() - start_time
     
     # Record metrics
-    metrics.record_api_request(
-        endpoint=request.url.path,
-        method=request.method,
-        status_code=response.status_code,
-        duration=duration
-    )
+    if PRODUCTION_FEATURES:
+        metrics.record_api_request(
+            endpoint=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            duration=duration
+        )
     
     # Log response
-    logger.info(
-        "Request completed",
-        method=request.method,
-        path=request.url.path,
-        status_code=response.status_code,
-        duration=f"{duration:.3f}s"
-    )
+    if PRODUCTION_FEATURES:
+        logger.info(
+            "Request completed",
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration=f"{duration:.3f}s"
+        )
     
     return response
 
@@ -147,11 +177,15 @@ async def get_admin_user(user: dict = Depends(get_current_user)):
 
 # --- Bot Endpoint'leri ---
 @app.post("/api/start", summary="Botu başlatır")
-@limiter.limit("3/minute")  # Dakikada 3 bot başlatma
 async def start_bot_endpoint(request: Request, bot_settings: EnhancedStartRequest, user: dict = Depends(get_active_subscriber)):
     """Kullanıcı için trading botunu başlatır"""
+    # Rate limiting if available
+    if PRODUCTION_FEATURES:
+        await limiter.limit("3/minute")(request)
+    
     try:
-        logger.info("Bot start requested", user_id=user['uid'], symbol=bot_settings.symbol)
+        if PRODUCTION_FEATURES:
+            logger.info("Bot start requested", user_id=user['uid'], symbol=bot_settings.symbol)
     
         # Kullanıcı ayarlarını kaydet
         await save_user_settings_internal(user['uid'], {
@@ -176,56 +210,72 @@ async def start_bot_endpoint(request: Request, bot_settings: EnhancedStartReques
         result = await bot_manager.start_bot_for_user(user['uid'], start_request)
     
         if "error" in result:
-            logger.error("Bot start failed", user_id=user['uid'], error=result["error"])
+            if PRODUCTION_FEATURES:
+                logger.error("Bot start failed", user_id=user['uid'], error=result["error"])
             raise HTTPException(status_code=400, detail=result["error"])
         
         # Record metrics
-        metrics.record_bot_start(user['uid'], bot_settings.symbol)
+        if PRODUCTION_FEATURES:
+            metrics.record_bot_start(user['uid'], bot_settings.symbol)
         
-        logger.info("Bot started successfully", user_id=user['uid'], symbol=bot_settings.symbol)
+        if PRODUCTION_FEATURES:
+            logger.info("Bot started successfully", user_id=user['uid'], symbol=bot_settings.symbol)
         return {"success": True, **result}
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Unexpected error in bot start", user_id=user['uid'], error=str(e))
-        metrics.record_error("bot_start_error", "main")
+        if PRODUCTION_FEATURES:
+            logger.error("Unexpected error in bot start", user_id=user['uid'], error=str(e))
+            metrics.record_error("bot_start_error", "main")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/stop", summary="Botu durdurur")
-@limiter.limit("10/minute")
 async def stop_bot_endpoint(request: Request, user: dict = Depends(get_current_user)):
     """Kullanıcının botunu durdurur"""
+    # Rate limiting if available
+    if PRODUCTION_FEATURES:
+        await limiter.limit("10/minute")(request)
+    
     try:
-        logger.info("Bot stop requested", user_id=user['uid'])
+        if PRODUCTION_FEATURES:
+            logger.info("Bot stop requested", user_id=user['uid'])
         
         result = await bot_manager.stop_bot_for_user(user['uid'])
         if "error" in result:
-            logger.error("Bot stop failed", user_id=user['uid'], error=result["error"])
+            if PRODUCTION_FEATURES:
+                logger.error("Bot stop failed", user_id=user['uid'], error=result["error"])
             raise HTTPException(status_code=400, detail=result["error"])
         
         # Record metrics
-        metrics.record_bot_stop(user['uid'], "unknown", "manual")
+        if PRODUCTION_FEATURES:
+            metrics.record_bot_stop(user['uid'], "unknown", "manual")
         
-        logger.info("Bot stopped successfully", user_id=user['uid'])
+        if PRODUCTION_FEATURES:
+            logger.info("Bot stopped successfully", user_id=user['uid'])
         return {"success": True, **result}
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Unexpected error in bot stop", user_id=user['uid'], error=str(e))
-        metrics.record_error("bot_stop_error", "main")
+        if PRODUCTION_FEATURES:
+            logger.error("Unexpected error in bot stop", user_id=user['uid'], error=str(e))
+            metrics.record_error("bot_stop_error", "main")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/status", summary="Bot durumunu alır")
-@limiter.limit("30/minute")
 async def get_status_endpoint(request: Request, user: dict = Depends(get_current_user)):
     """Kullanıcının bot durumunu döndürür"""
+    # Rate limiting if available
+    if PRODUCTION_FEATURES:
+        await limiter.limit("30/minute")(request)
+    
     status = bot_manager.get_bot_status(user['uid'])
     
     # Update active bots metric
-    active_bot_count = len([bot for bot in bot_manager.active_bots.values() if bot.status.get("is_running", False)])
-    metrics.update_active_bots(active_bot_count)
+    if PRODUCTION_FEATURES:
+        active_bot_count = len([bot for bot in bot_manager.active_bots.values() if bot.status.get("is_running", False)])
+        metrics.update_active_bots(active_bot_count)
     
     return {
         "is_running": status.get("is_running", False),
@@ -346,29 +396,38 @@ async def get_user_profile(user: dict = Depends(get_current_user)):
 # --- API Anahtarları ---
 
 @app.post("/api/save-keys", summary="API anahtarlarını kaydeder")
-@limiter.limit("5/minute")
 async def save_api_keys(request: Request, api_keys: EnhancedApiKeysRequest, user: dict = Depends(get_current_user)):
     """Kullanıcının Binance API anahtarlarını şifreli olarak kaydeder"""
+    # Rate limiting if available
+    if PRODUCTION_FEATURES:
+        await limiter.limit("5/minute")(request)
+    
     try:
-        logger.info("API keys save requested", user_id=user['uid'])
+        if PRODUCTION_FEATURES:
+            logger.info("API keys save requested", user_id=user['uid'])
         
         firebase_manager.update_user_api_keys(user['uid'], api_keys.api_key, api_keys.api_secret)
         
-        logger.info("API keys saved successfully", user_id=user['uid'])
+        if PRODUCTION_FEATURES:
+            logger.info("API keys saved successfully", user_id=user['uid'])
         return {"success": True, "message": "API anahtarları güvenli şekilde kaydedildi"}
     except Exception as e:
-        logger.error("Failed to save API keys", user_id=user['uid'], error=str(e))
-        metrics.record_error("api_keys_save_error", "main")
+        if PRODUCTION_FEATURES:
+            logger.error("Failed to save API keys", user_id=user['uid'], error=str(e))
+            metrics.record_error("api_keys_save_error", "main")
         raise HTTPException(status_code=500, detail="API anahtarları kaydedilemedi")
 
 # --- Metrics Endpoint ---
 @app.get("/metrics", summary="Prometheus metrics")
 async def get_metrics():
     """Prometheus formatında metrics döndürür"""
-    return Response(
-        content=get_metrics_data(),
-        media_type=get_metrics_content_type()
-    )
+    if PRODUCTION_FEATURES:
+        return Response(
+            content=get_metrics_data(),
+            media_type=get_metrics_content_type()
+        )
+    else:
+        return {"message": "Metrics not available in minimal mode"}
 
 # --- Health Check (Enhanced) ---
 @app.get("/health", summary="Sistem sağlık kontrolü")
