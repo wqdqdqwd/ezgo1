@@ -4,6 +4,10 @@ from datetime import datetime, timedelta, timezone
 from app.config import settings
 from app.utils.crypto import encrypt_data, decrypt_data
 import json # json modülü import edildi
+from app.utils.logger import get_logger
+from app.utils.error_handler import robust_firebase_call
+
+logger = get_logger("firebase_manager")
 
 class FirebaseManager:
     def __init__(self):
@@ -18,11 +22,12 @@ class FirebaseManager:
                 firebase_admin.initialize_app(cred, {
                     'databaseURL': settings.FIREBASE_DATABASE_URL
                 })
-            print("Firebase Admin SDK başarıyla başlatıldı.")
+            logger.info("Firebase Admin SDK initialized successfully")
         except Exception as e:
-            print(f"CRITICAL: Firebase başlatılırken hata oluştu: {e}")
+            logger.critical("Firebase initialization failed", error=str(e))
             raise e 
 
+    @robust_firebase_call(max_attempts=2)
     def verify_token(self, token: str):
         """
         Firebase ID Token'ı doğrular ve decoded payload'u döndürür.
@@ -31,7 +36,7 @@ class FirebaseManager:
         try:
             return auth.verify_id_token(token)
         except Exception as e:
-            print(f"Token doğrulama hatası: {e}")
+            logger.error("Token verification failed", error=str(e))
             # Hata durumunda yetkilendirme katmanında işlenmek üzere None döndür
             return None
 
@@ -66,9 +71,10 @@ class FirebaseManager:
             'role': user_role_in_db # Sadece Realtime DB'de gösterim için
         }
         user_ref.set(user_data)
-        print(f"Yeni kullanıcı kaydı oluşturuldu: {email} (UID: {uid}, DB Rolü: {user_role_in_db})")
+        logger.info("New user record created", email=email, uid=uid, role=user_role_in_db)
         return user_data
 
+    @robust_firebase_call(max_attempts=2)
     def get_user_data(self, uid: str) -> dict | None:
         """
         Belirli bir kullanıcının Realtime Database'deki verilerini çeker
@@ -89,8 +95,9 @@ class FirebaseManager:
             'binance_api_key': encrypt_data(api_key),
             'binance_api_secret': encrypt_data(api_secret)
         })
-        print(f"Kullanıcı {uid} için API anahtarları güncellendi.")
+        logger.info("API keys updated", user_id=uid)
 
+    @robust_firebase_call(max_attempts=2)
     def log_trade(self, uid: str, trade_data: dict):
         """Kullanıcının işlem verilerini Realtime Database'e kaydeder."""
         trades_ref = self.get_trades_ref(uid)
@@ -98,7 +105,7 @@ class FirebaseManager:
         if 'timestamp' in trade_data and isinstance(trade_data['timestamp'], datetime):
             trade_data['timestamp'] = trade_data['timestamp'].isoformat()
         trades_ref.push(trade_data) # Firebase'de benzersiz anahtar ile ekle
-        print(f"--> Kullanıcı {uid} için işlem kaydedildi.")
+        logger.info("Trade logged", user_id=uid, pnl=trade_data.get('pnl', 0))
 
     def is_subscription_active(self, uid: str) -> bool:
         """Kullanıcının aboneliğinin aktif olup olmadığını kontrol eder."""
@@ -119,7 +126,20 @@ class FirebaseManager:
             return True
         except ValueError:
             # Tarih ayrıştırma hatası olursa aboneliği aktif sayma
-            print(f"Uyarı: Kullanıcı {uid} için geçersiz abonelik bitiş tarihi formatı.")
+            logger.warning("Invalid subscription expiry date format", user_id=uid)
+            return False
+    
+    def is_subscription_active_by_data(self, user_data: dict) -> bool:
+        """
+        User data'dan abonelik durumunu kontrol eder (admin panel için)
+        """
+        if not user_data or 'subscription_expiry' not in user_data:
+            return False
+        try:
+            expiry_date = datetime.fromisoformat(user_data['subscription_expiry'])
+            current_utc_time = datetime.now(timezone.utc)
+            return current_utc_time <= expiry_date
+        except ValueError:
             return False
 
 # FirebaseManager sınıfının tek bir örneği oluşturulur.
