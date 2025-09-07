@@ -26,3 +26,6 @@ websockets==9.1
 
 # Error handling and resilience
 tenacity==8.2.3
+
+# Logging
+structlog==23.2.0
