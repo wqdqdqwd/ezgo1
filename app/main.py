@@ -2,7 +2,7 @@ import asyncio
 import time
 import json
 import os
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -16,24 +16,112 @@ from app.firebase_manager import firebase_manager, db
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
-# Statik klasörün doğru yolunu belirleme
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC_FOLDER = os.path.join(BASE_DIR, 'static')
+# FIXED: Static klasörün doğru yolunu belirleme
+# Render.com'da proje yapısına uygun path
+if os.path.exists('/opt/render/project/src/static'):
+    STATIC_FOLDER = '/opt/render/project/src/static'
+elif os.path.exists('static'):
+    STATIC_FOLDER = 'static'
+else:
+    # Eğer static klasör yoksa oluştur
+    STATIC_FOLDER = 'static'
+    os.makedirs(STATIC_FOLDER, exist_ok=True)
+    
+    # Basit bir index.html oluştur
+    with open(os.path.join(STATIC_FOLDER, 'index.html'), 'w', encoding='utf-8') as f:
+        f.write('''<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EzyagoTrading - Bot is Running</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 2rem; 
+            background: #0f172a; 
+            color: #f8fafc; 
+            text-align: center;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: #1e293b; 
+            padding: 2rem; 
+            border-radius: 1rem; 
+            border: 1px solid #334155;
+        }
+        .status { color: #16a34a; font-size: 1.2rem; font-weight: bold; }
+        .api-link { 
+            display: inline-block; 
+            margin: 0.5rem; 
+            padding: 0.75rem 1.5rem; 
+            background: #2563eb; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 0.5rem; 
+            transition: background 0.3s;
+        }
+        .api-link:hover { background: #1d4ed8; }
+        .info { margin: 1rem 0; color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 EzyagoTrading Bot</h1>
+        <div class="status">✅ Service is Running</div>
+        <div class="info">
+            <p>The trading bot backend is successfully deployed and operational.</p>
+            <p><strong>Version:</strong> 4.1.0</p>
+            <p><strong>Status:</strong> Online</p>
+            <p><strong>Server Time:</strong> <span id="time"></span></p>
+        </div>
+        
+        <h3>🔗 API Endpoints</h3>
+        <div>
+            <a href="/health" class="api-link">Health Check</a>
+            <a href="/api/firebase-config" class="api-link">Firebase Config</a>
+        </div>
+        
+        <h3>📊 System Information</h3>
+        <div class="info">
+            <p><strong>Environment:</strong> Production</p>
+            <p><strong>Database:</strong> Firebase Realtime DB</p>
+            <p><strong>WebSocket:</strong> Binance Futures Stream</p>
+        </div>
+        
+        <div style="margin-top: 2rem; font-size: 0.9rem; color: #94a3b8;">
+            <p>© 2025 EzyagoTrading. Professional Crypto Trading Bot.</p>
+        </div>
+    </div>
+    
+    <script>
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>''')
 
-app = Flask(__name__, static_folder=STATIC_FOLDER)
+# Flask app'i static folder ile başlat
+app = Flask(__name__, static_folder=STATIC_FOLDER, static_url_path='/static')
 
-# CORS setup
+# CORS setup - Fixed for Render deployment
 CORS(app, 
      origins=["*"] if settings.ENVIRONMENT == "DEVELOPMENT" else [
          "https://ezyago.com",
-         "https://www.ezyago.com"
-     
+         "https://www.ezyago.com",
+         "https://*.render.com",  # Render subdomains
+         "https://ezyagotrading.onrender.com"  # Your Render URL
      ])
 
 # Request logging middleware
 @app.before_request
 def log_request():
-    app.logger.info(f"{request.method} {request.path}")
+    app.logger.info(f"{request.method} {request.path} from {request.remote_addr}")
 
 @app.after_request
 def log_response(response):
@@ -126,6 +214,56 @@ def require_admin(f):
         return f(*args, **kwargs)
     
     return decorated_function
+
+# FIXED: Static file routes
+@app.route('/')
+def index():
+    """Ana sayfa - Fixed static file serving"""
+    try:
+        return send_from_directory(STATIC_FOLDER, 'index.html')
+    except FileNotFoundError:
+        # Fallback HTML response
+        return '''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>EzyagoTrading - Bot Running</title>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; 
+                       background: #0f172a; color: #f8fafc; text-align: center; }
+                .container { max-width: 500px; margin: 0 auto; background: #1e293b; 
+                            padding: 2rem; border-radius: 1rem; }
+                .status { color: #16a34a; font-size: 1.2rem; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🤖 EzyagoTrading</h1>
+                <div class="status">✅ Service is Running</div>
+                <p>Professional crypto trading bot is operational.</p>
+                <p><a href="/health" style="color: #2563eb;">Health Check</a></p>
+            </div>
+        </body>
+        </html>
+        '''
+
+@app.route('/admin')
+@require_admin
+def admin_page():
+    """Admin paneli"""
+    try:
+        return send_from_directory(STATIC_FOLDER, 'admin.html')
+    except FileNotFoundError:
+        return jsonify({"error": "Admin panel not found"}), 404
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Static dosyalar"""
+    try:
+        return send_from_directory(STATIC_FOLDER, filename)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
 
 # API Routes
 @app.route('/api/firebase-config', methods=['GET'])
@@ -420,7 +558,9 @@ def health_check():
             "status": "healthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "version": "4.1.0",
-            "components": {}
+            "components": {},
+            "static_folder": STATIC_FOLDER,
+            "static_folder_exists": os.path.exists(STATIC_FOLDER)
         }
         
         # Firebase health check
@@ -521,27 +661,10 @@ def activate_subscription():
         logger.error(f"Subscription extension error: {e}")
         return jsonify({"error": "Abonelik uzatılamadı"}), 500
 
-# Static files
-@app.route('/')
-def index():
-    """Ana sayfa"""
-    return send_from_directory('static', 'index.html')
-
-@app.route('/admin')
-@require_admin
-def admin_page():
-    """Admin paneli"""
-    return send_from_directory('static', 'admin.html')
-
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """Static dosyalar"""
-    return send_from_directory('static', filename)
-
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({"error": "Not found"}), 404
+    return jsonify({"error": "Not found", "requested_path": request.path}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -551,4 +674,6 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8000))
     logger.info(f"Starting EzyagoTrading Backend on port {port}")
+    logger.info(f"Static folder: {STATIC_FOLDER}")
+    logger.info(f"Static folder exists: {os.path.exists(STATIC_FOLDER)}")
     app.run(host='0.0.0.0', port=port, debug=settings.ENVIRONMENT == "DEVELOPMENT")
