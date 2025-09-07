@@ -727,31 +727,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 maxDailyLoss: document.getElementById('max-daily-loss')?.value || 10
             };
             
-            try {
-                const response = await fetchUserApi('/api/bot/start', {
-                    method: 'POST',
-                    body: JSON.stringify(botSettings)
-                });
-                
-                if (response && response.success) {
-                    AppState.botStatus = 'active';
-                    updateBotStatus('active', 'RUNNING');
-                    showStatusMessage('Bot started successfully!', 'success');
-                } else {
-                    throw new Error(response?.detail || 'Failed to start bot');
-                }
-            } catch (apiError) {
-                // Mock bot start for demo purposes
-                console.log('Using mock bot start (backend not available)');
-                AppState.botStatus = 'active';
-                updateBotStatus('active', 'RUNNING');
-                showStatusMessage('Bot started successfully! (Demo Mode)', 'success');
+            // fetchUserApi çağrısını ve then bloklarını doğru şekilde kapatın.
+            const response = await fetchUserApi('/api/bot/start', {
+                method: 'POST',
+                body: JSON.stringify(botSettings)
+            });
+
+            if (response && response.success) {
+                updateBotStatus('online', 'success');
+            } else {
+                console.error('Bot start failed:', response?.message);
+                updateBotStatus('offline', 'error');
             }
-        } catch (error) {
-            showStatusMessage(`Error starting bot: ${error.message}`, 'error');
+        } catch (apiError) {
+            console.error('Bot starting API error:', apiError);
+            updateBotStatus('offline', 'error');
         } finally {
-            startBtn.innerHTML = originalText;
+            // Butonu her durumda eski haline getir.
             startBtn.disabled = false;
+            startBtn.innerHTML = originalText;
+        }
+    }
+
+    async function stopBot() {
+        const stopBtn = UIElements.stopButton;
+        if (!stopBtn) return;
+        
+        const originalText = stopBtn.innerHTML;
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+        
+        try {
+            const response = await fetchUserApi('/api/bot/stop', {
+                method: 'POST'
+            });
+
+            if (response && response.success) {
+                updateBotStatus('offline', 'success');
+            } else {
+                console.error('Bot stop failed:', response?.message);
+            }
+        } catch (apiError) {
+            console.error('Bot stopping API error:', apiError);
+        } finally {
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = originalText;
         }
     }
 
