@@ -5,10 +5,12 @@ from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta, timezone
 from functools import wraps 
 from typing import Optional, Dict, Any
+import os
 
 from app.bot_manager import bot_manager, StartRequest
 from app.config import settings
@@ -31,7 +33,10 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Production'da specific origins kullanın
+    allow_origins=["*"] if settings.ENVIRONMENT == "DEVELOPMENT" else [
+        "https://your-domain.com",
+        "https://www.your-domain.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -578,8 +583,10 @@ async def read_admin_page(admin: dict = Depends(get_admin_user)):
 @app.on_event("startup")
 async def startup_event():
     """Uygulama başlatıldığında çalışır"""
+    port = os.getenv("PORT", "8000")
     logger.info("🚀 EzyagoTrading Backend started", 
                 environment=settings.ENVIRONMENT,
+                port=port,
                 firebase_db=settings.FIREBASE_DATABASE_URL)
 
 @app.on_event("shutdown")
