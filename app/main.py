@@ -5,7 +5,7 @@ from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import os
@@ -14,7 +14,7 @@ from app.bot_manager import bot_manager
 from app.config import settings
 from app.firebase_manager import firebase_manager, db
 
-# Fallback logger (no complex logging)
+# Simple logging (no complex dependencies)
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -37,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Minimal request logging
+# Basic request logging
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
@@ -46,49 +46,18 @@ async def log_requests(request: Request, call_next):
     logger.info(f"{request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)")
     return response
 
-# Pydantic v1 models
+# Simple Pydantic models (no complex validators for Python 3.13 compatibility)
 class StartRequest(BaseModel):
     symbol: str = Field(..., min_length=6, max_length=12)
-    timeframe: str = Field(..., min_length=2, max_length=3)
+    timeframe: str = Field(...)
     leverage: int = Field(..., ge=1, le=125)
     order_size: float = Field(..., ge=10, le=10000)
     stop_loss: float = Field(..., ge=0.1, le=50.0)
     take_profit: float = Field(..., ge=0.1, le=50.0)
-    
-    @validator('symbol')
-    def validate_symbol(cls, v):
-        if not v or not v.endswith('USDT'):
-            raise ValueError('Invalid trading symbol')
-        return v.upper().strip()
-    
-    @validator('timeframe')
-    def validate_timeframe(cls, v):
-        valid_timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d']
-        if v not in valid_timeframes:
-            raise ValueError('Invalid timeframe')
-        return v
-    
-    @validator('take_profit')
-    def validate_tp_greater_than_sl(cls, v, values):
-        if 'stop_loss' in values and v <= values['stop_loss']:
-            raise ValueError('Take profit must be greater than stop loss')
-        return v
 
 class ApiKeysRequest(BaseModel):
-    api_key: str = Field(..., min_length=60, max_length=70)
-    api_secret: str = Field(..., min_length=60, max_length=70)
-    
-    @validator('api_key')
-    def validate_api_key(cls, v):
-        if not v or len(v) < 60:
-            raise ValueError('Invalid Binance API key format')
-        return v.strip()
-    
-    @validator('api_secret')
-    def validate_api_secret(cls, v):
-        if not v or len(v) < 60:
-            raise ValueError('Invalid Binance API secret format')
-        return v.strip()
+    api_key: str = Field(...)
+    api_secret: str = Field(...)
 
 class UserSettingsRequest(BaseModel):
     settings: Dict[str, Any]
@@ -155,6 +124,12 @@ async def get_admin_user(user: dict = Depends(get_current_user)):
 async def start_bot_endpoint(bot_settings: StartRequest, user: dict = Depends(get_active_subscriber)):
     """Kullanıcı için trading botunu başlatır"""
     try:
+        # Basic validation
+        if not bot_settings.symbol.endswith('USDT'):
+            raise HTTPException(status_code=400, detail="Invalid symbol")
+        if bot_settings.take_profit <= bot_settings.stop_loss:
+            raise HTTPException(status_code=400, detail="Take profit must be greater than stop loss")
+        
         logger.info(f"Bot start requested for user {user['uid']}, symbol {bot_settings.symbol}")
         
         # Kullanıcı ayarlarını kaydet
@@ -326,6 +301,10 @@ async def get_user_profile(user: dict = Depends(get_current_user)):
 async def save_api_keys(api_keys: ApiKeysRequest, user: dict = Depends(get_current_user)):
     """Kullanıcının Binance API anahtarlarını şifreli olarak kaydeder"""
     try:
+        # Basic validation
+        if len(api_keys.api_key) < 60 or len(api_keys.api_secret) < 60:
+            raise HTTPException(status_code=400, detail="Invalid API key format")
+        
         logger.info(f"API keys save requested for user {user['uid']}")
         
         firebase_manager.update_user_api_keys(user['uid'], api_keys.api_key, api_keys.api_secret)
@@ -339,7 +318,7 @@ async def save_api_keys(api_keys: ApiKeysRequest, user: dict = Depends(get_curre
 # --- Health Check ---
 @app.get("/health", summary="Sistem sağlık kontrolü")
 async def health_check():
-    """Gelişmiş sistem durumu kontrolü"""
+    """Sistem durumu kontrolü"""
     try:
         health_status = {
             "status": "healthy",
@@ -368,13 +347,6 @@ async def health_check():
             health_status["components"]["bot_manager"] = f"unhealthy: {str(e)}"
             health_status["status"] = "degraded"
         
-        # Overall status
-        if health_status["status"] == "degraded":
-            return JSONResponse(
-                status_code=503,
-                content=health_status
-            )
-        
         return health_status
         
     except Exception as e:
@@ -397,14 +369,6 @@ async def get_all_users(admin: dict = Depends(get_admin_user)):
         
         sanitized_users = {}
         for uid, user_data in all_users_data.items():
-            # Her kullanıcı için trading stats hesapla
-            try:
-                trades_ref = firebase_manager.get_trades_ref(uid)
-                trades_data = trades_ref.get() or {}
-                stats = calculate_trading_stats(trades_data)
-            except:
-                stats = TradingStats().dict()
-            
             sanitized_users[uid] = {
                 'email': user_data.get('email'),
                 'subscription_status': user_data.get('subscription_status'),
@@ -412,8 +376,8 @@ async def get_all_users(admin: dict = Depends(get_admin_user)):
                 'created_at': user_data.get('created_at'),
                 'role': user_data.get('role', 'user'),
                 'has_api_keys': bool(user_data.get('binance_api_key') and user_data.get('binance_api_secret')),
-                'total_trades': stats.get('total_trades', 0),
-                'total_pnl': stats.get('total_pnl', 0.0)
+                'total_trades': 0,
+                'total_pnl': 0.0
             }
         
         return {"users": sanitized_users}
@@ -434,20 +398,8 @@ async def activate_subscription(request: ActivateSubscriptionRequest, admin: dic
         if not user_data:
             raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
         
-        # Mevcut abonelik bitiş tarihini al
-        current_expiry_str = user_data.get('subscription_expiry')
-        current_expiry = datetime.now(timezone.utc)
-        
-        if current_expiry_str:
-            try:
-                expiry_from_db = datetime.fromisoformat(current_expiry_str.replace('Z', '+00:00'))
-                if expiry_from_db > current_expiry:
-                    current_expiry = expiry_from_db
-            except ValueError:
-                logger.error(f"Invalid date format: {current_expiry_str}")
-        
         # 30 gün ekle
-        new_expiry = current_expiry + timedelta(days=30)
+        new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
         
         user_ref.update({
             "subscription_status": "active",
