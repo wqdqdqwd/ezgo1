@@ -14,20 +14,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // DOM elements
-    const UIElements = {
-        // Mobile navigation
-        document.querySelectorAll('.mobile-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const targetPage = tab.dataset.page;
-                if (targetPage) {
-                    showPage(targetPage);
-                    
-                    // Update active state
-                    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                }
-            });
-        });
+const UIElements = {
+    mobileTabs: document.querySelectorAll('.mobile-tab')
+};
+
+// Event listeners for mobile navigation
+UIElements.mobileTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        const targetPage = tab.dataset.page;
+        if (targetPage) {
+            showPage(targetPage);
+
+            // Update active state
+            UIElements.mobileTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        }
+    });
+});
+
         
         // Trading mode tabs
         document.querySelectorAll('.trading-tab').forEach(tab => {
