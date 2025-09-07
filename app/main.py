@@ -6,13 +6,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator  # Pydantic v1 syntax
 from datetime import datetime, timedelta, timezone
 from functools import wraps 
 from typing import Optional, Dict, Any
 import os
 
-from app.bot_manager import bot_manager, StartRequest
+from app.bot_manager import bot_manager
 from app.config import settings
 from app.firebase_manager import firebase_manager, db
 
@@ -21,7 +21,7 @@ try:
     from app.utils.logger import setup_logging, get_logger
     from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
     from app.utils.metrics import metrics, get_metrics_data, get_metrics_content_type
-    from app.utils.validation import EnhancedStartRequest, EnhancedApiKeysRequest, validate_user_input
+    from app.utils.validation import validate_user_input
     from slowapi.errors import RateLimitExceeded
     PRODUCTION_FEATURES = True
 except ImportError as e:
@@ -31,19 +31,6 @@ except ImportError as e:
     import logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("main")
-    
-    # Fallback validation models
-    class EnhancedStartRequest(BaseModel):
-        symbol: str
-        timeframe: str
-        leverage: int
-        order_size: float
-        stop_loss: float
-        take_profit: float
-    
-    class EnhancedApiKeysRequest(BaseModel):
-        api_key: str
-        api_secret: str
 
 # Setup logging if available
 if PRODUCTION_FEATURES:
@@ -113,6 +100,53 @@ async def log_requests(request: Request, call_next):
     
     return response
 
+# Pydantic v1 syntax for models
+class StartRequest(BaseModel):
+    symbol: str = Field(..., min_length=6, max_length=12)
+    timeframe: str = Field(..., min_length=2, max_length=3)
+    leverage: int = Field(..., ge=1, le=125)
+    order_size: float = Field(..., ge=10, le=10000)
+    stop_loss: float = Field(..., ge=0.1, le=50.0)
+    take_profit: float = Field(..., ge=0.1, le=50.0)
+    
+    @validator('symbol')
+    def validate_symbol(cls, v):
+        # Basic symbol validation
+        if not v or not v.endswith('USDT'):
+            raise ValueError('Invalid trading symbol')
+        return v.upper().strip()
+    
+    @validator('timeframe')
+    def validate_timeframe(cls, v):
+        valid_timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d']
+        if v not in valid_timeframes:
+            raise ValueError('Invalid timeframe')
+        return v
+    
+    @validator('take_profit')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss' in values and v <= values['stop_loss']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
+
+class ApiKeysRequest(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
+    
+    @validator('api_key')
+    def validate_api_key(cls, v):
+        # Basic API key validation
+        if not v or len(v) < 60:
+            raise ValueError('Invalid Binance API key format')
+        return v.strip()
+    
+    @validator('api_secret')
+    def validate_api_secret(cls, v):
+        # Basic API secret validation
+        if not v or len(v) < 60:
+            raise ValueError('Invalid Binance API secret format')
+        return v.strip()
+
 # YENİ: Kullanıcı ayarları modeli
 class UserSettingsRequest(BaseModel):
     settings: Dict[str, Any]
@@ -144,23 +178,24 @@ bearer_scheme = HTTPBearer()
 async def get_current_user(token: str = Depends(bearer_scheme)):
     """Firebase token'ı doğrular ve kullanıcı verilerini döndürür"""
     try:
-    user_payload = firebase_manager.verify_token(token.credentials)
-    if not user_payload:
-        raise HTTPException(status_code=401, detail="Geçersiz kimlik bilgisi.")
-    
-    uid = user_payload['uid']
-    
-    # Kullanıcı verilerini al veya oluştur
-    user_data = firebase_manager.get_user_data(uid)
-    if not user_data:
-        user_data = firebase_manager.create_user_record(uid, user_payload.get('email', ''))
-    
-    user_data['uid'] = uid
-    user_data['role'] = 'admin' if user_payload.get('admin', False) else 'user'
-    
-    return user_data
+        user_payload = firebase_manager.verify_token(token.credentials)
+        if not user_payload:
+            raise HTTPException(status_code=401, detail="Geçersiz kimlik bilgisi.")
+        
+        uid = user_payload['uid']
+        
+        # Kullanıcı verilerini al veya oluştur
+        user_data = firebase_manager.get_user_data(uid)
+        if not user_data:
+            user_data = firebase_manager.create_user_record(uid, user_payload.get('email', ''))
+        
+        user_data['uid'] = uid
+        user_data['role'] = 'admin' if user_payload.get('admin', False) else 'user'
+        
+        return user_data
     except Exception as e:
-        logger.error("Authentication failed", error=str(e))
+        if PRODUCTION_FEATURES:
+            logger.error("Authentication failed", error=str(e))
         raise HTTPException(status_code=401, detail="Authentication failed")
 
 async def get_active_subscriber(user: dict = Depends(get_current_user)):
@@ -177,7 +212,7 @@ async def get_admin_user(user: dict = Depends(get_current_user)):
 
 # --- Bot Endpoint'leri ---
 @app.post("/api/start", summary="Botu başlatır")
-async def start_bot_endpoint(request: Request, bot_settings: EnhancedStartRequest, user: dict = Depends(get_active_subscriber)):
+async def start_bot_endpoint(request: Request, bot_settings: StartRequest, user: dict = Depends(get_active_subscriber)):
     """Kullanıcı için trading botunu başlatır"""
     # Rate limiting if available
     if PRODUCTION_FEATURES:
@@ -196,18 +231,8 @@ async def start_bot_endpoint(request: Request, bot_settings: EnhancedStartReques
             'sl': bot_settings.stop_loss,
             'timeframe': bot_settings.timeframe
         })
-    
-        # Convert to original StartRequest for compatibility
-        start_request = StartRequest(
-            symbol=bot_settings.symbol,
-            timeframe=bot_settings.timeframe,
-            leverage=bot_settings.leverage,
-            order_size=bot_settings.order_size,
-            stop_loss=bot_settings.stop_loss,
-            take_profit=bot_settings.take_profit
-        )
         
-        result = await bot_manager.start_bot_for_user(user['uid'], start_request)
+        result = await bot_manager.start_bot_for_user(user['uid'], bot_settings)
     
         if "error" in result:
             if PRODUCTION_FEATURES:
@@ -394,9 +419,8 @@ async def get_user_profile(user: dict = Depends(get_current_user)):
     }
 
 # --- API Anahtarları ---
-
 @app.post("/api/save-keys", summary="API anahtarlarını kaydeder")
-async def save_api_keys(request: Request, api_keys: EnhancedApiKeysRequest, user: dict = Depends(get_current_user)):
+async def save_api_keys(request: Request, api_keys: ApiKeysRequest, user: dict = Depends(get_current_user)):
     """Kullanıcının Binance API anahtarlarını şifreli olarak kaydeder"""
     # Rate limiting if available
     if PRODUCTION_FEATURES:
@@ -457,7 +481,8 @@ async def health_check():
             active_bots = len(bot_manager.active_bots)
             health_status["components"]["bot_manager"] = "healthy"
             health_status["active_bots"] = active_bots
-            metrics.update_active_bots(active_bots)
+            if PRODUCTION_FEATURES:
+                metrics.update_active_bots(active_bots)
         except Exception as e:
             health_status["components"]["bot_manager"] = f"unhealthy: {str(e)}"
             health_status["status"] = "degraded"
@@ -472,7 +497,8 @@ async def health_check():
         return health_status
         
     except Exception as e:
-        logger.error("Health check failed", error=str(e))
+        if PRODUCTION_FEATURES:
+            logger.error("Health check failed", error=str(e))
         return JSONResponse(
             status_code=503,
             content={
@@ -589,99 +615,4 @@ async def get_bot_performance(admin: dict = Depends(get_admin_user)):
             "active_subscriptions": active_subscriptions,
             "active_bots": active_bots,
             "total_trades": total_system_trades,
-            "total_pnl": round(total_system_pnl, 2),
-            "success_rate": 0.0  # Bu hesaplanabilir
-        }
-    except Exception as e:
-        print(f"Performance stats hatası: {e}")
-        raise HTTPException(status_code=500, detail="Performance verileri alınamadı")
-
-# --- YENİ: Kullanıcı Ayarları Endpoint'leri ---
-@app.post("/api/save-user-settings", summary="Kullanıcı ayarlarını kaydeder")  
-async def save_user_settings_endpoint(request: UserSettingsRequest, user: dict = Depends(get_current_user)):
-    """Kullanıcının kişisel bot ayarlarını kaydeder"""
-    try:
-        await save_user_settings_internal(user['uid'], request.settings)
-        return {"success": True, "message": "Ayarlar kaydedildi"}
-    except Exception as e:
-        print(f"Ayar kaydetme hatası: {e}")
-        raise HTTPException(status_code=500, detail="Ayarlar kaydedilemedi")
-
-# --- YENİ: Market Data Endpoint'leri ---
-@app.get("/api/market-data/{symbol}", summary="Market verilerini alır")
-async def get_market_data(symbol: str, user: dict = Depends(get_current_user)):
-    """Belirtilen sembol için market verilerini döndürür"""
-    try:
-        # Bu endpoint gelecekte WebSocket ile real-time data sağlayabilir
-        # Şimdilik basit bir response döndürüyoruz
-        return {
-            "symbol": symbol.upper(),
-            "price": 0.0,  # Real-time price buraya eklenecek
-            "change_24h": 0.0,
-            "volume_24h": 0.0,
-            "last_updated": datetime.now(timezone.utc).isoformat()
-        }
-    except Exception as e:
-        print(f"Market data hatası: {e}")
-        raise HTTPException(status_code=500, detail="Market verisi alınamadı")
-
-# --- Static Files ---
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.get("/", include_in_schema=False)
-async def read_index():
-    """Ana sayfa"""
-    return FileResponse('static/index.html')
-
-@app.get("/admin", include_in_schema=False)
-async def read_admin_page(admin: dict = Depends(get_admin_user)):
-    """Admin paneli - yetki kontrolü ile"""
-    return FileResponse('static/admin.html')
-
-# --- Sistem Events ---
-@app.on_event("startup")
-async def startup_event():
-    """Uygulama başlatıldığında çalışır"""
-    port = os.getenv("PORT", "8000")
-    logger.info("🚀 EzyagoTrading Backend started", 
-                environment=settings.ENVIRONMENT,
-                port=port,
-                firebase_db=settings.FIREBASE_DATABASE_URL)
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Uygulama kapatıldığında tüm botları güvenli şekilde durdurur"""
-    logger.info("📴 System shutting down, stopping all bots...")
-    await bot_manager.shutdown_all_bots()
-    logger.info("✅ All bots stopped safely")
-
-# --- Error Handlers ---
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """HTTP hatalarını yakalar ve loglar"""
-    logger.error("HTTP Exception", 
-                status_code=exc.status_code, 
-                detail=exc.detail, 
-                path=request.url.path)
-    
-    metrics.record_error(f"http_{exc.status_code}", "main")
-    
-    return {
-        "error": True,
-        "status_code": exc.status_code,
-        "detail": exc.detail,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-
-@app.exception_handler(500)
-async def internal_server_error_handler(request: Request, exc):
-    """500 hatalarını yakalar"""
-    logger.error("Internal Server Error", error=str(exc), path=request.url.path)
-    metrics.record_error("internal_server_error", "main")
-    
-    return {
-        "error": True,
-        "status_code": 500,
-        "detail": "İç sunucu hatası",
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
+            "total_pnl": round(total_system
