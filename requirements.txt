@@ -11,9 +11,9 @@ firebase-admin==6.2.0
 # Binance API
 python-binance==1.0.19
 
-# Data processing (Python 3.13 compatible versions)
-pandas==2.2.0
-numpy==1.26.0
+# Data processing - Pre-compiled wheels for faster deployment
+pandas==2.1.4
+numpy==1.24.3
 
 # Security & Crypto
 cryptography==41.0.8
@@ -38,7 +38,7 @@ aiohttp==3.9.1
 # WebSocket support
 websockets==12.0
 
-# Testing (dev dependencies - optional for production)
+# Testing (optional for production)
 pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
