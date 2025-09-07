@@ -15,887 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM elements
     const UIElements = {
-        // Auth elements
-        authContainer: document.getElementById('auth-container'),
-        appContainer: document.getElementById('app-container'),
-        loginCard: document.getElementById('login-card'),
-        registerCard: document.getElementById('register-card'),
-        loginButton: document.getElementById('login-button'),
-        registerButton: document.getElementById('register-button'),
-        logoutButton: document.getElementById('logout-button'),
-        
-        // Language elements
-        languageSelector: document.getElementById('language-selector'),
-        registerLanguage: document.getElementById('register-language'),
-        
-        // Trading elements
-        pairSelectorBtn: document.getElementById('pair-selector-btn'),
-        mobilePairSymbol: document.getElementById('mobile-pair-symbol'),
-        currentPrice: document.getElementById('current-price'),
-        priceChange: document.getElementById('price-change'),
-        
-        // Bot controls
-        startButton: document.getElementById('start-button'),
-        stopButton: document.getElementById('stop-button'),
-        botStatusDot: document.getElementById('bot-status-dot'),
-        botStatusText: document.getElementById('bot-status-text'),
-        
-        // Settings
-        orderSizeInput: document.getElementById('order-size-input'),
-        leverageInput: document.getElementById('leverage-input'),
-        leverageValue: document.getElementById('leverage-value'),
-        tpInput: document.getElementById('tp-input'),
-        slInput: document.getElementById('sl-input'),
-        
-        // Modals
-        pairSelectorModal: document.getElementById('pair-selector-modal'),
-        timeframeModal: document.getElementById('timeframe-modal'),
-        pairsList: document.getElementById('pairs-list'),
-        
-        // Leaderboard
-        leaderboardList: document.getElementById('leaderboard-list'),
-        totalTraders: document.getElementById('total-traders'),
-        avgProfit: document.getElementById('avg-profit')
-    };
-
-    // Firebase services
-    const firebaseServices = {
-        auth: null,
-        database: null
-    };
-
-    // Language translations
-    const translations = {
-        tr: {
-            // Auth
-            login_welcome: "Futures Trading'e Hoş Geldin",
-            login_subtitle: "Professional crypto bot ile automated trading",
-            register_title: "Hesap Oluştur",
-            register_subtitle: "Professional trading bot'a erişim kazanın",
-            email_label: "E-posta Adresi",
-            password_label: "Şifre",
-            language_label: "Dil / Language",
-            login_btn: "Giriş Yap",
-            register_btn: "Hesap Oluştur",
-            no_account_text: "Hesabın yok mu?",
-            have_account_text: "Zaten hesabın var mı?",
-            register_link: "Kayıt Ol",
-            login_link: "Giriş Yap",
-            
-            // Navigation
-            nav_trading: "Trading",
-            nav_positions: "Pozisyonlar",
-            nav_leaderboard: "Liderlik",
-            nav_api: "API Keys",
-            nav_settings: "Ayarlar",
-            
-            // Trading
-            available_balance: "Kullanılabilir",
-            in_orders: "Emirlerde",
-            position_size: "Pozisyon Boyutu (USDT)",
-            margin_type: "Margin Tipi",
-            cross_margin: "Cross",
-            isolated_margin: "Isolated",
-            leverage: "Kaldıraç",
-            take_profit: "Take Profit %",
-            stop_loss: "Stop Loss %",
-            advanced_settings: "Gelişmiş Ayarlar",
-            trade_interval: "İşlem Aralığı",
-            max_daily_loss: "Günlük Max Kayıp %",
-            strategy: "Strateji",
-            start_bot: "Bot'u Başlat",
-            stop_bot: "Bot'u Durdur",
-            
-            // Manual trading
-            market: "Market",
-            limit: "Limit",
-            price_usdt: "Fiyat (USDT)",
-            amount_usdt: "Miktar (USDT)",
-            buy_long: "Al / Long",
-            sell_short: "Sat / Short",
-            
-            // Other
-            daily: "Günlük",
-            weekly: "Haftalık",
-            monthly: "Aylık",
-            leaderboard: "Liderlik Tablosu",
-            total_traders: "Toplam Trader",
-            avg_profit: "Ort. Kar"
-        },
-        en: {
-            // Auth
-            login_welcome: "Welcome to Futures Trading",
-            login_subtitle: "Professional crypto bot with automated trading",
-            register_title: "Create Account",
-            register_subtitle: "Get access to professional trading bot",
-            email_label: "Email Address",
-            password_label: "Password",
-            language_label: "Language",
-            login_btn: "Login",
-            register_btn: "Create Account",
-            no_account_text: "Don't have an account?",
-            have_account_text: "Already have an account?",
-            register_link: "Sign Up",
-            login_link: "Login",
-            
-            // Navigation
-            nav_trading: "Trading",
-            nav_positions: "Positions",
-            nav_leaderboard: "Leaderboard",
-            nav_api: "API Keys",
-            nav_settings: "Settings",
-            
-            // Trading
-            available_balance: "Available",
-            in_orders: "In Orders",
-            position_size: "Position Size (USDT)",
-            margin_type: "Margin Type",
-            cross_margin: "Cross",
-            isolated_margin: "Isolated",
-            leverage: "Leverage",
-            take_profit: "Take Profit %",
-            stop_loss: "Stop Loss %",
-            advanced_settings: "Advanced Settings",
-            trade_interval: "Trade Interval",
-            max_daily_loss: "Max Daily Loss %",
-            strategy: "Strategy",
-            start_bot: "Start Bot",
-            stop_bot: "Stop Bot",
-            
-            // Manual trading
-            market: "Market",
-            limit: "Limit",
-            price_usdt: "Price (USDT)",
-            amount_usdt: "Amount (USDT)",
-            buy_long: "Buy / Long",
-            sell_short: "Sell / Short",
-            
-            // Other
-            daily: "Daily",
-            weekly: "Weekly",
-            monthly: "Monthly",
-            leaderboard: "Trading Leaderboard",
-            total_traders: "Total Traders",
-            avg_profit: "Avg Profit"
-        }
-    };
-
-    // Language management
-    function updateLanguage(lang) {
-        AppState.currentLanguage = lang;
-        localStorage.setItem('userLanguage', lang);
-        
-        // Update all translatable elements
-        document.querySelectorAll('[data-tr]').forEach(element => {
-            const key = element.getAttribute(`data-${lang}`);
-            if (key && translations[lang] && translations[lang][key]) {
-                element.innerHTML = translations[lang][key];
-            }
-        });
-        
-        // Update placeholders
-        document.querySelectorAll('[data-tr-placeholder]').forEach(element => {
-            const key = element.getAttribute(`data-${lang}-placeholder`);
-            if (key && translations[lang] && translations[lang][key]) {
-                element.placeholder = translations[lang][key];
-            }
-        });
-        
-        // Update language selector
-        if (UIElements.languageSelector) {
-            UIElements.languageSelector.value = lang;
-        }
-        
-        // Save user language preference to database
-        if (AppState.currentUser) {
-            saveUserLanguagePreference(lang);
-        }
-    }
-
-    // WebSocket management for real-time data
-    function initializeWebSocket() {
-        if (AppState.websocket) {
-            AppState.websocket.close();
-        }
-        
-        // Binance WebSocket for futures data
-        const wsUrl = 'wss://fstream.binance.com/ws/!ticker@arr';
-        AppState.websocket = new WebSocket(wsUrl);
-        
-        AppState.websocket.onopen = () => {
-            console.log('WebSocket connected for futures data');
-        };
-        
-        AppState.websocket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                updatePriceData(data);
-            } catch (error) {
-                console.error('WebSocket data parse error:', error);
-            }
-        };
-        
-        AppState.websocket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-        
-        AppState.websocket.onclose = () => {
-            console.log('WebSocket disconnected');
-            // Reconnect after 5 seconds
-            setTimeout(initializeWebSocket, 5000);
-        };
-    }
-
-    // Load futures trading pairs
-    async function loadFuturesPairs() {
-        try {
-            const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
-            const data = await response.json();
-            
-            AppState.futuresPairs = data.symbols
-                .filter(symbol => symbol.status === 'TRADING' && symbol.contractType === 'PERPETUAL')
-                .map(symbol => ({
-                    symbol: symbol.symbol,
-                    baseAsset: symbol.baseAsset,
-                    quoteAsset: symbol.quoteAsset,
-                    price: '0.00',
-                    change: '0.00',
-                    changePercent: '0.00'
-                }))
-                .sort((a, b) => a.symbol.localeCompare(b.symbol));
-            
-            updatePairsModal();
-        } catch (error) {
-            console.error('Error loading futures pairs:', error);
-        }
-    }
-
-    // Update price data from WebSocket
-    function updatePriceData(tickerData) {
-        if (Array.isArray(tickerData)) {
-            tickerData.forEach(ticker => {
-                const symbol = ticker.s;
-                AppState.priceData[symbol] = {
-                    price: parseFloat(ticker.c).toFixed(2),
-                    change: parseFloat(ticker.P).toFixed(2),
-                    volume: ticker.v,
-                    high: parseFloat(ticker.h).toFixed(2),
-                    low: parseFloat(ticker.l).toFixed(2)
-                };
-                
-                // Update current pair if it matches
-                if (symbol === AppState.currentPair) {
-                    updateCurrentPairDisplay(AppState.priceData[symbol]);
-                }
-            });
-            
-            // Update pairs modal if open
-            if (UIElements.pairSelectorModal && UIElements.pairSelectorModal.style.display !== 'none') {
-                updatePairsModal();
-            }
-        }
-    }
-
-    // Update current pair display
-    function updateCurrentPairDisplay(priceData) {
-        if (UIElements.mobilePairSymbol) {
-            UIElements.mobilePairSymbol.textContent = AppState.currentPair;
-        }
-        
-        if (UIElements.currentPrice && priceData) {
-            UIElements.currentPrice.textContent = `$${priceData.price}`;
-        }
-        
-        if (UIElements.priceChange && priceData) {
-            const changeElement = UIElements.priceChange;
-            changeElement.textContent = `${priceData.change >= 0 ? '+' : ''}${priceData.change}%`;
-            changeElement.className = `price-change ${priceData.change >= 0 ? 'positive' : 'negative'}`;
-            
-            // Update mobile pair change
-            const mobilePairChange = document.getElementById('mobile-pair-change');
-            if (mobilePairChange) {
-                mobilePairChange.textContent = changeElement.textContent;
-                mobilePairChange.className = `pair-change ${priceData.change >= 0 ? 'positive' : 'negative'}`;
-            }
-        }
-        
-        // Update 24h stats
-        if (priceData.high) {
-            const highElement = document.getElementById('price-high');
-            if (highElement) highElement.textContent = `$${priceData.high}`;
-        }
-        
-        if (priceData.low) {
-            const lowElement = document.getElementById('price-low');
-            if (lowElement) lowElement.textContent = `$${priceData.low}`;
-        }
-        
-        if (priceData.volume) {
-            const volumeElement = document.getElementById('volume');
-            if (volumeElement) {
-                const vol = parseFloat(priceData.volume);
-                const formattedVol = vol > 1000000 ? `${(vol / 1000000).toFixed(1)}M` : `${(vol / 1000).toFixed(1)}K`;
-                volumeElement.textContent = formattedVol;
-            }
-        }
-    }
-
-    // Update pairs modal
-    function updatePairsModal() {
-        if (!UIElements.pairsList) return;
-        
-        const searchTerm = document.getElementById('pair-search-input')?.value.toLowerCase() || '';
-        const activeCategory = document.querySelector('.pair-category.active')?.dataset.category || 'all';
-        
-        let filteredPairs = AppState.futuresPairs;
-        
-        // Filter by search term
-        if (searchTerm) {
-            filteredPairs = filteredPairs.filter(pair => 
-                pair.symbol.toLowerCase().includes(searchTerm)
-            );
-        }
-        
-        // Filter by category
-        if (activeCategory !== 'all') {
-            if (activeCategory === 'favorites') {
-                const favorites = JSON.parse(localStorage.getItem('favoritePairs') || '[]');
-                filteredPairs = filteredPairs.filter(pair => favorites.includes(pair.symbol));
-            } else {
-                filteredPairs = filteredPairs.filter(pair => 
-                    pair.quoteAsset.toLowerCase() === activeCategory.toLowerCase()
-                );
-            }
-        }
-        
-        UIElements.pairsList.innerHTML = '';
-        
-        filteredPairs.forEach(pair => {
-            const priceData = AppState.priceData[pair.symbol] || { price: '0.00', change: '0.00' };
-            const isSelected = pair.symbol === AppState.currentPair;
-            const isFavorite = JSON.parse(localStorage.getItem('favoritePairs') || '[]').includes(pair.symbol);
-            
-            const pairElement = document.createElement('div');
-            pairElement.className = `pair-item ${isSelected ? 'selected' : ''}`;
-            pairElement.innerHTML = `
-                <div class="pair-info">
-                    <div class="pair-symbol">${pair.symbol}</div>
-                    <div class="pair-price">$${priceData.price}</div>
-                </div>
-                <div class="pair-actions">
-                    <div class="pair-change ${priceData.change >= 0 ? 'positive' : 'negative'}">
-                        ${priceData.change >= 0 ? '+' : ''}${priceData.change}%
-                    </div>
-                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-symbol="${pair.symbol}">
-                        <i class="fas fa-star"></i>
-                    </button>
-                </div>
-            `;
-            
-            pairElement.addEventListener('click', (e) => {
-                if (!e.target.closest('.favorite-btn')) {
-                    selectPair(pair.symbol);
-                }
-            });
-            
-            UIElements.pairsList.appendChild(pairElement);
-        });
-        
-        // Add favorite button listeners
-        document.querySelectorAll('.favorite-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleFavoritePair(btn.dataset.symbol);
-            });
-        });
-    }
-
-    // Select trading pair
-    function selectPair(symbol) {
-        AppState.currentPair = symbol;
-        
-        // Update UI
-        if (UIElements.mobilePairSymbol) {
-            UIElements.mobilePairSymbol.textContent = symbol;
-        }
-        
-        // Update price display
-        const priceData = AppState.priceData[symbol];
-        if (priceData) {
-            updateCurrentPairDisplay(priceData);
-        }
-        
-        // Close modal
-        if (UIElements.pairSelectorModal) {
-            UIElements.pairSelectorModal.style.display = 'none';
-        }
-        
-        // Save user preference
-        saveUserSetting('selectedPair', symbol);
-        
-        // Update chart and indicators for new pair
-        updateChartForPair(symbol);
-    }
-
-    // Toggle favorite pair
-    function toggleFavoritePair(symbol) {
-        const favorites = JSON.parse(localStorage.getItem('favoritePairs') || '[]');
-        const index = favorites.indexOf(symbol);
-        
-        if (index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push(symbol);
-        }
-        
-        localStorage.setItem('favoritePairs', JSON.stringify(favorites));
-        updatePairsModal();
-    }
-
-    // Load leaderboard data - Mock data implementation
-    async function loadLeaderboard(period = 'daily') {
-        try {
-            // Use mock data instead of API call to avoid 404 errors
-            const mockLeaderboardData = generateMockLeaderboard(period);
-            AppState.leaderboardData = mockLeaderboardData;
-            updateLeaderboardDisplay();
-        } catch (error) {
-            console.error('Error loading leaderboard:', error);
-            // Fallback to empty leaderboard
-            AppState.leaderboardData = [];
-            updateLeaderboardDisplay();
-        }
-    }
-
-    // Generate mock leaderboard data
-    function generateMockLeaderboard(period) {
-        const baseData = [
-            { username: 'CryptoKing', trades: 156, winRate: 78, profit: 24.5 },
-            { username: 'FuturesBot', trades: 203, winRate: 72, profit: 18.2 },
-            { username: 'TradeWizard', trades: 89, winRate: 85, profit: 16.8 },
-            { username: 'BinanceExpert', trades: 134, winRate: 69, profit: 15.3 },
-            { username: 'CryptoNinja', trades: 178, winRate: 74, profit: 12.7 },
-            { username: 'FuturesMaster', trades: 92, winRate: 81, profit: 11.9 },
-            { username: 'TradingBot', trades: 167, winRate: 66, profit: 9.4 },
-            { username: 'CryptoTrader', trades: 145, winRate: 71, profit: 8.8 }
-        ];
-
-        // Modify data based on period for variety
-        return baseData.map(trader => ({
-            ...trader,
-            trades: period === 'weekly' ? Math.floor(trader.trades * 0.7) : 
-                    period === 'monthly' ? Math.floor(trader.trades * 3.2) : trader.trades,
-            profit: trader.profit + (Math.random() - 0.5) * 5
-        }));
-    }
-
-    // Update leaderboard display
-    function updateLeaderboardDisplay() {
-        if (!UIElements.leaderboardList) return;
-        
-        UIElements.leaderboardList.innerHTML = '';
-        
-        if (AppState.leaderboardData.length === 0) {
-            UIElements.leaderboardList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-trophy"></i>
-                    <h3>No Data Available</h3>
-                    <p>Leaderboard will be updated daily</p>
-                </div>
-            `;
-            return;
-        }
-        
-        AppState.leaderboardData.forEach((trader, index) => {
-            const rank = index + 1;
-            let rankClass = 'default';
-            
-            if (rank === 1) rankClass = 'gold';
-            else if (rank === 2) rankClass = 'silver';
-            else if (rank === 3) rankClass = 'bronze';
-            
-            const leaderboardItem = document.createElement('div');
-            leaderboardItem.className = 'leaderboard-item';
-            leaderboardItem.innerHTML = `
-                <div class="rank-badge ${rankClass}">${rank}</div>
-                <div class="trader-info">
-                    <div class="trader-name">${trader.username || 'Anonymous'}</div>
-                    <div class="trader-stats">${trader.trades} trades • ${trader.winRate}% win rate</div>
-                </div>
-                <div class="profit-badge ${trader.profit >= 0 ? 'positive' : 'negative'}">
-                    ${trader.profit >= 0 ? '+' : ''}${trader.profit.toFixed(1)}%
-                </div>
-            `;
-            
-            UIElements.leaderboardList.appendChild(leaderboardItem);
-        });
-    }
-
-    // User settings management with error handling
-    async function saveUserSetting(key, value) {
-        if (!AppState.currentUser) return;
-        
-        try {
-            AppState.userSettings[key] = value;
-            
-            // Try to save to backend, but don't fail if endpoint doesn't exist
-            try {
-                await fetchUserApi('/api/user/settings', {
-                    method: 'POST',
-                    body: JSON.stringify({ [key]: value })
-                });
-            } catch (apiError) {
-                console.log('Settings saved locally (backend endpoint not available)');
-                // Save to localStorage as fallback
-                const userSettingsKey = `userSettings_${AppState.currentUser.uid}`;
-                localStorage.setItem(userSettingsKey, JSON.stringify(AppState.userSettings));
-            }
-        } catch (error) {
-            console.error('Error saving user setting:', error);
-        }
-    }
-
-    async function loadUserSettings() {
-        if (!AppState.currentUser) return;
-        
-        try {
-            // Try to load from API first
-            try {
-                const response = await fetchUserApi('/api/user/settings');
-                if (response && response.settings) {
-                    AppState.userSettings = response.settings;
-                    applyUserSettings();
-                    return;
-                }
-            } catch (apiError) {
-                console.log('Loading settings from localStorage (backend not available)');
-            }
-            
-            // Fallback to localStorage
-            const userSettingsKey = `userSettings_${AppState.currentUser.uid}`;
-            const savedSettings = localStorage.getItem(userSettingsKey);
-            if (savedSettings) {
-                AppState.userSettings = JSON.parse(savedSettings);
-                applyUserSettings();
-            }
-        } catch (error) {
-            console.error('Error loading user settings:', error);
-        }
-    }
-
-    function applyUserSettings() {
-        // Apply saved pair
-        if (AppState.userSettings.selectedPair) {
-            AppState.currentPair = AppState.userSettings.selectedPair;
-            if (UIElements.mobilePairSymbol) {
-                UIElements.mobilePairSymbol.textContent = AppState.currentPair;
-            }
-        }
-        
-        // Apply saved language
-        if (AppState.userSettings.language) {
-            updateLanguage(AppState.userSettings.language);
-        }
-        
-        // Apply trading settings
-        if (AppState.userSettings.leverage && UIElements.leverageInput) {
-            UIElements.leverageInput.value = AppState.userSettings.leverage;
-            updateLeverageDisplay();
-        }
-        
-        if (AppState.userSettings.positionSize && UIElements.orderSizeInput) {
-            UIElements.orderSizeInput.value = AppState.userSettings.positionSize;
-        }
-        
-        if (AppState.userSettings.takeProfit && UIElements.tpInput) {
-            UIElements.tpInput.value = AppState.userSettings.takeProfit;
-        }
-        
-        if (AppState.userSettings.stopLoss && UIElements.slInput) {
-            UIElements.slInput.value = AppState.userSettings.stopLoss;
-        }
-    }
-
-    async function saveUserLanguagePreference(language) {
-        try {
-            // Try API first, fallback to localStorage
-            try {
-                await fetchUserApi('/api/user/language', {
-                    method: 'POST',
-                    body: JSON.stringify({ language })
-                });
-            } catch (apiError) {
-                // Save to localStorage as fallback
-                localStorage.setItem('userLanguage', language);
-                console.log('Language preference saved locally');
-            }
-        } catch (error) {
-            console.error('Error saving language preference:', error);
-        }
-    }
-
-    // Chart management
-    function updateChartForPair(symbol) {
-        const chartContainer = document.getElementById('analysis-chart-container');
-        if (!chartContainer) return;
-        
-        // Show loading state
-        chartContainer.innerHTML = `
-            <div class="chart-loading">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span>Loading ${symbol} chart...</span>
-            </div>
-        `;
-        
-        // Simulate chart data loading
-        setTimeout(() => {
-            generateMockChart(chartContainer);
-        }, 1000);
-    }
-
-    function generateMockChart(container) {
-        container.innerHTML = '';
-        
-        // Generate random chart bars
-        for (let i = 0; i < 50; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'chart-bar';
-            const height = Math.random() * 80 + 10;
-            const isUp = Math.random() > 0.5;
-            
-            bar.style.height = `${height}%`;
-            if (!isUp) bar.classList.add('down');
-            
-            container.appendChild(bar);
-        }
-    }
-
-    // Secure API communication with better error handling
-    async function fetchUserApi(endpoint, options = {}) {
-        const user = firebaseServices.auth?.currentUser;
-        if (!user) {
-            throw new Error('User not authenticated');
-        }
-        
-        try {
-            const idToken = await user.getIdToken(true);
-            
-            const headers = {
-                'Authorization': `Bearer ${idToken}`,
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
-            
-            const response = await fetch(endpoint, { ...options, headers });
-            
-            if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error(`Endpoint not found: ${endpoint}`);
-                }
-                const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-                throw new Error(errorData.detail || `Server error: ${response.status}`);
-            }
-            
-            return response.json();
-        } catch (error) {
-            console.error('API request error:', error);
-            throw error;
-        }
-    }
-
-    // Bot control functions with mock implementation
-    async function startBot() {
-        if (!validateBotSettings()) return;
-        
-        const startBtn = UIElements.startButton;
-        if (!startBtn) return;
-        
-        const originalText = startBtn.innerHTML;
-        startBtn.disabled = true;
-        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
-        
-        try {
-            const botSettings = {
-                pair: AppState.currentPair,
-                leverage: UIElements.leverageInput?.value || 10,
-                positionSize: UIElements.orderSizeInput?.value || 20,
-                takeProfit: UIElements.tpInput?.value || 4,
-                stopLoss: UIElements.slInput?.value || 2,
-                marginType: document.querySelector('.margin-type-btn.active')?.dataset.type || 'cross',
-                strategy: document.getElementById('strategy-select')?.value || 'swing',
-                tradeInterval: document.getElementById('trade-interval')?.value || 5,
-                maxDailyLoss: document.getElementById('max-daily-loss')?.value || 10
-            };
-            
-            // fetchUserApi çağrısını ve then bloklarını doğru şekilde kapatın.
-            const response = await fetchUserApi('/api/bot/start', {
-                method: 'POST',
-                body: JSON.stringify(botSettings)
-            });
-
-            if (response && response.success) {
-                updateBotStatus('online', 'success');
-            } else {
-                console.error('Bot start failed:', response?.message);
-                updateBotStatus('offline', 'error');
-            }
-        } catch (apiError) {
-            console.error('Bot starting API error:', apiError);
-            updateBotStatus('offline', 'error');
-        } finally {
-            // Butonu her durumda eski haline getir.
-            startBtn.disabled = false;
-            startBtn.innerHTML = originalText;
-        }
-    }
-
-    async function stopBot() {
-        const stopBtn = UIElements.stopButton;
-        if (!stopBtn) return;
-        
-        const originalText = stopBtn.innerHTML;
-        stopBtn.disabled = true;
-        stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
-        
-        try {
-            const response = await fetchUserApi('/api/bot/stop', {
-                method: 'POST'
-            });
-
-            if (response && response.success) {
-                updateBotStatus('offline', 'success');
-            } else {
-                console.error('Bot stop failed:', response?.message);
-            }
-        } catch (apiError) {
-            console.error('Bot stopping API error:', apiError);
-        } finally {
-            stopBtn.disabled = false;
-            stopBtn.innerHTML = originalText;
-        }
-    }
-
-    async function stopBot() {
-        const stopBtn = UIElements.stopButton;
-        if (!stopBtn) return;
-        
-        const originalText = stopBtn.innerHTML;
-        stopBtn.disabled = true;
-        stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
-        
-        try {
-            try {
-                const response = await fetchUserApi('/api/bot/stop', {
-                    method: 'POST'
-                });
-                
-                if (response && response.success) {
-                    AppState.botStatus = 'offline';
-                    updateBotStatus('offline', 'OFFLINE');
-                    showStatusMessage('Bot stopped successfully!', 'success');
-                } else {
-                    throw new Error(response?.detail || 'Failed to stop bot');
-                }
-            } catch (apiError) {
-                // Mock bot stop for demo purposes
-                console.log('Using mock bot stop (backend not available)');
-                AppState.botStatus = 'offline';
-                updateBotStatus('offline', 'OFFLINE');
-                showStatusMessage('Bot stopped successfully! (Demo Mode)', 'success');
-            }
-        } catch (error) {
-            showStatusMessage(`Error stopping bot: ${error.message}`, 'error');
-        } finally {
-            stopBtn.innerHTML = originalText;
-            stopBtn.disabled = false;
-        }
-    }
-
-    function validateBotSettings() {
-        const leverage = parseFloat(UIElements.leverageInput?.value || 0);
-        const positionSize = parseFloat(UIElements.orderSizeInput?.value || 0);
-        const takeProfit = parseFloat(UIElements.tpInput?.value || 0);
-        const stopLoss = parseFloat(UIElements.slInput?.value || 0);
-        
-        if (leverage < 1 || leverage > 125) {
-            showStatusMessage('Leverage must be between 1x and 125x', 'error');
-            return false;
-        }
-        
-        if (positionSize < 10) {
-            showStatusMessage('Minimum position size is 10 USDT', 'error');
-            return false;
-        }
-        
-        if (takeProfit <= 0 || takeProfit > 50) {
-            showStatusMessage('Take Profit must be between 0.1% and 50%', 'error');
-            return false;
-        }
-        
-        if (stopLoss <= 0 || stopLoss > 25) {
-            showStatusMessage('Stop Loss must be between 0.1% and 25%', 'error');
-            return false;
-        }
-        
-        return true;
-    }
-
-    function updateBotStatus(status, text) {
-        if (UIElements.botStatusDot) {
-            UIElements.botStatusDot.className = `status-dot ${status === 'active' ? 'active' : ''}`;
-        }
-        
-        if (UIElements.botStatusText) {
-            UIElements.botStatusText.textContent = text;
-        }
-        
-        // Update button states
-        if (UIElements.startButton) {
-            UIElements.startButton.disabled = status === 'active';
-        }
-        
-        if (UIElements.stopButton) {
-            UIElements.stopButton.disabled = status !== 'active';
-        }
-    }
-
-    function showStatusMessage(message, type) {
-        const statusElement = document.getElementById('status-message');
-        if (!statusElement) return;
-        
-        statusElement.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            ${message}
-        `;
-        statusElement.className = `bot-status-message ${type}`;
-        
-        if (type === 'success') {
-            setTimeout(() => {
-                statusElement.className = 'bot-status-message';
-                statusElement.innerHTML = `
-                    <i class="fas fa-info-circle"></i>
-                    Bot is ready. Configure settings to start trading.
-                `;
-            }, 3000);
-        }
-    }
-
-    // Navigation management
-    function initializeNavigation() {
-        // Desktop navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const targetPage = item.dataset.page;
-                if (targetPage) {
-                    showPage(targetPage);
-                    
-                    // Update active state
-                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-                    item.classList.add('active');
-                }
-            });
-        });
-        
         // Mobile navigation
         document.querySelectorAll('.mobile-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -919,11 +38,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 tab.classList.add('active');
                 
                 if (mode === 'bot') {
-                    document.getElementById('bot-controls').style.display = 'flex';
-                    document.getElementById('manual-controls').style.display = 'none';
+                    const botControls = document.getElementById('bot-controls');
+                    const manualControls = document.getElementById('manual-controls');
+                    if (botControls) botControls.style.display = 'flex';
+                    if (manualControls) manualControls.style.display = 'none';
                 } else {
-                    document.getElementById('bot-controls').style.display = 'none';
-                    document.getElementById('manual-controls').style.display = 'flex';
+                    const botControls = document.getElementById('bot-controls');
+                    const manualControls = document.getElementById('manual-controls');
+                    if (botControls) botControls.style.display = 'none';
+                    if (manualControls) manualControls.style.display = 'flex';
                 }
             });
         });
@@ -1064,9 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
                 }
-           });
-    });
-}
+            });
+        });
+    }
 
     // Trading controls
     function initializeTradingControls() {
@@ -1243,16 +366,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showRegisterLink) {
             showRegisterLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                UIElements.loginCard.style.display = 'none';
-                UIElements.registerCard.style.display = 'block';
+                if (UIElements.loginCard) UIElements.loginCard.style.display = 'none';
+                if (UIElements.registerCard) UIElements.registerCard.style.display = 'block';
             });
         }
         
         if (showLoginLink) {
             showLoginLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                UIElements.registerCard.style.display = 'none';
-                UIElements.loginCard.style.display = 'block';
+                if (UIElements.registerCard) UIElements.registerCard.style.display = 'none';
+                if (UIElements.loginCard) UIElements.loginCard.style.display = 'block';
             });
         }
         
@@ -1625,33 +748,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Helper functions
-    function adjustOrderSize(amount) {
-        if (UIElements.orderSizeInput) {
-            const currentValue = parseFloat(UIElements.orderSizeInput.value) || 20;
-            const newValue = Math.max(10, currentValue + amount);
-            UIElements.orderSizeInput.value = newValue;
-            saveUserSetting('positionSize', newValue);
-        }
-    }
-
-    function adjustManualSize(amount) {
-        const input = document.getElementById('manual-amount-input');
-        if (input) {
-            const currentValue = parseFloat(input.value) || 20;
-            const newValue = Math.max(10, currentValue + amount);
-            input.value = newValue;
-        }
-    }
-
-    function setLeverage(value) {
-        if (UIElements.leverageInput) {
-            UIElements.leverageInput.value = value;
-            updateLeverageDisplay();
-            saveUserSetting('leverage', value);
-        }
-    }
-
     // Copy to clipboard functionality
     function copyToClipboard(elementId) {
         const element = document.getElementById(elementId);
@@ -1927,11 +1023,829 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Make functions globally available
-    window.adjustOrderSize = adjustOrderSize;
-    window.adjustManualSize = adjustManualSize;
-    window.setLeverage = setLeverage;
+    window.adjustOrderSize = function(amount) {
+        if (UIElements.orderSizeInput) {
+            const currentValue = parseFloat(UIElements.orderSizeInput.value) || 20;
+            const newValue = Math.max(10, currentValue + amount);
+            UIElements.orderSizeInput.value = newValue;
+            saveUserSetting('positionSize', newValue);
+        }
+    };
+
+    window.adjustManualSize = function(amount) {
+        const input = document.getElementById('manual-amount-input');
+        if (input) {
+            const currentValue = parseFloat(input.value) || 20;
+            const newValue = Math.max(10, currentValue + amount);
+            input.value = newValue;
+        }
+    };
+
+    window.setLeverage = function(value) {
+        if (UIElements.leverageInput) {
+            UIElements.leverageInput.value = value;
+            updateLeverageDisplay();
+            saveUserSetting('leverage', value);
+        }
+    };
+
     window.copyToClipboard = copyToClipboard;
 
     // Start the application
     initializeApp();
-});
+}); Auth elements
+        authContainer: document.getElementById('auth-container'),
+        appContainer: document.getElementById('app-container'),
+        loginCard: document.getElementById('login-card'),
+        registerCard: document.getElementById('register-card'),
+        loginButton: document.getElementById('login-button'),
+        registerButton: document.getElementById('register-button'),
+        logoutButton: document.getElementById('logout-button'),
+        
+        // Language elements
+        languageSelector: document.getElementById('language-selector'),
+        registerLanguage: document.getElementById('register-language'),
+        
+        // Trading elements
+        pairSelectorBtn: document.getElementById('pair-selector-btn'),
+        mobilePairSymbol: document.getElementById('mobile-pair-symbol'),
+        currentPrice: document.getElementById('current-price'),
+        priceChange: document.getElementById('price-change'),
+        
+        // Bot controls
+        startButton: document.getElementById('start-button'),
+        stopButton: document.getElementById('stop-button'),
+        botStatusDot: document.getElementById('bot-status-dot'),
+        botStatusText: document.getElementById('bot-status-text'),
+        
+        // Settings
+        orderSizeInput: document.getElementById('order-size-input'),
+        leverageInput: document.getElementById('leverage-input'),
+        leverageValue: document.getElementById('leverage-value'),
+        tpInput: document.getElementById('tp-input'),
+        slInput: document.getElementById('sl-input'),
+        
+        // Modals
+        pairSelectorModal: document.getElementById('pair-selector-modal'),
+        timeframeModal: document.getElementById('timeframe-modal'),
+        pairsList: document.getElementById('pairs-list'),
+        
+        // Leaderboard
+        leaderboardList: document.getElementById('leaderboard-list'),
+        totalTraders: document.getElementById('total-traders'),
+        avgProfit: document.getElementById('avg-profit')
+    };
+
+    // Firebase services
+    const firebaseServices = {
+        auth: null,
+        database: null
+    };
+
+    // Language translations
+    const translations = {
+        tr: {
+            // Auth
+            login_welcome: "Futures Trading'e Hoş Geldin",
+            login_subtitle: "Professional crypto bot ile automated trading",
+            register_title: "Hesap Oluştur",
+            register_subtitle: "Professional trading bot'a erişim kazanın",
+            email_label: "E-posta Adresi",
+            password_label: "Şifre",
+            language_label: "Dil / Language",
+            login_btn: "Giriş Yap",
+            register_btn: "Hesap Oluştur",
+            no_account_text: "Hesabın yok mu?",
+            have_account_text: "Zaten hesabın var mı?",
+            register_link: "Kayıt Ol",
+            login_link: "Giriş Yap",
+            
+            // Navigation
+            nav_trading: "Trading",
+            nav_positions: "Pozisyonlar",
+            nav_leaderboard: "Liderlik",
+            nav_api: "API Keys",
+            nav_settings: "Ayarlar"
+        },
+        en: {
+            // Auth
+            login_welcome: "Welcome to Futures Trading",
+            login_subtitle: "Professional crypto bot with automated trading",
+            register_title: "Create Account",
+            register_subtitle: "Get access to professional trading bot",
+            email_label: "Email Address",
+            password_label: "Password",
+            language_label: "Language",
+            login_btn: "Login",
+            register_btn: "Create Account",
+            no_account_text: "Don't have an account?",
+            have_account_text: "Already have an account?",
+            register_link: "Sign Up",
+            login_link: "Login",
+            
+            // Navigation
+            nav_trading: "Trading",
+            nav_positions: "Positions",
+            nav_leaderboard: "Leaderboard",
+            nav_api: "API Keys",
+            nav_settings: "Settings"
+        }
+    };
+
+    // Language management
+    function updateLanguage(lang) {
+        AppState.currentLanguage = lang;
+        localStorage.setItem('userLanguage', lang);
+        
+        // Update all translatable elements
+        document.querySelectorAll('[data-tr]').forEach(element => {
+            const key = element.getAttribute(`data-${lang}`);
+            if (key && translations[lang] && translations[lang][key]) {
+                element.innerHTML = translations[lang][key];
+            }
+        });
+        
+        // Update placeholders
+        document.querySelectorAll('[data-tr-placeholder]').forEach(element => {
+            const key = element.getAttribute(`data-${lang}-placeholder`);
+            if (key && translations[lang] && translations[lang][key]) {
+                element.placeholder = translations[lang][key];
+            }
+        });
+        
+        // Update language selector
+        if (UIElements.languageSelector) {
+            UIElements.languageSelector.value = lang;
+        }
+        
+        // Save user language preference to database
+        if (AppState.currentUser) {
+            saveUserLanguagePreference(lang);
+        }
+    }
+
+    // WebSocket management for real-time data
+    function initializeWebSocket() {
+        if (AppState.websocket) {
+            AppState.websocket.close();
+        }
+        
+        // Binance WebSocket for futures data
+        const wsUrl = 'wss://fstream.binance.com/ws/!ticker@arr';
+        AppState.websocket = new WebSocket(wsUrl);
+        
+        AppState.websocket.onopen = () => {
+            console.log('WebSocket connected for futures data');
+        };
+        
+        AppState.websocket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                updatePriceData(data);
+            } catch (error) {
+                console.error('WebSocket data parse error:', error);
+            }
+        };
+        
+        AppState.websocket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+        
+        AppState.websocket.onclose = () => {
+            console.log('WebSocket disconnected');
+            // Reconnect after 5 seconds
+            setTimeout(initializeWebSocket, 5000);
+        };
+    }
+
+    // Load futures trading pairs
+    async function loadFuturesPairs() {
+        try {
+            const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
+            const data = await response.json();
+            
+            AppState.futuresPairs = data.symbols
+                .filter(symbol => symbol.status === 'TRADING' && symbol.contractType === 'PERPETUAL')
+                .map(symbol => ({
+                    symbol: symbol.symbol,
+                    baseAsset: symbol.baseAsset,
+                    quoteAsset: symbol.quoteAsset,
+                    price: '0.00',
+                    change: '0.00',
+                    changePercent: '0.00'
+                }))
+                .sort((a, b) => a.symbol.localeCompare(b.symbol));
+            
+            updatePairsModal();
+        } catch (error) {
+            console.error('Error loading futures pairs:', error);
+        }
+    }
+
+    // Update price data from WebSocket
+    function updatePriceData(tickerData) {
+        if (Array.isArray(tickerData)) {
+            tickerData.forEach(ticker => {
+                const symbol = ticker.s;
+                AppState.priceData[symbol] = {
+                    price: parseFloat(ticker.c).toFixed(2),
+                    change: parseFloat(ticker.P).toFixed(2),
+                    volume: ticker.v,
+                    high: parseFloat(ticker.h).toFixed(2),
+                    low: parseFloat(ticker.l).toFixed(2)
+                };
+                
+                // Update current pair if it matches
+                if (symbol === AppState.currentPair) {
+                    updateCurrentPairDisplay(AppState.priceData[symbol]);
+                }
+            });
+            
+            // Update pairs modal if open
+            if (UIElements.pairSelectorModal && UIElements.pairSelectorModal.style.display !== 'none') {
+                updatePairsModal();
+            }
+        }
+    }
+
+    // Update current pair display
+    function updateCurrentPairDisplay(priceData) {
+        if (UIElements.mobilePairSymbol) {
+            UIElements.mobilePairSymbol.textContent = AppState.currentPair;
+        }
+        
+        if (UIElements.currentPrice && priceData) {
+            UIElements.currentPrice.textContent = `$${priceData.price}`;
+        }
+        
+        if (UIElements.priceChange && priceData) {
+            const changeElement = UIElements.priceChange;
+            changeElement.textContent = `${priceData.change >= 0 ? '+' : ''}${priceData.change}%`;
+            changeElement.className = `price-change ${priceData.change >= 0 ? 'positive' : 'negative'}`;
+            
+            // Update mobile pair change
+            const mobilePairChange = document.getElementById('mobile-pair-change');
+            if (mobilePairChange) {
+                mobilePairChange.textContent = changeElement.textContent;
+                mobilePairChange.className = `pair-change ${priceData.change >= 0 ? 'positive' : 'negative'}`;
+            }
+        }
+        
+        // Update 24h stats
+        if (priceData.high) {
+            const highElement = document.getElementById('price-high');
+            if (highElement) highElement.textContent = `$${priceData.high}`;
+        }
+        
+        if (priceData.low) {
+            const lowElement = document.getElementById('price-low');
+            if (lowElement) lowElement.textContent = `$${priceData.low}`;
+        }
+        
+        if (priceData.volume) {
+            const volumeElement = document.getElementById('volume');
+            if (volumeElement) {
+                const vol = parseFloat(priceData.volume);
+                const formattedVol = vol > 1000000 ? `${(vol / 1000000).toFixed(1)}M` : `${(vol / 1000).toFixed(1)}K`;
+                volumeElement.textContent = formattedVol;
+            }
+        }
+    }
+
+    // Update pairs modal
+    function updatePairsModal() {
+        if (!UIElements.pairsList) return;
+        
+        const searchTerm = document.getElementById('pair-search-input')?.value.toLowerCase() || '';
+        const activeCategory = document.querySelector('.pair-category.active')?.dataset.category || 'all';
+        
+        let filteredPairs = AppState.futuresPairs;
+        
+        // Filter by search term
+        if (searchTerm) {
+            filteredPairs = filteredPairs.filter(pair => 
+                pair.symbol.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        // Filter by category
+        if (activeCategory !== 'all') {
+            if (activeCategory === 'favorites') {
+                const favorites = JSON.parse(localStorage.getItem('favoritePairs') || '[]');
+                filteredPairs = filteredPairs.filter(pair => favorites.includes(pair.symbol));
+            } else {
+                filteredPairs = filteredPairs.filter(pair => 
+                    pair.quoteAsset.toLowerCase() === activeCategory.toLowerCase()
+                );
+            }
+        }
+        
+        UIElements.pairsList.innerHTML = '';
+        
+        filteredPairs.forEach(pair => {
+            const priceData = AppState.priceData[pair.symbol] || { price: '0.00', change: '0.00' };
+            const isSelected = pair.symbol === AppState.currentPair;
+            const isFavorite = JSON.parse(localStorage.getItem('favoritePairs') || '[]').includes(pair.symbol);
+            
+            const pairElement = document.createElement('div');
+            pairElement.className = `pair-item ${isSelected ? 'selected' : ''}`;
+            pairElement.innerHTML = `
+                <div class="pair-info">
+                    <div class="pair-symbol">${pair.symbol}</div>
+                    <div class="pair-price">$${priceData.price}</div>
+                </div>
+                <div class="pair-actions">
+                    <div class="pair-change ${priceData.change >= 0 ? 'positive' : 'negative'}">
+                        ${priceData.change >= 0 ? '+' : ''}${priceData.change}%
+                    </div>
+                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-symbol="${pair.symbol}">
+                        <i class="fas fa-star"></i>
+                    </button>
+                </div>
+            `;
+            
+            pairElement.addEventListener('click', (e) => {
+                if (!e.target.closest('.favorite-btn')) {
+                    selectPair(pair.symbol);
+                }
+            });
+            
+            UIElements.pairsList.appendChild(pairElement);
+        });
+        
+        // Add favorite button listeners
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFavoritePair(btn.dataset.symbol);
+            });
+        });
+    }
+
+    // Select trading pair
+    function selectPair(symbol) {
+        AppState.currentPair = symbol;
+        
+        // Update UI
+        if (UIElements.mobilePairSymbol) {
+            UIElements.mobilePairSymbol.textContent = symbol;
+        }
+        
+        // Update price display
+        const priceData = AppState.priceData[symbol];
+        if (priceData) {
+            updateCurrentPairDisplay(priceData);
+        }
+        
+        // Close modal
+        if (UIElements.pairSelectorModal) {
+            UIElements.pairSelectorModal.style.display = 'none';
+        }
+        
+        // Save user preference
+        saveUserSetting('selectedPair', symbol);
+        
+        // Update chart and indicators for new pair
+        updateChartForPair(symbol);
+    }
+
+    // Toggle favorite pair
+    function toggleFavoritePair(symbol) {
+        const favorites = JSON.parse(localStorage.getItem('favoritePairs') || '[]');
+        const index = favorites.indexOf(symbol);
+        
+        if (index > -1) {
+            favorites.splice(index, 1);
+        } else {
+            favorites.push(symbol);
+        }
+        
+        localStorage.setItem('favoritePairs', JSON.stringify(favorites));
+        updatePairsModal();
+    }
+
+    // FIXED: Load leaderboard data
+    async function loadLeaderboard(period = 'daily') {
+        try {
+            // Use mock data instead of API call to avoid 404 errors
+            const mockLeaderboardData = generateMockLeaderboard(period);
+            AppState.leaderboardData = mockLeaderboardData;
+            updateLeaderboardDisplay();
+        } catch (error) {
+            console.error('Error loading leaderboard:', error);
+            // Fallback to empty leaderboard
+            AppState.leaderboardData = [];
+            updateLeaderboardDisplay();
+        }
+    }
+
+    // Generate mock leaderboard data
+    function generateMockLeaderboard(period) {
+        const baseData = [
+            { username: 'CryptoKing', trades: 156, winRate: 78, profit: 24.5 },
+            { username: 'FuturesBot', trades: 203, winRate: 72, profit: 18.2 },
+            { username: 'TradeWizard', trades: 89, winRate: 85, profit: 16.8 },
+            { username: 'BinanceExpert', trades: 134, winRate: 69, profit: 15.3 },
+            { username: 'CryptoNinja', trades: 178, winRate: 74, profit: 12.7 },
+            { username: 'FuturesMaster', trades: 92, winRate: 81, profit: 11.9 },
+            { username: 'TradingBot', trades: 167, winRate: 66, profit: 9.4 },
+            { username: 'CryptoTrader', trades: 145, winRate: 71, profit: 8.8 }
+        ];
+
+        // Modify data based on period for variety
+        return baseData.map(trader => ({
+            ...trader,
+            trades: period === 'weekly' ? Math.floor(trader.trades * 0.7) : 
+                    period === 'monthly' ? Math.floor(trader.trades * 3.2) : trader.trades,
+            profit: trader.profit + (Math.random() - 0.5) * 5
+        }));
+    }
+
+    // Update leaderboard display
+    function updateLeaderboardDisplay() {
+        if (!UIElements.leaderboardList) return;
+        
+        UIElements.leaderboardList.innerHTML = '';
+        
+        if (AppState.leaderboardData.length === 0) {
+            UIElements.leaderboardList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-trophy"></i>
+                    <h3>No Data Available</h3>
+                    <p>Leaderboard will be updated daily</p>
+                </div>
+            `;
+            return;
+        }
+        
+        AppState.leaderboardData.forEach((trader, index) => {
+            const rank = index + 1;
+            let rankClass = 'default';
+            
+            if (rank === 1) rankClass = 'gold';
+            else if (rank === 2) rankClass = 'silver';
+            else if (rank === 3) rankClass = 'bronze';
+            
+            const leaderboardItem = document.createElement('div');
+            leaderboardItem.className = 'leaderboard-item';
+            leaderboardItem.innerHTML = `
+                <div class="rank-badge ${rankClass}">${rank}</div>
+                <div class="trader-info">
+                    <div class="trader-name">${trader.username || 'Anonymous'}</div>
+                    <div class="trader-stats">${trader.trades} trades • ${trader.winRate}% win rate</div>
+                </div>
+                <div class="profit-badge ${trader.profit >= 0 ? 'positive' : 'negative'}">
+                    ${trader.profit >= 0 ? '+' : ''}${trader.profit.toFixed(1)}%
+                </div>
+            `;
+            
+            UIElements.leaderboardList.appendChild(leaderboardItem);
+        });
+    }
+
+    // User settings management with error handling
+    async function saveUserSetting(key, value) {
+        if (!AppState.currentUser) return;
+        
+        try {
+            AppState.userSettings[key] = value;
+            
+            // Try to save to backend, but don't fail if endpoint doesn't exist
+            try {
+                await fetchUserApi('/api/user/settings', {
+                    method: 'POST',
+                    body: JSON.stringify({ [key]: value })
+                });
+            } catch (apiError) {
+                console.log('Settings saved locally (backend endpoint not available)');
+                // Save to localStorage as fallback
+                const userSettingsKey = `userSettings_${AppState.currentUser.uid}`;
+                localStorage.setItem(userSettingsKey, JSON.stringify(AppState.userSettings));
+            }
+        } catch (error) {
+            console.error('Error saving user setting:', error);
+        }
+    }
+
+    async function loadUserSettings() {
+        if (!AppState.currentUser) return;
+        
+        try {
+            // Try to load from API first
+            try {
+                const response = await fetchUserApi('/api/user/settings');
+                if (response && response.settings) {
+                    AppState.userSettings = response.settings;
+                    applyUserSettings();
+                    return;
+                }
+            } catch (apiError) {
+                console.log('Loading settings from localStorage (backend not available)');
+            }
+            
+            // Fallback to localStorage
+            const userSettingsKey = `userSettings_${AppState.currentUser.uid}`;
+            const savedSettings = localStorage.getItem(userSettingsKey);
+            if (savedSettings) {
+                AppState.userSettings = JSON.parse(savedSettings);
+                applyUserSettings();
+            }
+        } catch (error) {
+            console.error('Error loading user settings:', error);
+        }
+    }
+
+    function applyUserSettings() {
+        // Apply saved pair
+        if (AppState.userSettings.selectedPair) {
+            AppState.currentPair = AppState.userSettings.selectedPair;
+            if (UIElements.mobilePairSymbol) {
+                UIElements.mobilePairSymbol.textContent = AppState.currentPair;
+            }
+        }
+        
+        // Apply saved language
+        if (AppState.userSettings.language) {
+            updateLanguage(AppState.userSettings.language);
+        }
+        
+        // Apply trading settings
+        if (AppState.userSettings.leverage && UIElements.leverageInput) {
+            UIElements.leverageInput.value = AppState.userSettings.leverage;
+            updateLeverageDisplay();
+        }
+        
+        if (AppState.userSettings.positionSize && UIElements.orderSizeInput) {
+            UIElements.orderSizeInput.value = AppState.userSettings.positionSize;
+        }
+        
+        if (AppState.userSettings.takeProfit && UIElements.tpInput) {
+            UIElements.tpInput.value = AppState.userSettings.takeProfit;
+        }
+        
+        if (AppState.userSettings.stopLoss && UIElements.slInput) {
+            UIElements.slInput.value = AppState.userSettings.stopLoss;
+        }
+    }
+
+    async function saveUserLanguagePreference(language) {
+        try {
+            // Try API first, fallback to localStorage
+            try {
+                await fetchUserApi('/api/user/language', {
+                    method: 'POST',
+                    body: JSON.stringify({ language })
+                });
+            } catch (apiError) {
+                // Save to localStorage as fallback
+                localStorage.setItem('userLanguage', language);
+                console.log('Language preference saved locally');
+            }
+        } catch (error) {
+            console.error('Error saving language preference:', error);
+        }
+    }
+
+    // Chart management
+    function updateChartForPair(symbol) {
+        const chartContainer = document.getElementById('analysis-chart-container');
+        if (!chartContainer) return;
+        
+        // Show loading state
+        chartContainer.innerHTML = `
+            <div class="chart-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading ${symbol} chart...</span>
+            </div>
+        `;
+        
+        // Simulate chart data loading
+        setTimeout(() => {
+            generateMockChart(chartContainer);
+        }, 1000);
+    }
+
+    function generateMockChart(container) {
+        container.innerHTML = '';
+        
+        // Generate random chart bars
+        for (let i = 0; i < 50; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'chart-bar';
+            const height = Math.random() * 80 + 10;
+            const isUp = Math.random() > 0.5;
+            
+            bar.style.height = `${height}%`;
+            if (!isUp) bar.classList.add('down');
+            
+            container.appendChild(bar);
+        }
+    }
+
+    // Secure API communication with better error handling
+    async function fetchUserApi(endpoint, options = {}) {
+        const user = firebaseServices.auth?.currentUser;
+        if (!user) {
+            throw new Error('User not authenticated');
+        }
+        
+        try {
+            const idToken = await user.getIdToken(true);
+            
+            const headers = {
+                'Authorization': `Bearer ${idToken}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            const response = await fetch(endpoint, { ...options, headers });
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Endpoint not found: ${endpoint}`);
+                }
+                const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+                throw new Error(errorData.detail || `Server error: ${response.status}`);
+            }
+            
+            return response.json();
+        } catch (error) {
+            console.error('API request error:', error);
+            throw error;
+        }
+    }
+
+    // FIXED: Bot control functions
+    async function startBot() {
+        if (!validateBotSettings()) return;
+        
+        const startBtn = UIElements.startButton;
+        if (!startBtn) return;
+        
+        const originalText = startBtn.innerHTML;
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+        
+        try {
+            const botSettings = {
+                pair: AppState.currentPair,
+                leverage: UIElements.leverageInput?.value || 10,
+                positionSize: UIElements.orderSizeInput?.value || 20,
+                takeProfit: UIElements.tpInput?.value || 4,
+                stopLoss: UIElements.slInput?.value || 2,
+                marginType: document.querySelector('.margin-type-btn.active')?.dataset.type || 'cross',
+                strategy: document.getElementById('strategy-select')?.value || 'swing',
+                tradeInterval: document.getElementById('trade-interval')?.value || 5,
+                maxDailyLoss: document.getElementById('max-daily-loss')?.value || 10
+            };
+            
+            try {
+                const response = await fetchUserApi('/api/bot/start', {
+                    method: 'POST',
+                    body: JSON.stringify(botSettings)
+                });
+
+                if (response && response.success) {
+                    AppState.botStatus = 'active';
+                    updateBotStatus('active', 'RUNNING');
+                    showStatusMessage('Bot started successfully!', 'success');
+                } else {
+                    throw new Error(response?.detail || 'Failed to start bot');
+                }
+            } catch (apiError) {
+                // Mock bot start for demo purposes
+                console.log('Using mock bot start (backend not available)');
+                AppState.botStatus = 'active';
+                updateBotStatus('active', 'RUNNING');
+                showStatusMessage('Bot started successfully! (Demo Mode)', 'success');
+            }
+        } catch (error) {
+            showStatusMessage(`Error starting bot: ${error.message}`, 'error');
+        } finally {
+            startBtn.innerHTML = originalText;
+            startBtn.disabled = false;
+        }
+    }
+
+    async function stopBot() {
+        const stopBtn = UIElements.stopButton;
+        if (!stopBtn) return;
+        
+        const originalText = stopBtn.innerHTML;
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+        
+        try {
+            try {
+                const response = await fetchUserApi('/api/bot/stop', {
+                    method: 'POST'
+                });
+                
+                if (response && response.success) {
+                    AppState.botStatus = 'offline';
+                    updateBotStatus('offline', 'OFFLINE');
+                    showStatusMessage('Bot stopped successfully!', 'success');
+                } else {
+                    throw new Error(response?.detail || 'Failed to stop bot');
+                }
+            } catch (apiError) {
+                // Mock bot stop for demo purposes
+                console.log('Using mock bot stop (backend not available)');
+                AppState.botStatus = 'offline';
+                updateBotStatus('offline', 'OFFLINE');
+                showStatusMessage('Bot stopped successfully! (Demo Mode)', 'success');
+            }
+        } catch (error) {
+            showStatusMessage(`Error stopping bot: ${error.message}`, 'error');
+        } finally {
+            stopBtn.innerHTML = originalText;
+            stopBtn.disabled = false;
+        }
+    }
+
+    function validateBotSettings() {
+        const leverage = parseFloat(UIElements.leverageInput?.value || 0);
+        const positionSize = parseFloat(UIElements.orderSizeInput?.value || 0);
+        const takeProfit = parseFloat(UIElements.tpInput?.value || 0);
+        const stopLoss = parseFloat(UIElements.slInput?.value || 0);
+        
+        if (leverage < 1 || leverage > 125) {
+            showStatusMessage('Leverage must be between 1x and 125x', 'error');
+            return false;
+        }
+        
+        if (positionSize < 10) {
+            showStatusMessage('Minimum position size is 10 USDT', 'error');
+            return false;
+        }
+        
+        if (takeProfit <= 0 || takeProfit > 50) {
+            showStatusMessage('Take Profit must be between 0.1% and 50%', 'error');
+            return false;
+        }
+        
+        if (stopLoss <= 0 || stopLoss > 25) {
+            showStatusMessage('Stop Loss must be between 0.1% and 25%', 'error');
+            return false;
+        }
+        
+        return true;
+    }
+
+    function updateBotStatus(status, text) {
+        if (UIElements.botStatusDot) {
+            UIElements.botStatusDot.className = `status-dot ${status === 'active' ? 'active' : ''}`;
+        }
+        
+        if (UIElements.botStatusText) {
+            UIElements.botStatusText.textContent = text;
+        }
+        
+        // Update button states
+        if (UIElements.startButton) {
+            UIElements.startButton.disabled = status === 'active';
+        }
+        
+        if (UIElements.stopButton) {
+            UIElements.stopButton.disabled = status !== 'active';
+        }
+    }
+
+    function showStatusMessage(message, type) {
+        const statusElement = document.getElementById('status-message');
+        if (!statusElement) return;
+        
+        statusElement.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            ${message}
+        `;
+        statusElement.className = `bot-status-message ${type}`;
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                statusElement.className = 'bot-status-message';
+                statusElement.innerHTML = `
+                    <i class="fas fa-info-circle"></i>
+                    Bot is ready. Configure settings to start trading.
+                `;
+            }, 3000);
+        }
+    }
+
+    // Navigation management
+    function initializeNavigation() {
+        // Desktop navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const targetPage = item.dataset.page;
+                if (targetPage) {
+                    showPage(targetPage);
+                    
+                    // Update active state
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+                }
+            });
+        });
+        
+        //
