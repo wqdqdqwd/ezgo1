@@ -3,12 +3,10 @@ import time
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator  # Pydantic v1 syntax
+from pydantic import BaseModel, Field, validator
 from datetime import datetime, timedelta, timezone
-from functools import wraps 
 from typing import Optional, Dict, Any
 import os
 
@@ -16,26 +14,10 @@ from app.bot_manager import bot_manager
 from app.config import settings
 from app.firebase_manager import firebase_manager, db
 
-# Optional imports for production features
-try:
-    from app.utils.logger import setup_logging, get_logger
-    from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
-    from app.utils.metrics import metrics, get_metrics_data, get_metrics_content_type
-    from app.utils.validation import validate_user_input
-    from slowapi.errors import RateLimitExceeded
-    PRODUCTION_FEATURES = True
-except ImportError as e:
-    print(f"Some production features not available (this is normal): {e}")
-    PRODUCTION_FEATURES = False
-    # Fallback logger
-    import logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("main")
-
-# Setup logging if available
-if PRODUCTION_FEATURES:
-    setup_logging()
-    logger = get_logger("main")
+# Fallback logger (no complex logging)
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("main")
 
 app = FastAPI(
     title="EzyagoTrading - Futures Bot SaaS", 
@@ -55,52 +37,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add rate limiting
-if PRODUCTION_FEATURES:
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
-
-# Middleware for request logging and metrics
+# Minimal request logging
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-    
-    # Log request
-    if PRODUCTION_FEATURES:
-        logger.info(
-            "Request started",
-            method=request.method,
-            path=request.url.path,
-            client_ip=request.client.host if request.client else "unknown"
-        )
-    
     response = await call_next(request)
-    
-    # Calculate duration
     duration = time.time() - start_time
-    
-    # Record metrics
-    if PRODUCTION_FEATURES:
-        metrics.record_api_request(
-            endpoint=request.url.path,
-            method=request.method,
-            status_code=response.status_code,
-            duration=duration
-        )
-    
-    # Log response
-    if PRODUCTION_FEATURES:
-        logger.info(
-            "Request completed",
-            method=request.method,
-            path=request.url.path,
-            status_code=response.status_code,
-            duration=f"{duration:.3f}s"
-        )
-    
+    logger.info(f"{request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)")
     return response
 
-# Pydantic v1 syntax for models
+# Pydantic v1 models
 class StartRequest(BaseModel):
     symbol: str = Field(..., min_length=6, max_length=12)
     timeframe: str = Field(..., min_length=2, max_length=3)
@@ -111,7 +57,6 @@ class StartRequest(BaseModel):
     
     @validator('symbol')
     def validate_symbol(cls, v):
-        # Basic symbol validation
         if not v or not v.endswith('USDT'):
             raise ValueError('Invalid trading symbol')
         return v.upper().strip()
@@ -135,23 +80,19 @@ class ApiKeysRequest(BaseModel):
     
     @validator('api_key')
     def validate_api_key(cls, v):
-        # Basic API key validation
         if not v or len(v) < 60:
             raise ValueError('Invalid Binance API key format')
         return v.strip()
     
     @validator('api_secret')
     def validate_api_secret(cls, v):
-        # Basic API secret validation
         if not v or len(v) < 60:
             raise ValueError('Invalid Binance API secret format')
         return v.strip()
 
-# YENİ: Kullanıcı ayarları modeli
 class UserSettingsRequest(BaseModel):
     settings: Dict[str, Any]
 
-# YENİ: Trading istatistikleri modeli  
 class TradingStats(BaseModel):
     total_trades: int = 0
     winning_trades: int = 0
@@ -194,8 +135,7 @@ async def get_current_user(token: str = Depends(bearer_scheme)):
         
         return user_data
     except Exception as e:
-        if PRODUCTION_FEATURES:
-            logger.error("Authentication failed", error=str(e))
+        logger.error(f"Authentication failed: {e}")
         raise HTTPException(status_code=401, detail="Authentication failed")
 
 async def get_active_subscriber(user: dict = Depends(get_current_user)):
@@ -212,16 +152,11 @@ async def get_admin_user(user: dict = Depends(get_current_user)):
 
 # --- Bot Endpoint'leri ---
 @app.post("/api/start", summary="Botu başlatır")
-async def start_bot_endpoint(request: Request, bot_settings: StartRequest, user: dict = Depends(get_active_subscriber)):
+async def start_bot_endpoint(bot_settings: StartRequest, user: dict = Depends(get_active_subscriber)):
     """Kullanıcı için trading botunu başlatır"""
-    # Rate limiting if available
-    if PRODUCTION_FEATURES:
-        await limiter.limit("3/minute")(request)
-    
     try:
-        if PRODUCTION_FEATURES:
-            logger.info("Bot start requested", user_id=user['uid'], symbol=bot_settings.symbol)
-    
+        logger.info(f"Bot start requested for user {user['uid']}, symbol {bot_settings.symbol}")
+        
         # Kullanıcı ayarlarını kaydet
         await save_user_settings_internal(user['uid'], {
             'symbol': bot_settings.symbol,
@@ -235,72 +170,42 @@ async def start_bot_endpoint(request: Request, bot_settings: StartRequest, user:
         result = await bot_manager.start_bot_for_user(user['uid'], bot_settings)
     
         if "error" in result:
-            if PRODUCTION_FEATURES:
-                logger.error("Bot start failed", user_id=user['uid'], error=result["error"])
+            logger.error(f"Bot start failed for user {user['uid']}: {result['error']}")
             raise HTTPException(status_code=400, detail=result["error"])
         
-        # Record metrics
-        if PRODUCTION_FEATURES:
-            metrics.record_bot_start(user['uid'], bot_settings.symbol)
-        
-        if PRODUCTION_FEATURES:
-            logger.info("Bot started successfully", user_id=user['uid'], symbol=bot_settings.symbol)
+        logger.info(f"Bot started successfully for user {user['uid']}")
         return {"success": True, **result}
     
     except HTTPException:
         raise
     except Exception as e:
-        if PRODUCTION_FEATURES:
-            logger.error("Unexpected error in bot start", user_id=user['uid'], error=str(e))
-            metrics.record_error("bot_start_error", "main")
+        logger.error(f"Unexpected error in bot start: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/stop", summary="Botu durdurur")
-async def stop_bot_endpoint(request: Request, user: dict = Depends(get_current_user)):
+async def stop_bot_endpoint(user: dict = Depends(get_current_user)):
     """Kullanıcının botunu durdurur"""
-    # Rate limiting if available
-    if PRODUCTION_FEATURES:
-        await limiter.limit("10/minute")(request)
-    
     try:
-        if PRODUCTION_FEATURES:
-            logger.info("Bot stop requested", user_id=user['uid'])
+        logger.info(f"Bot stop requested for user {user['uid']}")
         
         result = await bot_manager.stop_bot_for_user(user['uid'])
         if "error" in result:
-            if PRODUCTION_FEATURES:
-                logger.error("Bot stop failed", user_id=user['uid'], error=result["error"])
+            logger.error(f"Bot stop failed for user {user['uid']}: {result['error']}")
             raise HTTPException(status_code=400, detail=result["error"])
         
-        # Record metrics
-        if PRODUCTION_FEATURES:
-            metrics.record_bot_stop(user['uid'], "unknown", "manual")
-        
-        if PRODUCTION_FEATURES:
-            logger.info("Bot stopped successfully", user_id=user['uid'])
+        logger.info(f"Bot stopped successfully for user {user['uid']}")
         return {"success": True, **result}
     
     except HTTPException:
         raise
     except Exception as e:
-        if PRODUCTION_FEATURES:
-            logger.error("Unexpected error in bot stop", user_id=user['uid'], error=str(e))
-            metrics.record_error("bot_stop_error", "main")
+        logger.error(f"Unexpected error in bot stop: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/status", summary="Bot durumunu alır")
-async def get_status_endpoint(request: Request, user: dict = Depends(get_current_user)):
+async def get_status_endpoint(user: dict = Depends(get_current_user)):
     """Kullanıcının bot durumunu döndürür"""
-    # Rate limiting if available
-    if PRODUCTION_FEATURES:
-        await limiter.limit("30/minute")(request)
-    
     status = bot_manager.get_bot_status(user['uid'])
-    
-    # Update active bots metric
-    if PRODUCTION_FEATURES:
-        active_bot_count = len([bot for bot in bot_manager.active_bots.values() if bot.status.get("is_running", False)])
-        metrics.update_active_bots(active_bot_count)
     
     return {
         "is_running": status.get("is_running", False),
@@ -310,7 +215,7 @@ async def get_status_endpoint(request: Request, user: dict = Depends(get_current
         "last_check_time": status.get("last_check_time")
     }
 
-# --- YENİ: Kullanıcı Ayarları Endpoint'leri ---
+# --- Kullanıcı Ayarları ---
 @app.post("/api/save-user-settings", summary="Kullanıcı ayarlarını kaydeder")
 async def save_user_settings_endpoint(request: UserSettingsRequest, user: dict = Depends(get_current_user)):
     """Kullanıcının bot ayarlarını kaydeder"""
@@ -340,7 +245,7 @@ async def get_trading_stats(user: dict = Depends(get_current_user)):
             "stats": stats
         }
     except Exception as e:
-        print(f"Trading stats hesaplama hatası: {e}")
+        logger.error(f"Trading stats calculation error: {e}")
         return {
             "success": False,
             "stats": TradingStats().dict()
@@ -366,9 +271,7 @@ def calculate_trading_stats(trades_data: Dict) -> Dict:
             losing_trades += 1
     
     win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
-    
-    # Uptime hesaplama (basit yaklaşım)
-    uptime_hours = total_trades * 0.5  # Her trade yaklaşık 30 dakika varsayımı
+    uptime_hours = total_trades * 0.5
     
     return {
         "total_trades": total_trades,
@@ -379,7 +282,7 @@ def calculate_trading_stats(trades_data: Dict) -> Dict:
         "uptime_hours": round(uptime_hours, 1)
     }
 
-# --- Kullanıcı Profili (GÜNCELLENDİ) ---
+# --- Kullanıcı Profili ---
 @app.get("/api/user-profile", summary="Kullanıcı profil bilgileri")
 async def get_user_profile(user: dict = Depends(get_current_user)):
     """Kullanıcının tüm profil bilgilerini döndürür"""
@@ -391,7 +294,7 @@ async def get_user_profile(user: dict = Depends(get_current_user)):
         trades_data = trades_ref.get() or {}
         stats = calculate_trading_stats(trades_data)
     except Exception as e:
-        print(f"Stats hesaplama hatası: {e}")
+        logger.error(f"Stats calculation error: {e}")
         stats = TradingStats().dict()
     
     # Kullanıcı ayarlarını al
@@ -420,40 +323,20 @@ async def get_user_profile(user: dict = Depends(get_current_user)):
 
 # --- API Anahtarları ---
 @app.post("/api/save-keys", summary="API anahtarlarını kaydeder")
-async def save_api_keys(request: Request, api_keys: ApiKeysRequest, user: dict = Depends(get_current_user)):
+async def save_api_keys(api_keys: ApiKeysRequest, user: dict = Depends(get_current_user)):
     """Kullanıcının Binance API anahtarlarını şifreli olarak kaydeder"""
-    # Rate limiting if available
-    if PRODUCTION_FEATURES:
-        await limiter.limit("5/minute")(request)
-    
     try:
-        if PRODUCTION_FEATURES:
-            logger.info("API keys save requested", user_id=user['uid'])
+        logger.info(f"API keys save requested for user {user['uid']}")
         
         firebase_manager.update_user_api_keys(user['uid'], api_keys.api_key, api_keys.api_secret)
         
-        if PRODUCTION_FEATURES:
-            logger.info("API keys saved successfully", user_id=user['uid'])
+        logger.info(f"API keys saved successfully for user {user['uid']}")
         return {"success": True, "message": "API anahtarları güvenli şekilde kaydedildi"}
     except Exception as e:
-        if PRODUCTION_FEATURES:
-            logger.error("Failed to save API keys", user_id=user['uid'], error=str(e))
-            metrics.record_error("api_keys_save_error", "main")
+        logger.error(f"Failed to save API keys for user {user['uid']}: {e}")
         raise HTTPException(status_code=500, detail="API anahtarları kaydedilemedi")
 
-# --- Metrics Endpoint ---
-@app.get("/metrics", summary="Prometheus metrics")
-async def get_metrics():
-    """Prometheus formatında metrics döndürür"""
-    if PRODUCTION_FEATURES:
-        return Response(
-            content=get_metrics_data(),
-            media_type=get_metrics_content_type()
-        )
-    else:
-        return {"message": "Metrics not available in minimal mode"}
-
-# --- Health Check (Enhanced) ---
+# --- Health Check ---
 @app.get("/health", summary="Sistem sağlık kontrolü")
 async def health_check():
     """Gelişmiş sistem durumu kontrolü"""
@@ -481,8 +364,6 @@ async def health_check():
             active_bots = len(bot_manager.active_bots)
             health_status["components"]["bot_manager"] = "healthy"
             health_status["active_bots"] = active_bots
-            if PRODUCTION_FEATURES:
-                metrics.update_active_bots(active_bots)
         except Exception as e:
             health_status["components"]["bot_manager"] = f"unhealthy: {str(e)}"
             health_status["status"] = "degraded"
@@ -497,8 +378,7 @@ async def health_check():
         return health_status
         
     except Exception as e:
-        if PRODUCTION_FEATURES:
-            logger.error("Health check failed", error=str(e))
+        logger.error(f"Health check failed: {e}")
         return JSONResponse(
             status_code=503,
             content={
@@ -538,7 +418,7 @@ async def get_all_users(admin: dict = Depends(get_admin_user)):
         
         return {"users": sanitized_users}
     except Exception as e:
-        print(f"Admin users listesi hatası: {e}")
+        logger.error(f"Admin users list error: {e}")
         raise HTTPException(status_code=500, detail="Kullanıcı listesi alınamadı")
 
 class ActivateSubscriptionRequest(BaseModel):
@@ -564,7 +444,7 @@ async def activate_subscription(request: ActivateSubscriptionRequest, admin: dic
                 if expiry_from_db > current_expiry:
                     current_expiry = expiry_from_db
             except ValueError:
-                print(f"Geçersiz tarih formatı: {current_expiry_str}")
+                logger.error(f"Invalid date format: {current_expiry_str}")
         
         # 30 gün ekle
         new_expiry = current_expiry + timedelta(days=30)
@@ -576,43 +456,61 @@ async def activate_subscription(request: ActivateSubscriptionRequest, admin: dic
             "last_updated_at": datetime.now(timezone.utc).isoformat()
         })
         
-        print(f"Admin {admin['email']} tarafından {request.user_id} aboneliği uzatıldı")
+        logger.info(f"Admin {admin['email']} extended subscription for {request.user_id}")
         return {"success": True, "message": f"Abonelik 30 gün uzatıldı", "new_expiry": new_expiry.isoformat()}
         
     except Exception as e:
-        print(f"Abonelik uzatma hatası: {e}")
+        logger.error(f"Subscription extension error: {e}")
         raise HTTPException(status_code=500, detail="Abonelik uzatılamadı")
 
-# YENİ: Bot performance endpoint'i
-@app.get("/api/admin/bot-performance", summary="Genel bot performansı (Admin)")
-async def get_bot_performance(admin: dict = Depends(get_admin_user)):
-    """Tüm sistemin genel performans istatistikleri"""
-    try:
-        all_users = db.reference('users').get() or {}
-        all_trades = db.reference('trades').get() or {}
-        
-        total_users = len(all_users)
-        active_subscriptions = sum(1 for user in all_users.values() 
-                                 if firebase_manager.is_subscription_active_by_data(user))
-        
-        # Genel trading stats
-        total_system_trades = 0
-        total_system_pnl = 0.0
-        
-        for user_trades in all_trades.values():
-            if isinstance(user_trades, dict):
-                for trade in user_trades.values():
-                    if isinstance(trade, dict):
-                        total_system_trades += 1
-                        total_system_pnl += trade.get('pnl', 0.0)
-        
-        # Aktif bot sayısı
-        active_bots = len([bot for bot in bot_manager.active_bots.values() 
-                          if bot.status.get("is_running", False)])
-        
-        return {
-            "total_users": total_users,
-            "active_subscriptions": active_subscriptions,
-            "active_bots": active_bots,
-            "total_trades": total_system_trades,
-            "total_pnl": round(total_system
+# --- Static Files ---
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", include_in_schema=False)
+async def read_index():
+    """Ana sayfa"""
+    return FileResponse('static/index.html')
+
+@app.get("/admin", include_in_schema=False)
+async def read_admin_page(admin: dict = Depends(get_admin_user)):
+    """Admin paneli - yetki kontrolü ile"""
+    return FileResponse('static/admin.html')
+
+# --- Sistem Events ---
+@app.on_event("startup")
+async def startup_event():
+    """Uygulama başlatıldığında çalışır"""
+    port = os.getenv("PORT", "8000")
+    logger.info(f"🚀 EzyagoTrading Backend started on port {port}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Uygulama kapatıldığında tüm botları güvenli şekilde durdurur"""
+    logger.info("📴 System shutting down, stopping all bots...")
+    await bot_manager.shutdown_all_bots()
+    logger.info("✅ All bots stopped safely")
+
+# --- Error Handlers ---
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """HTTP hatalarını yakalar ve loglar"""
+    logger.error(f"HTTP Exception: {exc.status_code} - {exc.detail} - {request.url.path}")
+    
+    return {
+        "error": True,
+        "status_code": exc.status_code,
+        "detail": exc.detail,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+@app.exception_handler(500)
+async def internal_server_error_handler(request: Request, exc):
+    """500 hatalarını yakalar"""
+    logger.error(f"Internal Server Error: {exc} - {request.url.path}")
+    
+    return {
+        "error": True,
+        "status_code": 500,
+        "detail": "İç sunucu hatası",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
