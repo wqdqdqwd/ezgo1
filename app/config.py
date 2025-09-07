@@ -37,7 +37,8 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     
     # --- Bot için Varsayılan Ayarlar ---
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "LIVE") # Varsayılan olarak LIVE
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "PRODUCTION")
+    PORT: int = int(os.getenv("PORT", "8000"))
     BASE_URL: str = os.getenv("BINANCE_BASE_URL", "https://fapi.binance.com")
     WEBSOCKET_URL: str = os.getenv("BINANCE_WS_URL", "wss://fstream.binance.com")
     LEVERAGE: int = int(os.getenv("DEFAULT_LEVERAGE", "10"))
@@ -55,6 +56,10 @@ class Settings:
     FIREBASE_WEB_MESSAGING_SENDER_ID: str = os.getenv("FIREBASE_WEB_MESSAGING_SENDER_ID")
     FIREBASE_WEB_APP_ID: str = os.getenv("FIREBASE_WEB_APP_ID")
     # FIREBASE_WEB_MEASUREMENT_ID: str = os.getenv("FIREBASE_WEB_MEASUREMENT_ID") # Eğer kullanılıyorsa ekleyebilirsiniz
+    
+    # --- Render.com specific settings ---
+    BOT_PRICE_USD: str = os.getenv("BOT_PRICE_USD", "$29.99")
+    SERVER_IPS: str = os.getenv("SERVER_IPS", "18.156.158.53,18.156.42.200,52.59.103.54")
 
 
 # Ayarları projenin her yerinden erişilebilir hale getirmek için bir nesne oluşturulur.
