@@ -25,8 +25,8 @@ app = Flask(__name__, static_folder=STATIC_FOLDER)
 # CORS setup
 CORS(app, 
      origins=["*"] if settings.ENVIRONMENT == "DEVELOPMENT" else [
-         "https://ezyago.com/",
-         "https://www.ezyago.com/"
+         "https://ezyago.com",
+         "https://www.ezyago.com"
      
      ])
 
