@@ -3,11 +3,9 @@ from typing import Dict
 from app.bot_core import BotCore
 from app.binance_client import BinanceClient
 from app.firebase_manager import firebase_manager
-from pydantic import BaseModel # Bot ayarları için import edildi
+from pydantic import BaseModel  # Pydantic v1 import
 
-# main.py'deki StartRequest modelini buraya da ekleyebiliriz
-# Veya sadece dict olarak geçiş yapmaya devam edebiliriz.
-# Temizlik için main.py'deki modeli doğrudan buraya geçirelim.
+# Bot ayarları için model (Pydantic v1 syntax)
 class StartRequest(BaseModel):
     symbol: str
     timeframe: str
@@ -25,7 +23,7 @@ class BotManager:
         # Aktif botları kullanıcı UID'si ile eşleştirerek bir sözlükte tutar
         self.active_bots: Dict[str, BotCore] = {}
 
-    async def start_bot_for_user(self, uid: str, bot_settings: StartRequest) -> Dict: # bot_settings tipi StartRequest olarak güncellendi
+    async def start_bot_for_user(self, uid: str, bot_settings: StartRequest) -> Dict:
         """
         Belirtilen kullanıcı için botu başlatır.
         """
@@ -48,13 +46,13 @@ class BotManager:
         client = BinanceClient(api_key=api_key, api_secret=api_secret)
         
         # BotCore nesnesine tüm ayarları geçir
-        bot = BotCore(user_id=uid, binance_client=client, settings=bot_settings.model_dump()) # Pydantic modelini dict'e dönüştürdük
+        bot = BotCore(user_id=uid, binance_client=client, settings=bot_settings.dict())  # Pydantic v1 syntax
         
         # Botu aktif botlar listesine ekle
         self.active_bots[uid] = bot
         
         # Botun başlangıç işlemini arka planda çalışacak bir görev olarak başlat
-        asyncio.create_task(bot.start()) # start metoduna symbol argümanı kaldırıldı
+        asyncio.create_task(bot.start())
         
         # Botun başlangıç durumunu alması için kısa bir bekleme
         await asyncio.sleep(2) 
