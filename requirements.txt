@@ -1,40 +1,21 @@
-# Core FastAPI dependencies (Pydantic v1 compatible)
+# Minimal FastAPI setup for Render.com compatibility
 fastapi==0.100.1
 uvicorn[standard]==0.23.2
 python-multipart==0.0.6
 python-dotenv==1.0.0
 pydantic==1.10.12
 
-# Firebase
+# Firebase (essential)
 firebase-admin==6.2.0
 
-# Binance API
+# Binance API (essential)
 python-binance==1.0.19
 
-# Security & Crypto
-cryptography>=40.0.0
+# Security & Crypto (minimal version)
+cryptography==40.0.2
 
-# Database & Caching
-redis==5.0.1
-
-# Rate limiting & Security
-slowapi==0.1.9
-
-# Logging & Monitoring
-structlog==23.2.0
-prometheus-client==0.19.0
-
-# Error handling & Resilience
-tenacity==8.2.3
-
-# HTTP client
+# HTTP client (use requests only - no aiohttp)
 requests==2.31.0
-aiohttp
 
-# WebSocket support
-websockets==11.0.3
-
-# Testing (optional for production)
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-cov==4.1.0
+# Basic dependencies only
+typing-extensions==4.7.1
