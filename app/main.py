@@ -25,7 +25,7 @@ try:
     from slowapi.errors import RateLimitExceeded
     PRODUCTION_FEATURES = True
 except ImportError as e:
-    print(f"Production features not available: {e}")
+    print(f"Some production features not available (this is normal): {e}")
     PRODUCTION_FEATURES = False
     # Fallback logger
     import logging
