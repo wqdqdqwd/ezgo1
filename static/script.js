@@ -75,18 +75,22 @@ UIElements.mobileTabs.forEach(tab => {
             });
         });
         
-        // Leaderboard tabs
-        document.querySelectorAll('.leaderboard-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const period = tab.dataset.period;
-                
-                document.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                loadLeaderboard(period);
-            });
-        });
-    }
+  // Leaderboard tabs
+const leaderboardTabs = document.querySelectorAll('.leaderboard-tab');
+
+leaderboardTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        const period = tab.dataset.period;
+
+        // Update active state
+        leaderboardTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Load leaderboard for the selected period
+        loadLeaderboard(period);
+    });
+});
+
 
     function showPage(pageId) {
         // Hide all pages
