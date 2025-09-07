@@ -4,7 +4,9 @@ services:
     env: python
     region: frankfurt
     plan: starter
-    buildCommand: pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+    buildCommand: |
+      pip install --upgrade pip
+      pip install --no-build-isolation --prefer-binary -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: PYTHON_VERSION
@@ -15,11 +17,11 @@ services:
         value: INFO
       - key: PYTHONPATH
         value: /opt/render/project/src
+      - key: PIP_NO_BUILD_ISOLATION
+        value: "0"
+      - key: PIP_PREFER_BINARY
+        value: "1"
       - key: PIP_NO_CACHE_DIR
         value: "1"
-      - key: PIP_DISABLE_PIP_VERSION_CHECK
-        value: "1"
-      - key: CARGO_NET_GIT_FETCH_WITH_CLI
-        value: "true"
     healthCheckPath: /health
     autoDeploy: true
