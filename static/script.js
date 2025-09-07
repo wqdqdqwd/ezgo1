@@ -1047,32 +1047,38 @@ function showPage(pageId) {
         };
     }
 
-    // Make functions globally available
-    window.adjustOrderSize = function(amount) {
-        if (UIElements.orderSizeInput) {
-            const currentValue = parseFloat(UIElements.orderSizeInput.value) || 20;
-            const newValue = Math.max(10, currentValue + amount);
-            UIElements.orderSizeInput.value = newValue;
-            saveUserSetting('positionSize', newValue);
-        }
-    };
+    // DOM elements
+const UIElements = {
+    orderSizeInput: document.getElementById('order-size-input'),
+    leverageInput: document.getElementById('leverage-input')
+};
 
-    window.adjustManualSize = function(amount) {
-        const input = document.getElementById('manual-amount-input');
-        if (input) {
-            const currentValue = parseFloat(input.value) || 20;
-            const newValue = Math.max(10, currentValue + amount);
-            input.value = newValue;
-        }
-    };
+// Make functions globally available
+window.adjustOrderSize = function(amount) {
+    if (UIElements.orderSizeInput) {
+        const currentValue = parseFloat(UIElements.orderSizeInput.value) || 20;
+        const newValue = Math.max(10, currentValue + amount);
+        UIElements.orderSizeInput.value = newValue;
+        saveUserSetting('positionSize', newValue);
+    }
+};
 
-    window.setLeverage = function(value) {
-        if (UIElements.leverageInput) {
-            UIElements.leverageInput.value = value;
-            updateLeverageDisplay();
-            saveUserSetting('leverage', value);
-        }
-    };
+window.adjustManualSize = function(amount) {
+    const input = document.getElementById('manual-amount-input');
+    if (input) {
+        const currentValue = parseFloat(input.value) || 20;
+        const newValue = Math.max(10, currentValue + amount);
+        input.value = newValue;
+    }
+};
+
+window.setLeverage = function(value) {
+    if (UIElements.leverageInput) {
+        UIElements.leverageInput.value = value;
+        updateLeverageDisplay();
+        saveUserSetting('leverage', value);
+    }
+};
 
     window.copyToClipboard = copyToClipboard;
 
