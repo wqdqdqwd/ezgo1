@@ -1064,9 +1064,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
                 }
-            });
-        });
-    }
+           });
+    });
+}
 
     // Trading controls
     function initializeTradingControls() {
