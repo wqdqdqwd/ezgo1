@@ -29,7 +29,7 @@ tenacity==8.2.3
 
 # HTTP client
 requests==2.31.0
-aiohttp==3.8.6
+aiohttp
 
 # WebSocket support
 websockets==11.0.3
