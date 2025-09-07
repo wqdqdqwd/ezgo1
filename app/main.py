@@ -16,13 +16,18 @@ from app.firebase_manager import firebase_manager, db
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
-app = Flask(__name__, static_folder='static')
+# Statik klasörün doğru yolunu belirleme
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_FOLDER = os.path.join(BASE_DIR, 'static')
+
+app = Flask(__name__, static_folder=STATIC_FOLDER)
 
 # CORS setup
 CORS(app, 
      origins=["*"] if settings.ENVIRONMENT == "DEVELOPMENT" else [
-         "https://your-domain.com",
-         "https://www.your-domain.com"
+         "https://ezyago.com/",
+         "https://www.ezyago.com/"
+     
      ])
 
 # Request logging middleware
