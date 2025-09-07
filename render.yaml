@@ -15,5 +15,9 @@ services:
         value: INFO
       - key: PYTHONPATH
         value: /opt/render/project/src
+      - key: PIP_NO_CACHE_DIR
+        value: "1"
+      - key: PIP_DISABLE_PIP_VERSION_CHECK
+        value: "1"
     healthCheckPath: /health
     autoDeploy: true
