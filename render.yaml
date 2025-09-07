@@ -4,7 +4,7 @@ services:
     env: python
     region: frankfurt
     plan: starter
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: PYTHON_VERSION
@@ -19,5 +19,7 @@ services:
         value: "1"
       - key: PIP_DISABLE_PIP_VERSION_CHECK
         value: "1"
+      - key: CARGO_NET_GIT_FETCH_WITH_CLI
+        value: "true"
     healthCheckPath: /health
     autoDeploy: true
