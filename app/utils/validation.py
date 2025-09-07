@@ -79,8 +79,9 @@ class ApiKeyValidator:
         
         # Binance API secrets are typically 64 characters long
         secret = secret.strip()
-        return len(secret) == 64 and api_key.isalnum()
+        return len(secret) == 64 and secret.isalnum()
 
+# Pydantic v1 compatible models
 class EnhancedStartRequest(BaseModel):
     """
     Enhanced start request with comprehensive validation
