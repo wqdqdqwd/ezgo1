@@ -16,7 +16,7 @@ python-binance==1.0.15
 requests==2.28.0
 
 # Type Hinting
-typing-extensions==3.10.0
+typing-extensions>=4.2.0  # Conflict fixed by updating version
 
 # Security
 cryptography==3.4.8
