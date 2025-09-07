@@ -1,6 +1,7 @@
 # Minimal FastAPI setup for Render.com compatibility
 fastapi==0.100.1
 uvicorn[standard]==0.23.2
+gunicorn==21.2.0
 python-multipart==0.0.6
 python-dotenv==1.0.0
 pydantic==1.10.12
@@ -8,7 +9,7 @@ pydantic==1.10.12
 # Firebase (essential)
 firebase-admin==6.2.0
 
-# Binance API (essential)
+# Binance API (essential) - includes WebSocket functionality
 python-binance==1.0.19
 
 # Security & Crypto (minimal version)
@@ -19,3 +20,6 @@ requests==2.31.0
 
 # Basic dependencies only
 typing-extensions==4.7.1
+
+# WebSocket support (if needed later)
+# websockets==10.4
