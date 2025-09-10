@@ -4,6 +4,8 @@ services:
     env: python
     region: frankfurt
     plan: starter
+    # You can keep this line, but the buildCommand is the key fix
+    pythonVersion: 3.11.9
     buildCommand: |
       python3.11 -m pip install --upgrade pip==24.0
       python3.11 -m pip install --no-cache-dir -r requirements.txt
@@ -15,7 +17,5 @@ services:
         value: INFO
       - key: PYTHONPATH
         value: /opt/render/project/src
-      - key: PYTHON_VERSION # We'll keep this just in case, it doesn't hurt.
-        value: 3.11.9
     healthCheckPath: /health
     autoDeploy: true
