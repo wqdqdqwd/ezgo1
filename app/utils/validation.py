@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, Field  # Pydantic v2
+from pydantic import BaseModel, field_validator, Field  # Pydantic v2
 from typing import Optional, List
 import re
 from app.utils.logger import get_logger
