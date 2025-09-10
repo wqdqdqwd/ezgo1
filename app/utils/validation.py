@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, Field  # Pydantic v2
+from pydantic import BaseModel, field_validator, Field  # Pydantic v2
 from typing import Optional, List
 import re
 from app.utils.logger import get_logger
@@ -9,11 +9,7 @@ class TradingSymbolValidator:
     """
     Trading symbol validation
     """
-    VALID_SYMBOLS = [
-        'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT',
-        'SOLUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
-        'LTCUSDT', 'LINKUSDT', 'UNIUSDT', 'ATOMUSDT', 'FILUSDT'
-    ]
+    VALID_SYMBOLS =
     
     @classmethod
     def validate_symbol(cls, symbol: str) -> bool:
@@ -123,4 +119,14 @@ class EnhancedApiKeysRequest(BaseModel):
     
     @field_validator('api_key')
     @classmethod
-    def validate_api
+    def validate_api_key(cls, v):
+        if not ApiKeyValidator.validate_binance_api_key(v):
+            raise ValueError('Invalid Binance API key format')
+        return v
+        
+    @field_validator('api_secret')
+    @classmethod
+    def validate_api_secret(cls, v):
+        if not ApiKeyValidator.validate_binance_secret(v):
+            raise ValueError('Invalid Binance API secret format')
+        return v
