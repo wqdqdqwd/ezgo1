@@ -10,7 +10,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict
-from pydantic import BaseModel, Field, field_validator  # Pydantic v2 imports
+from pydantic import BaseModel, Field, validator  # Değişiklik burada yapıldı.
 from contextlib import asynccontextmanager
 
 # Import custom modules
@@ -24,9 +24,9 @@ from app.utils.validation import validate_user_input
 
 logger = get_logger("main")
 
-# Pydantic Models (v2 syntax)
+# Pydantic Models (v1 syntax)
 class UserRegistration(BaseModel):
-    email: str = Field(..., pattern=r'^[^@]+@[^@]+\.[^@]+$')
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
     password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=2, max_length=50)
 
@@ -39,17 +39,16 @@ class ApiKeysRequest(BaseModel):
     api_secret: str = Field(..., min_length=60, max_length=70)
 
 class BotSettingsRequest(BaseModel):
-    symbol: str = Field(..., pattern=r'^[A-Z]{3,10}USDT$')
-    timeframe: str = Field(..., pattern=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDT$')
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
     leverage: int = Field(default=10, ge=1, le=125)
     order_size: float = Field(default=35.0, ge=10.0, le=10000.0)
     stop_loss: float = Field(..., ge=0.1, le=50.0)
     take_profit: float = Field(..., ge=0.1, le=100.0)
     
-    @field_validator('take_profit')
-    @classmethod
-    def validate_tp_greater_than_sl(cls, v, info):
-        if 'stop_loss' in info.data and v <= info.data['stop_loss']:
+    @validator('take_profit', pre=True, always=True) # Değişiklik burada yapıldı.
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss' in values and v <= values['stop_loss']:
             raise ValueError('Take profit must be greater than stop loss')
         return v
 
