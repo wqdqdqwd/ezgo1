@@ -3,16 +3,16 @@ from typing import Dict
 from app.bot_core import BotCore
 from app.binance_client import BinanceClient
 from app.firebase_manager import firebase_manager
-from pydantic import BaseModel  # Pydantic v1 import
+from pydantic import BaseModel, Field  # Pydantic v2 import
 
-# Bot ayarları için model (Pydantic v1 syntax)
+# Bot ayarları için model (Pydantic v2 syntax)
 class StartRequest(BaseModel):
-    symbol: str
-    timeframe: str
-    leverage: int
-    order_size: float
-    stop_loss: float
-    take_profit: float
+    symbol: str = Field(..., min_length=6, max_length=12)
+    timeframe: str = Field(..., pattern=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    leverage: int = Field(..., ge=1, le=125)
+    order_size: float = Field(..., ge=10.0, le=10000.0)
+    stop_loss: float = Field(..., ge=0.1, le=50.0)
+    take_profit: float = Field(..., ge=0.1, le=100.0)
 
 class BotManager:
     """
@@ -45,8 +45,8 @@ class BotManager:
         # Kullanıcıya özel Binance istemcisi ve BotCore nesnesi oluştur
         client = BinanceClient(api_key=api_key, api_secret=api_secret)
         
-        # BotCore nesnesine tüm ayarları geçir
-        bot = BotCore(user_id=uid, binance_client=client, settings=bot_settings.dict())  # Pydantic v1 syntax
+        # BotCore nesnesine tüm ayarları geçir (Pydantic v2 syntax)
+        bot = BotCore(user_id=uid, binance_client=client, settings=bot_settings.model_dump())
         
         # Botu aktif botlar listesine ekle
         self.active_bots[uid] = bot
