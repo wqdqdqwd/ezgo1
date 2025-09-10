@@ -32,6 +32,7 @@ pytest-asyncio==0.23.6
 #Monitoring (Optional - Render için hafif versiyonlar)
 slowapi==0.1.9
 redis==5.0.3
+prometheus_client
 
 #Performance
 gunicorn==21.2.0
