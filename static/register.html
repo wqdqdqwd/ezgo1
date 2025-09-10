@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıt Ol - EzyagoTrading</title>
+    <meta name="description" content="EzyagoTrading'e ücretsiz kayıt olun - 7 gün deneme">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="/static/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-wrapper">
+            <div class="auth-card">
+                <!-- Logo & Header -->
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <i class="fas fa-chart-line"></i>
+                        <span>EzyagoTrading</span>
+                    </div>
+                    <h1>Hesap Oluşturun</h1>
+                    <p>7 gün ücretsiz deneme ile profesyonel trading'e başlayın</p>
+                </div>
+
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form">
+                    <div class="form-group">
+                        <label class="form-label" for="full_name">
+                            <i class="fas fa-user"></i>
+                            Ad Soyad
+                        </label>
+                        <input 
+                            type="text" 
+                            id="full_name" 
+                            class="form-input" 
+                            placeholder="Adınız Soyadınız" 
+                            required
+                            autocomplete="name"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">
+                            <i class="fas fa-envelope"></i>
+                            E-posta Adresi
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            class="form-input" 
+                            placeholder="ornek@email.com" 
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">
+                            <i class="fas fa-lock"></i>
+                            Şifre
+                        </label>
+                        <div class="password-input-container">
+                            <input 
+                                type="password" 
+                                id="password" 
+                                class="form-input" 
+                                placeholder="En az 6 karakter" 
+                                required
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="password-toggle" id="password-toggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="form-help">Güçlü bir şifre seçin (en az 6 karakter)</small>
+                    </div>
+
+                    <!-- Terms Checkbox -->
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="terms" required>
+                            <span class="checkmark"></span>
+                            <span class="checkbox-text">
+                                <a href="#terms" target="_blank">Kullanım Şartları</a>'nı ve 
+                                <a href="#privacy" target="_blank">Gizlilik Politikası</a>'nı kabul ediyorum
+                            </span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full" id="register-btn">
+                        <span id="register-btn-text">
+                            <i class="fas fa-user-plus"></i>
+                            Hesap Oluştur
+                        </span>
+                        <div id="register-spinner" class="spinner hidden"></div>
+                    </button>
+                </form>
+
+                <!-- Error Message -->
+                <div id="error-message" class="error-message hidden">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-text"></span>
+                </div>
+
+                <!-- Success Message -->
+                <div id="success-message" class="success-message hidden">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="success-text"></span>
+                </div>
+
+                <!-- Trial Info -->
+                <div class="trial-info">
+                    <div class="trial-badge">
+                        <i class="fas fa-gift"></i>
+                        <div>
+                            <strong>7 Gün Ücretsiz Deneme</strong>
+                            <p>Kredi kartı gerektirmez</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Links -->
+                <div class="auth-links">
+                    <p class="auth-link-text">
+                        Zaten hesabınız var mı? 
+                        <a href="/login.html" class="auth-link">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Giriş Yapın
+                        </a>
+                    </p>
+                    <p class="auth-link-text">
+                        <a href="/" class="auth-link">
+                            <i class="fas fa-home"></i>
+                            Ana Sayfaya Dön
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script src="/static/auth.js"></script>
+    <script>
+        // Register page specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            initAuthPage('register');
+        });
+    </script>
+</body>
+</html>
