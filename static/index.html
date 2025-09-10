@@ -2,936 +2,1001 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>EzyagoTrading - Professional Crypto Trading Bot</title>
-    <meta name="description" content="Professional cryptocurrency futures trading bot with Binance API integration">
-    <meta name="keywords" content="kripto trading bot, futures trading, binance bot, otomatik trading, cryptocurrency, bitcoin trading">
-    <meta name="robots" content="index, follow">
-    <meta name="author" content="EzyagoTrading">
+    <meta name="description" content="Profesyonel kripto para futures trading botu">
     
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="EzyagoTrading - Professional Crypto Trading Bot">
-    <meta property="og:description" content="Binance futures trading için profesyonel bot sistemi. Risk yönetimi ile güvenli otomatik trading.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://ezyagotrading.com">
-    
-    <link rel="stylesheet" href="/static/style.css">
+    <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Modern Color Palette */
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #64748b;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --info: #0891b2;
+            
+            /* Background Colors */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-card: #1e293b;
+            
+            /* Text Colors */
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            
+            /* Trading Colors */
+            --long-color: #16a34a;
+            --short-color: #dc2626;
+            --long-bg: rgba(22, 163, 74, 0.1);
+            --short-bg: rgba(220, 38, 38, 0.1);
+            
+            /* Spacing & Layout */
+            --container-padding: 1rem;
+            --border-radius: 0.75rem;
+            --border-radius-sm: 0.5rem;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        /* Utility Classes */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 var(--container-padding); }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .min-h-screen { min-height: 100vh; }
+        .text-center { text-align: center; }
+        .hidden { display: none; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Authentication Styles */
+        .auth-container {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.03"><circle cx="30" cy="30" r="2"/></g></svg>');
+            pointer-events: none;
+        }
+        
+        .auth-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid var(--bg-tertiary);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .logo i {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .logo-text {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .auth-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            gap: 0.5rem;
+            min-height: 48px;
+            user-select: none;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #15803d);
+            color: white;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--bg-tertiary);
+        }
+        
+        .btn-outline:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            min-height: 36px;
+        }
+        
+        /* Dashboard Layout */
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .dashboard-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--bg-tertiary);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .dashboard-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dashboard-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        
+        .dashboard-logo i {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .subscription-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .subscription-badge.trial {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .subscription-badge.active {
+            background: var(--success);
+            color: white;
+        }
+        
+        .subscription-badge.expired {
+            background: var(--danger);
+            color: white;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--bg-tertiary);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--bg-tertiary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .card-title i {
+            color: var(--primary);
+        }
+        
+        .card-content {
+            padding: 1.5rem;
+        }
+        
+        /* Trading Controls */
+        .trading-section {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .input-group {
+            display: grid;
+            gap: 0.5rem;
+        }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .symbol-selector {
+            position: relative;
+        }
+        
+        .symbol-dropdown {
+            background: var(--bg-secondary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--border-radius-sm);
+            padding: 0.875rem 1rem;
+            color: var(--text-primary);
+            width: 100%;
+            cursor: pointer;
+        }
+        
+        .range-input {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .range-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: var(--shadow);
+        }
+        
+        .range-input::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: var(--shadow);
+        }
+        
+        .leverage-display {
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        
+        .margin-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            background: var(--bg-secondary);
+            padding: 0.25rem;
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .margin-option {
+            padding: 0.75rem;
+            text-align: center;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+        }
+        
+        .margin-option.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* Bot Status */
+        .bot-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .bot-status.offline {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+        
+        .bot-status.running {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(22, 163, 74, 0.2);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Position Display */
+        .position-card {
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .position-symbol {
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+        
+        .position-side {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .position-side.long {
+            background: var(--long-bg);
+            color: var(--long-color);
+        }
+        
+        .position-side.short {
+            background: var(--short-bg);
+            color: var(--short-color);
+        }
+        
+        .position-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .position-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .pnl-positive {
+            color: var(--long-color);
+        }
+        
+        .pnl-negative {
+            color: var(--short-color);
+        }
+        
+        /* Warning Messages */
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .error-message {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .success-message {
+            background: rgba(22, 163, 74, 0.1);
+            border: 1px solid rgba(22, 163, 74, 0.2);
+            color: var(--success);
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        /* Mobile Responsive */
+        @media (min-width: 768px) {
+            .container {
+                --container-padding: 2rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+            }
+            
+            .auth-card {
+                padding: 2.5rem;
+            }
+            
+            .card-content {
+                padding: 2rem;
+            }
+            
+            .input-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        /* Animations */
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Focus styles for accessibility */
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Risk Warning Modal -->
-    <div id="risk-warning-modal" class="risk-modal" style="display: none;">
-        <div class="risk-modal-content">
-            <div class="risk-header">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h2 data-tr="risk_warning_title" data-en="Important Risk Warning">Önemli Risk Uyarısı</h2>
-            </div>
-            <div class="risk-body">
-                <h3 data-tr="financial_risk_notice" data-en="⚠️ Financial Risk Notice">⚠️ Finansal Risk Bildirimi</h3>
-                <ul>
-                    <li data-tr="high_risk_warning" data-en="<strong>High Risk:</strong> Crypto futures trading is extremely risky and you may lose all your capital."><strong>Yüksek Risk:</strong> Kripto para futures trading son derece risklidir ve tüm sermayenizi kaybedebilirsiniz.</li>
-                    <li data-tr="leverage_risk_warning" data-en="<strong>Leverage Risk:</strong> Leveraged trading amplifies both gains and losses."><strong>Kaldıraç Riski:</strong> Kaldıraçlı işlemler kazançları artırırken kayıpları da artırır.</li>
-                    <li data-tr="volatility_warning" data-en="<strong>Volatility:</strong> Crypto markets are highly volatile 24/7 with sudden price changes."><strong>Volatilite:</strong> Kripto piyasaları 7/24 çok volatildir ve ani fiyat değişimleri yaşanabilir.</li>
-                    <li data-tr="bot_risk_warning" data-en="<strong>Bot Risk:</strong> Automated trading bots do not guarantee profits and technical failures may occur."><strong>Bot Riski:</strong> Otomatik trading botları garanti kar vermez ve teknik arızalar olabilir.</li>
-                    <li data-tr="money_warning" data-en="<strong>Only Use Money You Can Afford to Lose:</strong> Never risk money needed for basic necessities."><strong>Sadece Risk Edebileceğiniz Parayı Kullanın:</strong> Temel ihtiyaçlarınız için gerekli parayı asla riske atmayın.</li>
-                </ul>
-                <div class="risk-disclaimer">
-                    <p data-tr="disclaimer_text" data-en="<strong>This platform does not provide financial advice.</strong> All investment decisions are yours. Understand the risks before trading and seek expert advice if necessary."><strong>Bu platform finansal tavsiye vermez.</strong> Tüm yatırım kararları size aittir. Trading yapmadan önce riskleri anlayın ve gerekirse uzman görüşü alın.</p>
-                </div>
-            </div>
-            <div class="risk-footer">
-                <label class="risk-checkbox">
-                    <input type="checkbox" id="risk-understood">
-                    <span data-tr="risk_accept_text" data-en="I understand and accept the risks">Riskleri anladım ve kabul ediyorum</span>
-                </label>
-                <button id="accept-risk-btn" class="btn btn-danger" disabled>
-                    <i class="fas fa-check"></i> 
-                    <span data-tr="risk_continue_btn" data-en="I Understand, Continue">Anladım, Devam Et</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Auth Container -->
-    <div id="auth-container" class="auth-wrapper flex items-center justify-center min-h-screen">
+    <!-- Authentication Section -->
+    <div id="auth-section" class="auth-container flex items-center justify-center min-h-screen">
         <div class="container">
-            <div id="login-card" class="auth-card fade-in">
+            <!-- Login Card -->
+            <div id="login-card" class="auth-card fade-in" style="margin: 0 auto;">
                 <div class="auth-header">
-                    <div class="auth-logo">
+                    <div class="logo">
                         <i class="fas fa-chart-line"></i>
-                        <span>ezyago</span>
+                        <span class="logo-text">EzyagoTrading</span>
                     </div>
-                    <h2 data-tr="login_welcome" data-en="Welcome to Futures Trading">Futures Trading'e Hoş Geldin</h2>
-                    <p data-tr="login_subtitle" data-en="Professional crypto bot with automated trading">Professional crypto bot ile automated trading</p>
+                    <h1 class="auth-title">Hoş Geldiniz</h1>
+                    <p class="auth-subtitle">Profesyonel kripto futures trading botuna giriş yapın</p>
                 </div>
-                <form>
+                
+                <form id="login-form">
                     <div class="form-group">
-                        <label for="login-email" class="form-label">
-                            <i class="fas fa-envelope"></i> 
-                            <span data-tr="email_label" data-en="Email Address">E-posta Adresi</span>
-                        </label>
-                        <input type="email" id="login-email" class="form-input" data-tr-placeholder="email_placeholder" data-en-placeholder="example@email.com" placeholder="ornek@email.com" required>
+                        <label class="form-label" for="login-email">E-posta Adresi</label>
+                        <input type="email" id="login-email" class="form-input" placeholder="ornek@email.com" required>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="login-password" class="form-label">
-                            <i class="fas fa-lock"></i> 
-                            <span data-tr="password_label" data-en="Password">Şifre</span>
-                        </label>
+                        <label class="form-label" for="login-password">Şifre</label>
                         <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
                     </div>
-                    <button id="login-button" type="button" class="btn btn-primary w-full">
-                        <i class="fas fa-sign-in-alt"></i> 
-                        <span data-tr="login_btn" data-en="Login">Giriş Yap</span>
+                    
+                    <button type="submit" class="btn btn-primary w-full">
+                        <span id="login-btn-text">Giriş Yap</span>
+                        <div id="login-spinner" class="spinner hidden"></div>
                     </button>
                 </form>
-                <p id="login-error" class="status-message error mt-4" style="display: none;"></p>
-                <p class="toggle-form-text">
-                    <span data-tr="no_account_text" data-en="Don't have an account?">Hesabın yok mu?</span> 
-                    <a href="#" id="show-register-link" data-tr="register_link" data-en="Sign Up">Kayıt Ol</a>
+                
+                <div id="login-error" class="error-message hidden">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span></span>
+                </div>
+                
+                <p class="text-center" style="margin-top: 1.5rem; color: var(--text-secondary);">
+                    Hesabınız yok mu? 
+                    <a href="#" id="show-register" style="color: var(--primary); font-weight: 600;">Kayıt Olun</a>
                 </p>
             </div>
-
-            <div id="register-card" class="auth-card fade-in" style="display: none;">
+            
+            <!-- Register Card -->
+            <div id="register-card" class="auth-card fade-in hidden" style="margin: 0 auto;">
                 <div class="auth-header">
-                    <div class="auth-logo">
+                    <div class="logo">
                         <i class="fas fa-chart-line"></i>
-                        <span>ezyago</span>
+                        <span class="logo-text">EzyagoTrading</span>
                     </div>
-                    <h2 data-tr="register_title" data-en="Create Account">Hesap Oluştur</h2>
-                    <p data-tr="register_subtitle" data-en="Get access to professional trading bot">Professional trading bot'a erişim kazanın</p>
+                    <h1 class="auth-title">Hesap Oluşturun</h1>
+                    <p class="auth-subtitle">7 gün ücretsiz deneme ile başlayın</p>
                 </div>
-                <form>
+                
+                <form id="register-form">
                     <div class="form-group">
-                        <label for="register-language" class="form-label">
-                            <i class="fas fa-globe"></i> 
-                            <span data-tr="language_label" data-en="Language">Dil / Language</span>
-                        </label>
-                        <select id="register-language" class="form-input">
-                            <option value="tr">🇹🇷 Türkçe</option>
-                            <option value="en">🇺🇸 English</option>
-                        </select>
+                        <label class="form-label" for="register-name">Ad Soyad</label>
+                        <input type="text" id="register-name" class="form-input" placeholder="Adınız Soyadınız" required>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="register-email" class="form-label">
-                            <i class="fas fa-envelope"></i> 
-                            <span data-tr="email_label" data-en="Email Address">E-posta Adresi</span>
-                        </label>
-                        <input type="email" id="register-email" class="form-input" data-tr-placeholder="email_placeholder" data-en-placeholder="example@email.com" placeholder="ornek@email.com" required>
+                        <label class="form-label" for="register-email">E-posta Adresi</label>
+                        <input type="email" id="register-email" class="form-input" placeholder="ornek@email.com" required>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="register-password" class="form-label">
-                            <i class="fas fa-lock"></i> 
-                            <span data-tr="password_label" data-en="Password">Şifre</span>
-                        </label>
-                        <input type="password" id="register-password" class="form-input" data-tr-placeholder="password_placeholder" data-en-placeholder="At least 6 characters" placeholder="En az 6 karakter" required>
+                        <label class="form-label" for="register-password">Şifre</label>
+                        <input type="password" id="register-password" class="form-input" placeholder="En az 6 karakter" required>
                     </div>
-                    <button id="register-button" type="button" class="btn btn-primary w-full">
-                        <i class="fas fa-user-plus"></i> 
-                        <span data-tr="register_btn" data-en="Create Account">Hesap Oluştur</span>
+                    
+                    <button type="submit" class="btn btn-primary w-full">
+                        <span id="register-btn-text">Hesap Oluştur</span>
+                        <div id="register-spinner" class="spinner hidden"></div>
                     </button>
                 </form>
-                <p id="register-error" class="status-message error mt-4" style="display: none;"></p>
-                <p class="toggle-form-text">
-                    <span data-tr="have_account_text" data-en="Already have an account?">Zaten hesabın var mı?</span> 
-                    <a href="#" id="show-login-link" data-tr="login_link" data-en="Login">Giriş Yap</a>
+                
+                <div id="register-error" class="error-message hidden">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span></span>
+                </div>
+                
+                <p class="text-center" style="margin-top: 1.5rem; color: var(--text-secondary);">
+                    Zaten hesabınız var mı? 
+                    <a href="#" id="show-login" style="color: var(--primary); font-weight: 600;">Giriş Yapın</a>
                 </p>
             </div>
         </div>
     </div>
-
-    <!-- Main App Container -->
-    <div id="app-container" class="app-layout" style="display: none;">
-        <!-- Desktop Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fas fa-chart-line"></i>
-                    ezyago
-                </div>
-                <div class="logo-subtitle">Professional Trading</div>
+    
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="dashboard hidden">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="container">
+                <nav class="dashboard-nav">
+                    <div class="dashboard-logo">
+                        <i class="fas fa-chart-line"></i>
+                        <span>EzyagoTrading</span>
+                    </div>
+                    
+                    <div class="user-menu">
+                        <div id="subscription-status" class="subscription-badge trial">
+                            <span id="subscription-text">7 Gün Deneme</span>
+                        </div>
+                        <button class="btn btn-outline btn-sm" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Çıkış
+                        </button>
+                    </div>
+                </nav>
             </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-page="trading-page">
-                    <i class="fas fa-chart-candlestick"></i>
-                    <span data-tr="nav_trading" data-en="Trading">Trading</span>
-                </button>
-                <button class="nav-item" data-page="positions-page">
-                    <i class="fas fa-list"></i>
-                    <span data-tr="nav_positions" data-en="Positions">Positions</span>
-                </button>
-                <button class="nav-item" data-page="leaderboard-page">
-                    <i class="fas fa-trophy"></i>
-                    <span data-tr="nav_leaderboard" data-en="Leaderboard">Leaderboard</span>
-                </button>
-                <button class="nav-item" data-page="api-page">
-                    <i class="fas fa-key"></i>
-                    <span data-tr="nav_api" data-en="API Keys">API Keys</span>
-                </button>
-                <button class="nav-item" data-page="settings-page">
-                    <i class="fas fa-cog"></i>
-                    <span data-tr="nav_settings" data-en="Settings">Settings</span>
-                </button>
-            </nav>
-        </aside>
-
+        </header>
+        
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Trading Page -->
-            <div id="trading-page" class="page active">
-                <!-- Mobile Header -->
-                <div class="mobile-header">
-                    <div class="mobile-header-content">
-                        <div class="current-pair" id="pair-selector-btn">
-                            <span class="pair-symbol" id="mobile-pair-symbol">BTCUSDT</span>
-                            <span class="pair-change" id="mobile-pair-change">+1.34%</span>
-                            <i class="fas fa-chevron-down pair-dropdown-icon"></i>
-                        </div>
-                        <div class="header-actions">
-                            <button class="header-btn" id="timeframe-btn">
-                                <span id="current-timeframe">15m</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <button class="header-btn" id="menu-btn">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Price Ticker -->
-                <div class="price-ticker">
-                    <div class="price-main">
-                        <span class="price-value" id="current-price">$43,250.00</span>
-                        <span class="price-change positive" id="price-change">+1.34%</span>
-                    </div>
-                    <div class="price-stats">
-                        <div class="price-stat">
-                            <span class="stat-label" data-tr="24h_high" data-en="24h High">24h Yüksek</span>
-                            <span class="stat-value" id="price-high">$44,120</span>
-                        </div>
-                        <div class="price-stat">
-                            <span class="stat-label" data-tr="24h_low" data-en="24h Low">24h Düşük</span>
-                            <span class="stat-value" id="price-low">$42,890</span>
-                        </div>
-                        <div class="price-stat">
-                            <span class="stat-label" data-tr="24h_volume" data-en="24h Volume">24h Hacim</span>
-                            <span class="stat-value" id="volume">1.2B</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chart Section -->
-                <div class="chart-section">
-                    <div class="chart-header">
-                        <div class="chart-tabs">
-                            <button class="chart-tab active" data-tr="chart_tab" data-en="Chart">Chart</button>
-                            <button class="chart-tab" data-tr="orderbook_tab" data-en="Order Book">Order Book</button>
-                        </div>
-                        <div class="chart-tools">
-                            <button class="chart-tool" id="chart-settings">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <div class="analysis-chart" id="analysis-chart-container">
-                            <div class="chart-loading">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <span data-tr="chart_loading" data-en="Chart loading...">Chart loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-indicators">
-                        <div class="indicator">
-                            <span class="indicator-label" data-tr="trend_label" data-en="Trend">Trend</span>
-                            <span class="indicator-value bullish" id="trend-direction">Bullish</span>
-                        </div>
-                        <div class="indicator">
-                            <span class="indicator-label" data-tr="signal_label" data-en="Signal">Signal</span>
-                            <span class="indicator-value neutral" id="signal-strength">Neutral</span>
-                        </div>
-                        <div class="indicator">
-                            <span class="indicator-label" data-tr="volume_label" data-en="Volume">Volume</span>
-                            <span class="indicator-value" id="volume-trend">Normal</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trading Controls -->
-                <div class="trading-controls">
-                    <div class="trading-header">
-                        <div class="trading-tabs">
-                            <button class="trading-tab active" data-mode="bot">
+            <div class="container">
+                <div class="dashboard-grid">
+                    <!-- Trading Controls -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
                                 <i class="fas fa-robot"></i>
-                                <span data-tr="auto_bot" data-en="Auto Bot">Auto Bot</span>
-                            </button>
-                            <button class="trading-tab" data-mode="manual">
-                                <i class="fas fa-hand-paper"></i>
-                                <span data-tr="manual" data-en="Manual">Manual</span>
-                            </button>
-                        </div>
-                        <div class="bot-status-indicator">
-                            <span class="status-dot" id="bot-status-dot"></span>
-                            <span class="status-text" id="bot-status-text">OFFLINE</span>
-                        </div>
-                    </div>
-
-                    <div id="bot-controls" class="trading-content">
-                        <!-- Available Balance -->
-                        <div class="balance-info">
-                            <div class="balance-item">
-                                <span class="balance-label" data-tr="available_balance" data-en="Available">Available</span>
-                                <span class="balance-value" id="available-balance">18.22 USDT</span>
-                            </div>
-                            <div class="balance-item">
-                                <span class="balance-label" data-tr="in_orders" data-en="In Orders">In Orders</span>
-                                <span class="balance-value" id="orders-balance">0.00 USDT</span>
+                                Trading Bot Kontrolleri
                             </div>
                         </div>
-
-                        <!-- Margin Type Selection -->
-                        <div class="margin-type-section">
-                            <label class="input-label">
-                                <i class="fas fa-layer-group"></i>
-                                <span data-tr="margin_type" data-en="Margin Type">Margin Tipi</span>
-                            </label>
-                            <div class="margin-type-selector">
-                                <button class="margin-type-btn active" data-type="cross">
-                                    <i class="fas fa-expand-arrows-alt"></i>
-                                    <span data-tr="cross_margin" data-en="Cross">Cross</span>
-                                </button>
-                                <button class="margin-type-btn" data-type="isolated">
-                                    <i class="fas fa-square"></i>
-                                    <span data-tr="isolated_margin" data-en="Isolated">Isolated</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Order Size -->
-                        <div class="order-input-group">
-                            <label class="input-label">
-                                <span data-tr="position_size" data-en="Position Size (USDT)">Position Size (USDT)</span>
-                            </label>
-                            <div class="input-with-actions">
-                                <button class="input-action-btn" onclick="adjustOrderSize(-5)">-</button>
-                                <input type="number" id="order-size-input" class="order-input" value="20" min="10" step="1">
-                                <button class="input-action-btn" onclick="adjustOrderSize(5)">+</button>
-                            </div>
-                        </div>
-
-                        <!-- Leverage -->
-                        <div class="leverage-section">
-                            <div class="leverage-header">
-                                <label class="input-label">
-                                    <span data-tr="leverage" data-en="Leverage">Leverage</span>
-                                </label>
-                                <span class="leverage-value" id="leverage-value">10x</span>
-                            </div>
-                            <input type="range" id="leverage-input" class="leverage-slider" min="1" max="125" value="10">
-                            <div class="leverage-quick-buttons">
-                                <button class="leverage-quick-btn" onclick="setLeverage(5)">5x</button>
-                                <button class="leverage-quick-btn" onclick="setLeverage(10)">10x</button>
-                                <button class="leverage-quick-btn" onclick="setLeverage(20)">20x</button>
-                                <button class="leverage-quick-btn" onclick="setLeverage(50)">50x</button>
-                            </div>
-                        </div>
-
-                        <!-- TP/SL Settings -->
-                        <div class="tp-sl-section">
-                            <div class="tp-sl-grid">
-                                <div class="tp-sl-item">
-                                    <label class="input-label profit">
-                                        <i class="fas fa-arrow-up"></i> 
-                                        <span data-tr="take_profit" data-en="Take Profit %">Take Profit %</span>
-                                    </label>
-                                    <input type="number" id="tp-input" class="tp-sl-input profit" value="4" min="0.1" step="0.1" max="50">
+                        <div class="card-content">
+                            <!-- API Keys Warning -->
+                            <div id="api-keys-warning" class="warning-box">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <div>
+                                    <strong>API Anahtarları Gerekli:</strong>
+                                    <p>Bot'u başlatabilmek için önce Binance API anahtarlarınızı ayarlamanız gerekiyor.</p>
+                                    <button class="btn btn-primary btn-sm" style="margin-top: 0.5rem;" onclick="showApiKeysModal()">
+                                        API Anahtarlarını Ayarla
+                                    </button>
                                 </div>
-                                <div class="tp-sl-item">
-                                    <label class="input-label loss">
-                                        <i class="fas fa-arrow-down"></i> 
-                                        <span data-tr="stop_loss" data-en="Stop Loss %">Stop Loss %</span>
-                                    </label>
-                                    <input type="number" id="sl-input" class="tp-sl-input loss" value="2" min="0.1" step="0.1" max="25">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Bot Settings -->
-                        <div class="bot-settings-section">
-                            <div class="settings-header">
-                                <h4 data-tr="advanced_settings" data-en="Advanced Settings">Gelişmiş Ayarlar</h4>
-                                <button class="settings-toggle" id="advanced-settings-toggle">
-                                    <i class="fas fa-chevron-down"></i>
-                                </button>
-                            </div>
-                            <div class="advanced-settings" id="advanced-settings-panel" style="display: none;">
-                                <div class="setting-item">
-                                    <label class="setting-label">
-                                        <i class="fas fa-clock"></i>
-                                        <span data-tr="trade_interval" data-en="Trade Interval">İşlem Aralığı</span>
-                                    </label>
-                                    <select id="trade-interval" class="form-input">
-                                        <option value="1">1 dakika</option>
-                                        <option value="5" selected>5 dakika</option>
-                                        <option value="15">15 dakika</option>
-                                        <option value="30">30 dakika</option>
-                                    </select>
-                                </div>
-                                <div class="setting-item">
-                                    <label class="setting-label">
-                                        <i class="fas fa-shield-alt"></i>
-                                        <span data-tr="max_daily_loss" data-en="Max Daily Loss %">Günlük Max Kayıp %</span>
-                                    </label>
-                                    <input type="number" id="max-daily-loss" class="form-input" value="10" min="1" max="50" step="1">
-                                </div>
-                                <div class="setting-item">
-                                    <label class="setting-label">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span data-tr="strategy" data-en="Strategy">Strateji</span>
-                                    </label>
-                                    <select id="strategy-select" class="form-input">
-                                        <option value="scalping">Scalping</option>
-                                        <option value="swing" selected>Swing Trading</option>
-                                        <option value="trend">Trend Following</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bot Control Buttons -->
-                        <div class="bot-control-section">
-                            <div class="control-buttons">
-                                <button id="start-button" class="btn btn-success bot-btn" disabled>
-                                    <i class="fas fa-play"></i>
-                                    <span data-tr="start_bot" data-en="Start Bot">Start Bot</span>
-                                </button>
-                                <button id="stop-button" class="btn btn-danger bot-btn" disabled>
-                                    <i class="fas fa-stop"></i>
-                                    <span data-tr="stop_bot" data-en="Stop Bot">Stop Bot</span>
-                                </button>
-                            </div>
-                            <div class="bot-status-message" id="status-message">
-                                <i class="fas fa-info-circle"></i>
-                                <span data-tr="bot_ready_msg" data-en="Bot is ready. Configure settings to start trading.">Bot is ready. Configure settings to start trading.</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="manual-controls" class="trading-content" style="display: none;">
-                        <!-- Manual Trading Controls -->
-                        <div class="manual-order-section">
-                            <div class="order-type-selector">
-                                <button class="order-type-btn active" data-type="market" data-tr="market" data-en="Market">Market</button>
-                                <button class="order-type-btn" data-type="limit" data-tr="limit" data-en="Limit">Limit</button>
                             </div>
                             
-                            <div class="order-input-group">
-                                <label class="input-label">
-                                    <span data-tr="price_usdt" data-en="Price (USDT)">Price (USDT)</span>
-                                </label>
-                                <input type="number" id="manual-price-input" class="order-input" data-tr-placeholder="market_price" data-en-placeholder="Market Price" placeholder="Market Price" disabled>
+                            <!-- Bot Status -->
+                            <div id="bot-status" class="bot-status offline">
+                                <div class="status-dot"></div>
+                                <span>Bot Çevrimdışı</span>
                             </div>
-
-                            <div class="order-input-group">
-                                <label class="input-label">
-                                    <span data-tr="amount_usdt" data-en="Amount (USDT)">Amount (USDT)</span>
-                                </label>
-                                <div class="input-with-actions">
-                                    <button class="input-action-btn" onclick="adjustManualSize(-5)">-</button>
-                                    <input type="number" id="manual-amount-input" class="order-input" value="20" min="10" step="1">
-                                    <button class="input-action-btn" onclick="adjustManualSize(5)">+</button>
+                            
+                            <!-- Trading Settings -->
+                            <div class="trading-section">
+                                <!-- Symbol Selection -->
+                                <div class="input-group">
+                                    <label class="form-label">Trading Çifti</label>
+                                    <select id="symbol-select" class="form-input">
+                                        <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
+                                        <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
+                                        <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
+                                        <option value="XRPUSDT">Ripple (XRPUSDT)</option>
+                                        <option value="ADAUSDT">Cardano (ADAUSDT)</option>
+                                        <option value="SOLUSDT">Solana (SOLUSDT)</option>
+                                        <option value="DOGEUSDT">Dogecoin (DOGEUSDT)</option>
+                                        <option value="AVAXUSDT">Avalanche (AVAXUSDT)</option>
+                                    </select>
                                 </div>
-                            </div>
-
-                            <div class="manual-control-buttons">
-                                <button class="btn btn-success manual-btn" id="manual-buy-btn">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span data-tr="buy_long" data-en="Buy / Long">Buy / Long</span>
-                                </button>
-                                <button class="btn btn-danger manual-btn" id="manual-sell-btn">
-                                    <i class="fas fa-arrow-down"></i>
-                                    <span data-tr="sell_short" data-en="Sell / Short">Sell / Short</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Positions Page -->
-            <div id="positions-page" class="page">
-                <div class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-list"></i>
-                        <span data-tr="positions_orders" data-en="Positions & Orders">Positions & Orders</span>
-                    </h1>
-                </div>
-                
-                <div class="positions-tabs">
-                    <button class="position-tab active" data-tab="positions">
-                        <span data-tr="positions" data-en="Positions">Positions</span> 
-                        <span class="tab-count" id="positions-count">(0)</span>
-                    </button>
-                    <button class="position-tab" data-tab="open-orders">
-                        <span data-tr="open_orders" data-en="Open Orders">Open Orders</span> 
-                        <span class="tab-count" id="orders-count">(0)</span>
-                    </button>
-                    <button class="position-tab" data-tab="trade-history">
-                        <span data-tr="history" data-en="History">History</span>
-                    </button>
-                </div>
-
-                <div id="positions-content" class="positions-content">
-                    <div class="empty-state" id="positions-empty">
-                        <i class="fas fa-chart-line"></i>
-                        <h3 data-tr="no_positions" data-en="No Active Positions">No Active Positions</h3>
-                        <p data-tr="no_positions_desc" data-en="Start the bot or place manual orders to see positions here">Start the bot or place manual orders to see positions here</p>
-                    </div>
-                </div>
-
-                <div id="orders-content" class="positions-content" style="display: none;">
-                    <div class="empty-state" id="orders-empty">
-                        <i class="fas fa-clock"></i>
-                        <h3 data-tr="no_orders" data-en="No Open Orders">No Open Orders</h3>
-                        <p data-tr="no_orders_desc" data-en="Your pending orders will appear here">Your pending orders will appear here</p>
-                    </div>
-                </div>
-
-                <div id="history-content" class="positions-content" style="display: none;">
-                    <div class="empty-state" id="history-empty">
-                        <i class="fas fa-history"></i>
-                        <h3 data-tr="no_history" data-en="No Trade History">No Trade History</h3>
-                        <p data-tr="no_history_desc" data-en="Your completed trades will be shown here">Your completed trades will be shown here</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Leaderboard Page -->
-            <div id="leaderboard-page" class="page">
-                <div class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-trophy"></i>
-                        <span data-tr="leaderboard" data-en="Trading Leaderboard">Trading Leaderboard</span>
-                    </h1>
-                </div>
-                
-                <div class="page-content">
-                    <div class="leaderboard-tabs">
-                        <button class="leaderboard-tab active" data-period="daily">
-                            <i class="fas fa-calendar-day"></i>
-                            <span data-tr="daily" data-en="Daily">Günlük</span>
-                        </button>
-                        <button class="leaderboard-tab" data-period="weekly">
-                            <i class="fas fa-calendar-week"></i>
-                            <span data-tr="weekly" data-en="Weekly">Haftalık</span>
-                        </button>
-                        <button class="leaderboard-tab" data-period="monthly">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span data-tr="monthly" data-en="Monthly">Aylık</span>
-                        </button>
-                    </div>
-
-                    <div class="leaderboard-content">
-                        <div class="leaderboard-stats">
-                            <div class="stat-card">
-                                <div class="stat-icon success">
-                                    <i class="fas fa-users"></i>
+                                
+                                <!-- Timeframe -->
+                                <div class="input-group">
+                                    <label class="form-label">Zaman Dilimi</label>
+                                    <select id="timeframe-select" class="form-input">
+                                        <option value="1m">1 Dakika</option>
+                                        <option value="3m">3 Dakika</option>
+                                        <option value="5m">5 Dakika</option>
+                                        <option value="15m" selected>15 Dakika</option>
+                                        <option value="30m">30 Dakika</option>
+                                        <option value="1h">1 Saat</option>
+                                        <option value="4h">4 Saat</option>
+                                    </select>
                                 </div>
-                                <div class="stat-info">
-                                    <div class="stat-value" id="total-traders">247</div>
-                                    <div class="stat-label" data-tr="total_traders" data-en="Total Traders">Toplam Trader</div>
+                                
+                                <!-- Order Size & Leverage -->
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label class="form-label">İşlem Büyüklüğü (USDT)</label>
+                                        <input type="number" id="order-size" class="form-input" value="35" min="10" max="10000" step="5">
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label class="form-label">Kaldıraç</label>
+                                        <input type="range" id="leverage-range" class="range-input" min="1" max="125" value="5">
+                                        <div class="leverage-display"><span id="leverage-value">5</span>x</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon primary">
-                                    <i class="fas fa-chart-line"></i>
+                                
+                                <!-- Stop Loss & Take Profit -->
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label class="form-label">Stop Loss (%)</label>
+                                        <input type="number" id="stop-loss" class="form-input" value="2" min="0.1" max="50" step="0.1" required>
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label class="form-label">Take Profit (%)</label>
+                                        <input type="number" id="take-profit" class="form-input" value="4" min="0.1" max="100" step="0.1" required>
+                                    </div>
                                 </div>
-                                <div class="stat-info">
-                                    <div class="stat-value" id="avg-profit">+12.4%</div>
-                                    <div class="stat-label" data-tr="avg_profit" data-en="Avg Profit">Ort. Kar</div>
+                                
+                                <!-- Margin Type -->
+                                <div class="input-group">
+                                    <label class="form-label">Margin Tipi</label>
+                                    <div class="margin-selector">
+                                        <button type="button" class="margin-option active" data-margin="isolated">
+                                            İzolated
+                                        </button>
+                                        <button type="button" class="margin-option" data-margin="cross">
+                                            Cross
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="leaderboard-list" id="leaderboard-list">
-                            <!-- Leaderboard items will be populated by JavaScript -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- API Page -->
-            <div id="api-page" class="page">
-                <div class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-key"></i>
-                        <span data-tr="api_configuration" data-en="API Configuration">API Configuration</span>
-                    </h1>
-                </div>
-                
-                <div class="page-content">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fab fa-bitcoin"></i> 
-                                <span data-tr="binance_api_keys" data-en="Binance API Keys">Binance API Keys</span>
-                            </h3>
-                            <div class="api-status">
-                                <span class="status-indicator inactive" id="api-status-indicator"></span>
-                                <span class="status-text" id="api-status-text">NOT CONFIGURED</span>
-                            </div>
-                        </div>
-                        <div class="api-warning">
-                            <i class="fas fa-shield-alt"></i>
-                            <p data-tr="api_security_notice" data-en="Your API keys are encrypted and stored securely. Only enable futures trading permissions.">Your API keys are encrypted and stored securely. Only enable futures trading permissions.</p>
-                        </div>
-                        <div class="form-group">
-                            <label for="api-key-input" class="form-label">
-                                <i class="fas fa-key"></i> 
-                                <span data-tr="api_key" data-en="API Key">API Key</span>
-                            </label>
-                            <input type="password" id="api-key-input" class="form-input" data-tr-placeholder="api_key_placeholder" data-en-placeholder="Paste your Binance API Key here" placeholder="Paste your Binance API Key here">
-                        </div>
-                        <div class="form-group">
-                            <label for="api-secret-input" class="form-label">
-                                <i class="fas fa-lock"></i> 
-                                <span data-tr="api_secret" data-en="API Secret">API Secret</span>
-                            </label>
-                            <input type="password" id="api-secret-input" class="form-input" data-tr-placeholder="api_secret_placeholder" data-en-placeholder="Paste your Binance API Secret here" placeholder="Paste your Binance API Secret here">
-                        </div>
-                        <button id="save-keys-button" class="btn btn-primary w-full">
-                            <i class="fas fa-save"></i> 
-                            <span data-tr="save_api_keys" data-en="Save API Keys Securely">Save API Keys Securely</span>
-                        </button>
-                        <p id="api-keys-status" class="status-message mt-4" style="display: none;"></p>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-shield-alt"></i> 
-                                <span data-tr="ip_whitelist" data-en="IP Whitelist">IP Whitelist</span>
-                            </h3>
-                        </div>
-                        <div class="ip-info">
-                            <p class="text-secondary mb-4">
-                                <i class="fas fa-info-circle"></i>
-                                <span data-tr="ip_whitelist_desc" data-en="Add these IP addresses to your Binance API whitelist for security.">Add these IP addresses to your Binance API whitelist for security.</span>
-                            </p>
-                            <div class="ip-list" id="ip-list">
-                                <div class="ip-item loading">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                    <span data-tr="loading_ips" data-en="Loading IP addresses...">Loading IP addresses...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Page -->
-            <div id="settings-page" class="page">
-                <div class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-cog"></i>
-                        <span data-tr="account_settings" data-en="Account Settings">Account Settings</span>
-                    </h1>
-                </div>
-                
-                <div class="page-content">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-user"></i> 
-                                <span data-tr="profile_info" data-en="Profile Information">Profile Information</span>
-                            </h3>
-                        </div>
-                        <div class="profile-info">
-                            <div class="profile-item">
-                                <span class="profile-label">
-                                    <i class="fas fa-envelope"></i> 
-                                    <span data-tr="email" data-en="Email">Email</span>
-                                </span>
-                                <span class="profile-value" id="user-email">-</span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">
-                                    <i class="fas fa-globe"></i> 
-                                    <span data-tr="language" data-en="Language">Dil</span>
-                                </span>
-                                <select id="language-selector" class="profile-select">
-                                    <option value="tr">🇹🇷 Türkçe</option>
-                                    <option value="en">🇺🇸 English</option>
-                                </select>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">
-                                    <i class="fas fa-crown"></i> 
-                                    <span data-tr="subscription" data-en="Subscription">Subscription</span>
-                                </span>
-                                <span class="profile-value" id="subscription-status">
-                                    <span class="status-badge inactive">-</span>
-                                </span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">
-                                    <i class="fas fa-calendar-alt"></i> 
-                                    <span data-tr="expires" data-en="Expires">Expires</span>
-                                </span>
-                                <span class="profile-value" id="subscription-expiry">-</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="payment-info" class="card" style="display: none;">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-credit-card"></i> 
-                                <span data-tr="subscription_renewal" data-en="Subscription Renewal">Subscription Renewal</span>
-                            </h3>
-                        </div>
-                        <div class="payment-details">
-                            <div class="payment-amount">
-                                <i class="fas fa-dollar-sign"></i>
-                                <span class="amount">15 USDT</span>
-                                <span class="period" data-tr="monthly" data-en="/ Monthly">/ Monthly</span>
-                            </div>
-                            <p class="payment-description" data-tr="payment_desc" data-en="Send payment to the TRC20 address below and contact us to renew your subscription.">
-                                Send payment to the TRC20 address below and contact us to renew your subscription.
-                            </p>
-                            <div class="payment-address">
-                                <label class="form-label">
-                                    <span data-tr="trc20_address" data-en="TRC20 Wallet Address:">TRC20 Wallet Address:</span>
-                                </label>
-                                <div class="address-container">
-                                    <code id="payment-address" class="payment-code">-</code>
-                                    <button class="btn-copy" onclick="copyToClipboard('payment-address')">
-                                        <i class="fas fa-copy"></i>
+                                
+                                <!-- Control Buttons -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                                    <button id="start-bot-btn" class="btn btn-success" onclick="startBot()" disabled>
+                                        <i class="fas fa-play"></i>
+                                        Bot'u Başlat
+                                    </button>
+                                    
+                                    <button id="stop-bot-btn" class="btn btn-danger" onclick="stopBot()" disabled>
+                                        <i class="fas fa-stop"></i>
+                                        Bot'u Durdur
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-
+                    
+                    <!-- Status Panel -->
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-pie"></i> 
-                                <span data-tr="trading_statistics" data-en="Trading Statistics">Trading Statistics</span>
-                            </h3>
-                        </div>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-icon success">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-value" id="total-trades">0</div>
-                                    <div class="stat-label" data-tr="total_trades" data-en="Total Trades">Total Trades</div>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon warning">
-                                    <i class="fas fa-percentage"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-value" id="win-rate">0%</div>
-                                    <div class="stat-label" data-tr="win_rate" data-en="Win Rate">Win Rate</div>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon primary">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-value" id="total-pnl">$0.00</div>
-                                    <div class="stat-label" data-tr="total_pnl" data-en="Total P&L">Total P&L</div>
-                                </div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-icon info">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-value" id="uptime">0h</div>
-                                    <div class="stat-label" data-tr="uptime" data-en="Uptime">Uptime</div>
-                                </div>
+                            <div class="card-title">
+                                <i class="fas fa-chart-bar"></i>
+                                Durum Paneli
                             </div>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-tools"></i> 
-                                <span data-tr="account_actions" data-en="Account Actions">Account Actions</span>
-                            </h3>
-                        </div>
-                        <div class="account-actions">
-                            <button class="btn btn-outline w-full">
-                                <i class="fas fa-download"></i> 
-                                <span data-tr="export_history" data-en="Export Trading History">Export Trading History</span>
-                            </button>
-                            <button id="logout-button" class="btn btn-danger w-full">
-                                <i class="fas fa-sign-out-alt"></i> 
-                                <span data-tr="logout" data-en="Logout Securely">Logout Securely</span>
-                            </button>
+                        <div class="card-content">
+                            <!-- Current Position -->
+                            <div id="current-position" class="hidden">
+                                <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Mevcut Pozisyon</h4>
+                                <div class="position-card">
+                                    <div class="position-header">
+                                        <span id="position-symbol" class="position-symbol">BTCUSDT</span>
+                                        <span id="position-side" class="position-side long">LONG</span>
+                                    </div>
+                                    <div class="position-stats">
+                                        <div class="position-stat">
+                                            <span class="stat-label">Boyut</span>
+                                            <span id="position-size" class="stat-value">0.001 BTC</span>
+                                        </div>
+                                        <div class="position-stat">
+                                            <span class="stat-label">Giriş Fiyatı</span>
+                                            <span id="position-entry" class="stat-value">$45,000</span>
+                                        </div>
+                                        <div class="position-stat">
+                                            <span class="stat-label">P&L</span>
+                                            <span id="position-pnl" class="stat-value pnl-positive">+$50.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- No Position Message -->
+                            <div id="no-position" class="text-center" style="padding: 2rem; color: var(--text-muted);">
+                                <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                                <p>Henüz açık pozisyon yok</p>
+                                <p style="font-size: 0.875rem;">Bot başlatıldığında pozisyonlar burada görünecek</p>
+                            </div>
+                            
+                            <!-- Bot Messages -->
+                            <div id="bot-messages" style="margin-top: 1.5rem;">
+                                <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Bot Mesajları</h4>
+                                <div id="messages-container" style="max-height: 200px; overflow-y: auto;">
+                                    <p style="color: var(--text-muted); font-size: 0.875rem; text-align: center; padding: 1rem;">
+                                        Bot mesajları burada görünecek
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
-
-        <!-- Mobile Tab Navigation -->
-        <nav class="mobile-tab-bar">
-            <button class="mobile-tab active" data-page="trading-page">
-                <i class="fas fa-chart-candlestick"></i>
-                <span data-tr="trade" data-en="Trade">Trade</span>
-            </button>
-            <button class="mobile-tab" data-page="positions-page">
-                <i class="fas fa-list"></i>
-                <span data-tr="positions" data-en="Positions">Positions</span>
-            </button>
-            <button class="mobile-tab" data-page="leaderboard-page">
-                <i class="fas fa-trophy"></i>
-                <span data-tr="leaderboard" data-en="Leaders">Leaders</span>
-            </button>
-            <button class="mobile-tab" data-page="api-page">
-                <i class="fas fa-key"></i>
-                <span>API</span>
-            </button>
-            <button class="mobile-tab" data-page="settings-page">
-                <i class="fas fa-cog"></i>
-                <span data-tr="settings" data-en="Settings">Settings</span>
-            </button>
-        </nav>
     </div>
-
-    <!-- Pair Selector Modal -->
-    <div id="pair-selector-modal" class="modal" style="display: none;">
-        <div class="modal-content pair-modal">
+    
+    <!-- API Keys Modal -->
+    <div id="api-keys-modal" class="modal-overlay hidden">
+        <div class="modal">
             <div class="modal-header">
-                <h3>
-                    <i class="fas fa-coins"></i>
-                    <span data-tr="select_pair" data-en="Select Trading Pair">Select Trading Pair</span>
-                </h3>
-                <button class="modal-close" id="pair-modal-close">
+                <h3>Binance API Anahtarları</h3>
+                <button class="modal-close" onclick="closeApiKeysModal()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="pair-search">
-                <div class="search-input-container">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="pair-search-input" data-tr-placeholder="search_pairs" data-en-placeholder="Search pairs..." placeholder="Search pairs...">
-                </div>
-            </div>
-            <div class="pair-categories">
-                <button class="pair-category active" data-category="all">
-                    <span data-tr="all" data-en="All">All</span>
-                </button>
-                <button class="pair-category" data-category="favorites">
-                    <i class="fas fa-star"></i>
-                    <span data-tr="favorites" data-en="Favorites">Favorites</span>
-                </button>
-                <button class="pair-category" data-category="usdt">USDT</button>
-                <button class="pair-category" data-category="busd">BUSD</button>
-            </div>
-            <div class="pairs-list" id="pairs-list">
-                <div class="pairs-loading">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <span data-tr="loading_pairs" data-en="Loading trading pairs...">Loading trading pairs...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Timeframe Selector Modal -->
-    <div id="timeframe-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-tr="select_timeframe" data-en="Select Timeframe">Select Timeframe</h3>
-                <button class="modal-close" id="timeframe-modal-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="timeframe-grid">
-                <button class="timeframe-option" data-timeframe="1m">1m</button>
-                <button class="timeframe-option" data-timeframe="5m">5m</button>
-                <button class="timeframe-option active" data-timeframe="15m">15m</button>
-                <button class="timeframe-option" data-timeframe="30m">30m</button>
-                <button class="timeframe-option" data-timeframe="1h">1h</button>
-                <button class="timeframe-option" data-timeframe="4h">4h</button>
-                <button class="timeframe-option" data-timeframe="1d">1d</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="/static/script.js"></script>
-
-    <script>
-        // Risk modal kontrolü
-        document.addEventListener('DOMContentLoaded', () => {
-            const riskModal = document.getElementById('risk-warning-modal');
-            const riskCheckbox = document.getElementById('risk-understood');
-            const acceptBtn = document.getElementById('accept-risk-btn');
-            
-            // Risk kabul edilmiş mi kontrol et
-            const riskAccepted = localStorage.getItem('riskAccepted');
-            
-            if (!riskAccepted) {
-                setTimeout(() => {
-                    if (riskModal) riskModal.style.display = 'flex';
-                }, 2000);
-            }
-
-            if (riskCheckbox) {
-                riskCheckbox.addEventListener('change', (e) => {
-                    if (acceptBtn) acceptBtn.disabled = !e.target.checked;
-                });
-            }
-
-            if (acceptBtn) {
-                acceptBtn.addEventListener('click', () => {
-                    localStorage.setItem('riskAccepted', 'true');
-                    if (riskModal) riskModal.style.display = 'none';
-                });
-            }
-        });
-
-        // Helper functions for order controls
-        function adjustOrderSize(amount) {
-            const input = document.getElementById('order-size-input');
-            if (input) {
-                const currentValue = parseFloat(input.value) || 20;
-                const newValue = Math.max(10, currentValue + amount);
-                input.value = newValue;
-                input.dispatchEvent(new Event('input'));
-            }
-        }
-
-        function adjustManualSize(amount) {
-            const input = document.getElementById('manual-amount-input');
-            if (input) {
-                const currentValue = parseFloat(input.value) || 20;
-                const newValue = Math.max(10, currentValue + amount);
-                input.value = newValue;
-            }
-        }
-
-        function setLeverage(value) {
-            const input = document.getElementById('leverage-input');
-            if (input) {
-                input.value = value;
-                input.dispatchEvent(new Event('input'));
-            }
-        }
-    </script>
-</body>
-</html>
+            <div class="modal-content">
+                <div class="warning-box">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <strong>Güvenlik Bilgisi:</strong>
+                        <p>API anahtarlarınız güvenli şekilde şifrelenerek saklanır. Sadece futures trading izinlerini aktif edin.</p>
