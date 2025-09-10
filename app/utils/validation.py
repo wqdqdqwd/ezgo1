@@ -4,15 +4,16 @@ from app.utils.logger import get_logger
 
 logger = get_logger("validation")
 
+# ---------------------- Validators ----------------------
+
 class TradingSymbolValidator:
     """
     Trading symbol validation
     """
-    VALID_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]  # Örnek semboller, ihtiyaca göre ekle
+    VALID_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]  # Örnek semboller
 
     @classmethod
     def validate_symbol(cls, symbol: str) -> bool:
-        """Symbol validation"""
         if not symbol or not isinstance(symbol, str):
             return False
         
@@ -24,6 +25,7 @@ class TradingSymbolValidator:
         
         # Whitelist check
         return symbol in cls.VALID_SYMBOLS
+
 
 class TradingParametersValidator:
     """
@@ -47,6 +49,7 @@ class TradingParametersValidator:
         valid_timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d']
         return timeframe in valid_timeframes
 
+
 class ApiKeyValidator:
     """
     API key validation
@@ -66,12 +69,10 @@ class ApiKeyValidator:
         secret = secret.strip()
         return len(secret) == 64 and secret.isalnum()
 
-# ---------------------- Pydantic v2 Models ----------------------
+
+# ---------------------- Pydantic Models ----------------------
 
 class EnhancedStartRequest(BaseModel):
-    """
-    Enhanced start request with comprehensive validation
-    """
     symbol: str = Field(..., min_length=6, max_length=12)
     timeframe: str = Field(..., min_length=2, max_length=3)
     leverage: int = Field(..., ge=1, le=125)
@@ -101,10 +102,8 @@ class EnhancedStartRequest(BaseModel):
             raise ValueError('Take profit must be greater than stop loss')
         return v
 
+
 class EnhancedApiKeysRequest(BaseModel):
-    """
-    Enhanced API keys request with validation
-    """
     api_key: str = Field(..., min_length=64, max_length=64)
     api_secret: str = Field(..., min_length=64, max_length=64)
     
@@ -121,3 +120,13 @@ class EnhancedApiKeysRequest(BaseModel):
         if not ApiKeyValidator.validate_binance_secret(v):
             raise ValueError('Invalid Binance API secret format')
         return v
+
+
+# ---------------------- Helper Function ----------------------
+
+def validate_user_input(data: dict):
+    """
+    Validate user input dict using EnhancedStartRequest model.
+    Returns validated model instance or raises Pydantic ValidationError.
+    """
+    return EnhancedStartRequest(**data)
