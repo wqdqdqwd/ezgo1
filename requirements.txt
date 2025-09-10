@@ -1,35 +1,28 @@
-# Web Framework and HTTP Server
-flask==2.3.3
-flask-cors==4.0.0
-gunicorn==20.1.0
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
 
-# Environment variables
-python-dotenv==0.19.0
+# Database & Authentication
+firebase-admin==6.2.0
+google-cloud-firestore==2.13.1
 
-# Firebase
-firebase-admin==5.4.0
+# Security & Encryption
+cryptography==41.0.7
+bcrypt==4.1.1
+pyjwt==2.8.0
 
-# Binance API
-python-binance==1.0.15
+# Trading & WebSocket
+python-binance==1.0.19
+websockets==12.0
 
-# HTTP Client
-requests==2.28.0
+# Data Processing
+pydantic==2.5.0
+python-multipart==0.0.6
 
-# Type Hinting
-typing-extensions>=4.2.0  # Conflict fixed by updating version
+# Utilities
+python-dotenv==1.0.0
+asyncio-mqtt==0.16.1
 
-# Security
-cryptography==3.4.8
-
-# WebSocket support
-websockets==9.1
-
-# Error handling and resilience
-tenacity==8.2.3
-
-# Logging and Monitoring
-structlog==23.2.0
-prometheus-client==0.19.0
-
-# Data validation and parsing
-pydantic==1.10.12
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
