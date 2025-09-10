@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, field_validator, Field  # Pydantic v2
 from typing import Optional, List
 import re
 from app.utils.logger import get_logger
@@ -81,7 +81,7 @@ class ApiKeyValidator:
         secret = secret.strip()
         return len(secret) == 64 and secret.isalnum()
 
-# Pydantic v1 compatible models
+# Pydantic v2 compatible models
 class EnhancedStartRequest(BaseModel):
     """
     Enhanced start request with comprehensive validation
@@ -93,21 +93,24 @@ class EnhancedStartRequest(BaseModel):
     stop_loss: float = Field(..., ge=0.1, le=50.0)
     take_profit: float = Field(..., ge=0.1, le=50.0)
     
-    @validator('symbol')
+    @field_validator('symbol')
+    @classmethod
     def validate_symbol(cls, v):
         if not TradingSymbolValidator.validate_symbol(v):
             raise ValueError('Invalid trading symbol')
         return v.upper().strip()
     
-    @validator('timeframe')
+    @field_validator('timeframe')
+    @classmethod
     def validate_timeframe(cls, v):
         if not TradingParametersValidator.validate_timeframe(v):
             raise ValueError('Invalid timeframe')
         return v
     
-    @validator('take_profit')
-    def validate_tp_greater_than_sl(cls, v, values):
-        if 'stop_loss' in values and v <= values['stop_loss']:
+    @field_validator('take_profit')
+    @classmethod
+    def validate_tp_greater_than_sl(cls, v, info):
+        if 'stop_loss' in info.data and v <= info.data['stop_loss']:
             raise ValueError('Take profit must be greater than stop loss')
         return v
 
@@ -118,50 +121,6 @@ class EnhancedApiKeysRequest(BaseModel):
     api_key: str = Field(..., min_length=60, max_length=70)
     api_secret: str = Field(..., min_length=60, max_length=70)
     
-    @validator('api_key')
-    def validate_api_key(cls, v):
-        if not ApiKeyValidator.validate_binance_api_key(v):
-            raise ValueError('Invalid Binance API key format')
-        return v.strip()
-    
-    @validator('api_secret')
-    def validate_api_secret(cls, v):
-        if not ApiKeyValidator.validate_binance_secret(v):
-            raise ValueError('Invalid Binance API secret format')
-        return v.strip()
-
-def sanitize_string(input_str: str, max_length: int = 100) -> str:
-    """
-    String sanitization
-    """
-    if not isinstance(input_str, str):
-        return ""
-    
-    # Remove potentially dangerous characters
-    sanitized = re.sub(r'[<>"\';\\]', '', input_str)
-    
-    # Limit length
-    sanitized = sanitized[:max_length]
-    
-    return sanitized.strip()
-
-def validate_user_input(data: dict) -> dict:
-    """
-    Generic user input validation
-    """
-    validated_data = {}
-    
-    for key, value in data.items():
-        if isinstance(value, str):
-            validated_data[key] = sanitize_string(value)
-        elif isinstance(value, (int, float)):
-            # Numeric validation
-            if -1000000 <= value <= 1000000:  # Reasonable bounds
-                validated_data[key] = value
-            else:
-                logger.warning(f"Numeric value out of bounds: {key}={value}")
-                validated_data[key] = 0
-        else:
-            validated_data[key] = value
-    
-    return validated_data
+    @field_validator('api_key')
+    @classmethod
+    def validate_api
