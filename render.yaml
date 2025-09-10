@@ -5,9 +5,9 @@ services:
     region: frankfurt
     plan: starter
     buildCommand: |
-      pip install --upgrade pip==21.3.1
-      pip install --no-build-isolation --prefer-binary -r requirements.txt
-    startCommand: gunicorn app.main:app --bind 0.0.0.0:$PORT --workers 1
+      pip install --upgrade pip==24.0
+      pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn app.main:app --bind 0.0.0.0:$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -17,7 +17,5 @@ services:
         value: INFO
       - key: PYTHONPATH
         value: /opt/render/project/src
-      - key: FLASK_APP
-        value: app.main:app
     healthCheckPath: /health
     autoDeploy: true
