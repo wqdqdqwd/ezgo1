@@ -1,5 +1,4 @@
-from pydantic import BaseModel, field_validator, Field  # Pydantic v2
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator  # Pydantic v2
 import re
 from app.utils.logger import get_logger
 
@@ -9,8 +8,8 @@ class TradingSymbolValidator:
     """
     Trading symbol validation
     """
-    VALID_SYMBOLS =
-    
+    VALID_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]  # Örnek semboller, ihtiyaca göre ekle
+
     @classmethod
     def validate_symbol(cls, symbol: str) -> bool:
         """Symbol validation"""
@@ -23,7 +22,7 @@ class TradingSymbolValidator:
         if not re.match(r'^[A-Z]{3,10}USDT$', symbol):
             return False
         
-        # Whitelist check (optional - can be removed for more flexibility)
+        # Whitelist check
         return symbol in cls.VALID_SYMBOLS
 
 class TradingParametersValidator:
@@ -33,22 +32,18 @@ class TradingParametersValidator:
     
     @staticmethod
     def validate_leverage(leverage: int) -> bool:
-        """Leverage validation"""
         return isinstance(leverage, int) and 1 <= leverage <= 125
     
     @staticmethod
     def validate_order_size(order_size: float) -> bool:
-        """Order size validation"""
         return isinstance(order_size, (int, float)) and 10 <= order_size <= 10000
     
     @staticmethod
     def validate_percentage(percentage: float, min_val: float = 0.1, max_val: float = 50.0) -> bool:
-        """Percentage validation (for TP/SL)"""
         return isinstance(percentage, (int, float)) and min_val <= percentage <= max_val
     
     @staticmethod
     def validate_timeframe(timeframe: str) -> bool:
-        """Timeframe validation"""
         valid_timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d']
         return timeframe in valid_timeframes
 
@@ -59,25 +54,20 @@ class ApiKeyValidator:
     
     @staticmethod
     def validate_binance_api_key(api_key: str) -> bool:
-        """Binance API key format validation"""
         if not api_key or not isinstance(api_key, str):
             return False
-        
-        # Binance API keys are typically 64 characters long
         api_key = api_key.strip()
         return len(api_key) == 64 and api_key.isalnum()
     
     @staticmethod
     def validate_binance_secret(secret: str) -> bool:
-        """Binance API secret format validation"""
         if not secret or not isinstance(secret, str):
             return False
-        
-        # Binance API secrets are typically 64 characters long
         secret = secret.strip()
         return len(secret) == 64 and secret.isalnum()
 
-# Pydantic v2 compatible models
+# ---------------------- Pydantic v2 Models ----------------------
+
 class EnhancedStartRequest(BaseModel):
     """
     Enhanced start request with comprehensive validation
@@ -106,7 +96,8 @@ class EnhancedStartRequest(BaseModel):
     @field_validator('take_profit')
     @classmethod
     def validate_tp_greater_than_sl(cls, v, info):
-        if 'stop_loss' in info.data and v <= info.data['stop_loss']:
+        stop_loss = info.data.get('stop_loss')
+        if stop_loss is not None and v <= stop_loss:
             raise ValueError('Take profit must be greater than stop loss')
         return v
 
@@ -114,8 +105,8 @@ class EnhancedApiKeysRequest(BaseModel):
     """
     Enhanced API keys request with validation
     """
-    api_key: str = Field(..., min_length=60, max_length=70)
-    api_secret: str = Field(..., min_length=60, max_length=70)
+    api_key: str = Field(..., min_length=64, max_length=64)
+    api_secret: str = Field(..., min_length=64, max_length=64)
     
     @field_validator('api_key')
     @classmethod
