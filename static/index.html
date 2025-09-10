@@ -2,21 +2,17 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EzyagoTrading - Professional Crypto Trading Bot</title>
-    <meta name="description" content="Profesyonel kripto para futures trading botu">
+    <meta name="description" content="Profesyonel kripto para futures trading botu - 7 gün ücretsiz deneme">
     
-    <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <style>
         :root {
-            /* Modern Color Palette */
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
             --secondary: #64748b;
@@ -25,32 +21,17 @@
             --warning: #f59e0b;
             --info: #0891b2;
             
-            /* Background Colors */
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
             --bg-tertiary: #334155;
             --bg-card: #1e293b;
             
-            /* Text Colors */
             --text-primary: #f8fafc;
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
             
-            /* Trading Colors */
-            --long-color: #16a34a;
-            --short-color: #dc2626;
-            --long-bg: rgba(22, 163, 74, 0.1);
-            --short-bg: rgba(220, 38, 38, 0.1);
-            
-            /* Spacing & Layout */
-            --container-padding: 1rem;
             --border-radius: 0.75rem;
-            --border-radius-sm: 0.5rem;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            
-            /* Shadows */
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
         }
         
@@ -66,195 +47,74 @@
             color: var(--text-primary);
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
-            min-height: 100vh;
         }
         
-        /* Utility Classes */
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 var(--container-padding); }
-        .flex { display: flex; }
-        .flex-col { flex-direction: column; }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-        .justify-between { justify-content: space-between; }
-        .w-full { width: 100%; }
-        .h-full { height: 100%; }
-        .min-h-screen { min-height: 100vh; }
-        .text-center { text-align: center; }
-        .hidden { display: none; }
-        .fade-in { animation: fadeIn 0.5s ease-out; }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
         
-        /* Loading Spinner */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid transparent;
-            border-top: 2px solid currentColor;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Authentication Styles */
-        .auth-container {
-            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .auth-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.03"><circle cx="30" cy="30" r="2"/></g></svg>');
-            pointer-events: none;
-        }
-        
-        .auth-card {
+        /* Header */
+        .header {
             background: var(--bg-card);
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 400px;
-            border: 1px solid var(--bg-tertiary);
-            backdrop-filter: blur(10px);
-            position: relative;
-            z-index: 1;
+            border-bottom: 1px solid var(--bg-tertiary);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         
-        .auth-header {
-            text-align: center;
-            margin-bottom: 2rem;
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .logo {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
         }
         
         .logo i {
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, var(--primary), var(--info));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .logo-text {
+            color: var(--primary);
             font-size: 1.75rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
         
-        .auth-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+        .nav-links {
+            display: flex;
+            gap: 1rem;
         }
         
-        .auth-subtitle {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin-bottom: 1rem;
-        }
-        
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--bg-tertiary);
-            border-radius: var(--border-radius-sm);
-            color: var(--text-primary);
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        
-        .form-input::placeholder {
-            color: var(--text-muted);
-        }
-        
-        /* Button Styles */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.875rem 1.5rem;
+            padding: 0.75rem 1.5rem;
             border: none;
-            border-radius: var(--border-radius-sm);
+            border-radius: 0.5rem;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
             text-decoration: none;
             gap: 0.5rem;
-            min-height: 48px;
-            user-select: none;
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
         }
         
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), var(--primary-hover));
             color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
         }
         
-        .btn-primary:hover:not(:disabled) {
+        .btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, var(--success), #15803d);
-            color: white;
-            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, var(--danger), #b91c1c);
-            color: white;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
         }
         
         .btn-outline {
@@ -267,736 +127,377 @@
             background: var(--bg-secondary);
         }
         
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            min-height: 36px;
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            padding: 4rem 0;
+            position: relative;
+            overflow: hidden;
         }
         
-        /* Dashboard Layout */
-        .dashboard {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        
-        .dashboard-header {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--bg-tertiary);
-            padding: 1rem 0;
-            position: sticky;
+        .hero::before {
+            content: '';
+            position: absolute;
             top: 0;
-            z-index: 100;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.03"><circle cx="30" cy="30" r="2"/></g></svg>');
         }
         
-        .dashboard-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
         }
         
-        .dashboard-logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+        
+        .hero p {
             font-size: 1.25rem;
-            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
         }
         
-        .dashboard-logo i {
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
-        
-        .user-menu {
+        .hero-actions {
             display: flex;
-            align-items: center;
             gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         
-        .subscription-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 99px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
+        /* Features */
+        .features {
+            padding: 4rem 0;
+            background: var(--bg-primary);
         }
         
-        .subscription-badge.trial {
-            background: var(--warning);
-            color: white;
-        }
-        
-        .subscription-badge.active {
-            background: var(--success);
-            color: white;
-        }
-        
-        .subscription-badge.expired {
-            background: var(--danger);
-            color: white;
-        }
-        
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 2rem 0;
-        }
-        
-        .dashboard-grid {
+        .features-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
         }
         
-        /* Cards */
-        .card {
+        .feature-card {
             background: var(--bg-card);
+            padding: 2rem;
             border-radius: var(--border-radius);
             border: 1px solid var(--bg-tertiary);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-        
-        .card-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--bg-tertiary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .card-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .card-title i {
-            color: var(--primary);
-        }
-        
-        .card-content {
-            padding: 1.5rem;
-        }
-        
-        /* Trading Controls */
-        .trading-section {
-            display: grid;
-            gap: 1rem;
-        }
-        
-        .input-group {
-            display: grid;
-            gap: 0.5rem;
-        }
-        
-        .input-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-        
-        .symbol-selector {
-            position: relative;
-        }
-        
-        .symbol-dropdown {
-            background: var(--bg-secondary);
-            border: 1px solid var(--bg-tertiary);
-            border-radius: var(--border-radius-sm);
-            padding: 0.875rem 1rem;
-            color: var(--text-primary);
-            width: 100%;
-            cursor: pointer;
-        }
-        
-        .range-input {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--bg-tertiary);
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        .range-input::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: var(--shadow);
-        }
-        
-        .range-input::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: var(--shadow);
-        }
-        
-        .leverage-display {
             text-align: center;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-top: 0.5rem;
-        }
-        
-        .margin-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            background: var(--bg-secondary);
-            padding: 0.25rem;
-            border-radius: var(--border-radius-sm);
-        }
-        
-        .margin-option {
-            padding: 0.75rem;
-            text-align: center;
-            border-radius: var(--border-radius-sm);
-            cursor: pointer;
             transition: var(--transition);
-            font-weight: 500;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
         }
         
-        .margin-option.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: var(--shadow-sm);
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
         }
         
-        /* Bot Status */
-        .bot-status {
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            border-radius: var(--border-radius-sm);
+            margin: 0 auto 1.5rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.25rem;
             font-weight: 600;
             margin-bottom: 1rem;
+            color: var(--text-primary);
         }
         
-        .bot-status.offline {
-            background: rgba(220, 38, 38, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
         
-        .bot-status.running {
-            background: rgba(22, 163, 74, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(22, 163, 74, 0.2);
-        }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* Position Display */
-        .position-card {
+        /* Stats */
+        .stats {
             background: var(--bg-secondary);
-            border-radius: var(--border-radius-sm);
-            padding: 1rem;
-            border-left: 4px solid var(--primary);
+            padding: 3rem 0;
         }
         
-        .position-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-        }
-        
-        .position-symbol {
-            font-weight: 700;
-            font-size: 1.125rem;
-        }
-        
-        .position-side {
-            padding: 0.25rem 0.75rem;
-            border-radius: 99px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .position-side.long {
-            background: var(--long-bg);
-            color: var(--long-color);
-        }
-        
-        .position-side.short {
-            background: var(--short-bg);
-            color: var(--short-color);
-        }
-        
-        .position-stats {
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
             text-align: center;
         }
         
-        .position-stat {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
+        .stat-item {
+            padding: 1.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
         }
         
         .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
         
-        .stat-value {
-            font-weight: 600;
-            font-size: 0.95rem;
+        /* CTA */
+        .cta {
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            padding: 4rem 0;
+            text-align: center;
         }
         
-        .pnl-positive {
-            color: var(--long-color);
-        }
-        
-        .pnl-negative {
-            color: var(--short-color);
-        }
-        
-        /* Warning Messages */
-        .warning-box {
-            background: rgba(245, 158, 11, 0.1);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            color: var(--warning);
-            padding: 1rem;
-            border-radius: var(--border-radius-sm);
+        .cta h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
             margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            color: white;
         }
         
-        .error-message {
-            background: rgba(220, 38, 38, 0.1);
-            border: 1px solid rgba(220, 38, 38, 0.2);
-            color: var(--danger);
-            padding: 1rem;
-            border-radius: var(--border-radius-sm);
+        .cta p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--bg-card);
+            border-top: 1px solid var(--bg-tertiary);
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        .footer p {
+            color: var(--text-secondary);
             margin-bottom: 1rem;
+        }
+        
+        .footer-links {
             display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
         }
         
-        .success-message {
-            background: rgba(22, 163, 74, 0.1);
-            border: 1px solid rgba(22, 163, 74, 0.2);
-            color: var(--success);
-            padding: 1rem;
-            border-radius: var(--border-radius-sm);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
         }
         
-        /* Mobile Responsive */
-        @media (min-width: 768px) {
-            .container {
-                --container-padding: 2rem;
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+        
+        /* Mobile */
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.5rem;
             }
             
-            .dashboard-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 2rem;
+            .hero h1 {
+                font-size: 2rem;
             }
             
-            .auth-card {
-                padding: 2.5rem;
+            .hero p {
+                font-size: 1.1rem;
             }
             
-            .card-content {
-                padding: 2rem;
+            .hero-actions {
+                flex-direction: column;
+                align-items: center;
             }
             
-            .input-row {
-                grid-template-columns: 1fr 1fr;
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
             }
-        }
-        
-        @media (min-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 2fr 1fr;
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
             }
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--bg-tertiary);
-            border-radius: 3px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-        
-        /* Animations */
-        .slide-up {
-            animation: slideUp 0.3s ease-out;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
+            
+            .cta h2 {
+                font-size: 2rem;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            
+            .footer-links {
+                flex-direction: column;
+                gap: 1rem;
             }
-        }
-        
-        /* Focus styles for accessibility */
-        button:focus-visible,
-        input:focus-visible,
-        select:focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
         }
     </style>
 </head>
 <body>
-    <!-- Authentication Section -->
-    <div id="auth-section" class="auth-container flex items-center justify-center min-h-screen">
+    <!-- Header -->
+    <header class="header">
         <div class="container">
-            <!-- Login Card -->
-            <div id="login-card" class="auth-card fade-in" style="margin: 0 auto;">
-                <div class="auth-header">
-                    <div class="logo">
-                        <i class="fas fa-chart-line"></i>
-                        <span class="logo-text">EzyagoTrading</span>
-                    </div>
-                    <h1 class="auth-title">Hoş Geldiniz</h1>
-                    <p class="auth-subtitle">Profesyonel kripto futures trading botuna giriş yapın</p>
+            <nav class="nav">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <span>EzyagoTrading</span>
                 </div>
-                
-                <form id="login-form">
-                    <div class="form-group">
-                        <label class="form-label" for="login-email">E-posta Adresi</label>
-                        <input type="email" id="login-email" class="form-input" placeholder="ornek@email.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="login-password">Şifre</label>
-                        <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-full">
-                        <span id="login-btn-text">Giriş Yap</span>
-                        <div id="login-spinner" class="spinner hidden"></div>
-                    </button>
-                </form>
-                
-                <div id="login-error" class="error-message hidden">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span></span>
+                <div class="nav-links">
+                    <a href="/login.html" class="btn btn-outline">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Giriş Yap
+                    </a>
+                    <a href="/register.html" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Kayıt Ol
+                    </a>
                 </div>
-                
-                <p class="text-center" style="margin-top: 1.5rem; color: var(--text-secondary);">
-                    Hesabınız yok mu? 
-                    <a href="#" id="show-register" style="color: var(--primary); font-weight: 600;">Kayıt Olun</a>
-                </p>
-            </div>
-            
-            <!-- Register Card -->
-            <div id="register-card" class="auth-card fade-in hidden" style="margin: 0 auto;">
-                <div class="auth-header">
-                    <div class="logo">
-                        <i class="fas fa-chart-line"></i>
-                        <span class="logo-text">EzyagoTrading</span>
-                    </div>
-                    <h1 class="auth-title">Hesap Oluşturun</h1>
-                    <p class="auth-subtitle">7 gün ücretsiz deneme ile başlayın</p>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Profesyonel Kripto Futures Trading</h1>
+                <p>EMA stratejisi ile otomatik trading. 7 gün ücretsiz deneme ile başlayın ve güvenli şekilde kripto futures işlemlerinizi gerçekleştirin.</p>
+                <div class="hero-actions">
+                    <a href="/register.html" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i>
+                        Ücretsiz Başla
+                    </a>
+                    <a href="#features" class="btn btn-outline">
+                        <i class="fas fa-info-circle"></i>
+                        Özellikler
+                    </a>
                 </div>
-                
-                <form id="register-form">
-                    <div class="form-group">
-                        <label class="form-label" for="register-name">Ad Soyad</label>
-                        <input type="text" id="register-name" class="form-input" placeholder="Adınız Soyadınız" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="register-email">E-posta Adresi</label>
-                        <input type="email" id="register-email" class="form-input" placeholder="ornek@email.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="register-password">Şifre</label>
-                        <input type="password" id="register-password" class="form-input" placeholder="En az 6 karakter" required>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-full">
-                        <span id="register-btn-text">Hesap Oluştur</span>
-                        <div id="register-spinner" class="spinner hidden"></div>
-                    </button>
-                </form>
-                
-                <div id="register-error" class="error-message hidden">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span></span>
-                </div>
-                
-                <p class="text-center" style="margin-top: 1.5rem; color: var(--text-secondary);">
-                    Zaten hesabınız var mı? 
-                    <a href="#" id="show-login" style="color: var(--primary); font-weight: 600;">Giriş Yapın</a>
-                </p>
             </div>
         </div>
-    </div>
-    
-    <!-- Dashboard Section -->
-    <div id="dashboard-section" class="dashboard hidden">
-        <!-- Header -->
-        <header class="dashboard-header">
-            <div class="container">
-                <nav class="dashboard-nav">
-                    <div class="dashboard-logo">
-                        <i class="fas fa-chart-line"></i>
-                        <span>EzyagoTrading</span>
-                    </div>
-                    
-                    <div class="user-menu">
-                        <div id="subscription-status" class="subscription-badge trial">
-                            <span id="subscription-text">7 Gün Deneme</span>
-                        </div>
-                        <button class="btn btn-outline btn-sm" onclick="logout()">
-                            <i class="fas fa-sign-out-alt"></i>
-                            Çıkış
-                        </button>
-                    </div>
-                </nav>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="hero-content">
+                <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;">Neden EzyagoTrading?</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 0;">Modern trading algoritmaları ile güvenli ve karlı işlemler</p>
             </div>
-        </header>
-        
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="container">
-                <div class="dashboard-grid">
-                    <!-- Trading Controls -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-robot"></i>
-                                Trading Bot Kontrolleri
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <!-- API Keys Warning -->
-                            <div id="api-keys-warning" class="warning-box">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <div>
-                                    <strong>API Anahtarları Gerekli:</strong>
-                                    <p>Bot'u başlatabilmek için önce Binance API anahtarlarınızı ayarlamanız gerekiyor.</p>
-                                    <button class="btn btn-primary btn-sm" style="margin-top: 0.5rem;" onclick="showApiKeysModal()">
-                                        API Anahtarlarını Ayarla
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Bot Status -->
-                            <div id="bot-status" class="bot-status offline">
-                                <div class="status-dot"></div>
-                                <span>Bot Çevrimdışı</span>
-                            </div>
-                            
-                            <!-- Trading Settings -->
-                            <div class="trading-section">
-                                <!-- Symbol Selection -->
-                                <div class="input-group">
-                                    <label class="form-label">Trading Çifti</label>
-                                    <select id="symbol-select" class="form-input">
-                                        <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
-                                        <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
-                                        <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
-                                        <option value="XRPUSDT">Ripple (XRPUSDT)</option>
-                                        <option value="ADAUSDT">Cardano (ADAUSDT)</option>
-                                        <option value="SOLUSDT">Solana (SOLUSDT)</option>
-                                        <option value="DOGEUSDT">Dogecoin (DOGEUSDT)</option>
-                                        <option value="AVAXUSDT">Avalanche (AVAXUSDT)</option>
-                                    </select>
-                                </div>
-                                
-                                <!-- Timeframe -->
-                                <div class="input-group">
-                                    <label class="form-label">Zaman Dilimi</label>
-                                    <select id="timeframe-select" class="form-input">
-                                        <option value="1m">1 Dakika</option>
-                                        <option value="3m">3 Dakika</option>
-                                        <option value="5m">5 Dakika</option>
-                                        <option value="15m" selected>15 Dakika</option>
-                                        <option value="30m">30 Dakika</option>
-                                        <option value="1h">1 Saat</option>
-                                        <option value="4h">4 Saat</option>
-                                    </select>
-                                </div>
-                                
-                                <!-- Order Size & Leverage -->
-                                <div class="input-row">
-                                    <div class="input-group">
-                                        <label class="form-label">İşlem Büyüklüğü (USDT)</label>
-                                        <input type="number" id="order-size" class="form-input" value="35" min="10" max="10000" step="5">
-                                    </div>
-                                    
-                                    <div class="input-group">
-                                        <label class="form-label">Kaldıraç</label>
-                                        <input type="range" id="leverage-range" class="range-input" min="1" max="125" value="5">
-                                        <div class="leverage-display"><span id="leverage-value">5</span>x</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Stop Loss & Take Profit -->
-                                <div class="input-row">
-                                    <div class="input-group">
-                                        <label class="form-label">Stop Loss (%)</label>
-                                        <input type="number" id="stop-loss" class="form-input" value="2" min="0.1" max="50" step="0.1" required>
-                                    </div>
-                                    
-                                    <div class="input-group">
-                                        <label class="form-label">Take Profit (%)</label>
-                                        <input type="number" id="take-profit" class="form-input" value="4" min="0.1" max="100" step="0.1" required>
-                                    </div>
-                                </div>
-                                
-                                <!-- Margin Type -->
-                                <div class="input-group">
-                                    <label class="form-label">Margin Tipi</label>
-                                    <div class="margin-selector">
-                                        <button type="button" class="margin-option active" data-margin="isolated">
-                                            İzolated
-                                        </button>
-                                        <button type="button" class="margin-option" data-margin="cross">
-                                            Cross
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Control Buttons -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                                    <button id="start-bot-btn" class="btn btn-success" onclick="startBot()" disabled>
-                                        <i class="fas fa-play"></i>
-                                        Bot'u Başlat
-                                    </button>
-                                    
-                                    <button id="stop-bot-btn" class="btn btn-danger" onclick="stopBot()" disabled>
-                                        <i class="fas fa-stop"></i>
-                                        Bot'u Durdur
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
                     </div>
-                    
-                    <!-- Status Panel -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-chart-bar"></i>
-                                Durum Paneli
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <!-- Current Position -->
-                            <div id="current-position" class="hidden">
-                                <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Mevcut Pozisyon</h4>
-                                <div class="position-card">
-                                    <div class="position-header">
-                                        <span id="position-symbol" class="position-symbol">BTCUSDT</span>
-                                        <span id="position-side" class="position-side long">LONG</span>
-                                    </div>
-                                    <div class="position-stats">
-                                        <div class="position-stat">
-                                            <span class="stat-label">Boyut</span>
-                                            <span id="position-size" class="stat-value">0.001 BTC</span>
-                                        </div>
-                                        <div class="position-stat">
-                                            <span class="stat-label">Giriş Fiyatı</span>
-                                            <span id="position-entry" class="stat-value">$45,000</span>
-                                        </div>
-                                        <div class="position-stat">
-                                            <span class="stat-label">P&L</span>
-                                            <span id="position-pnl" class="stat-value pnl-positive">+$50.00</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- No Position Message -->
-                            <div id="no-position" class="text-center" style="padding: 2rem; color: var(--text-muted);">
-                                <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                                <p>Henüz açık pozisyon yok</p>
-                                <p style="font-size: 0.875rem;">Bot başlatıldığında pozisyonlar burada görünecek</p>
-                            </div>
-                            
-                            <!-- Bot Messages -->
-                            <div id="bot-messages" style="margin-top: 1.5rem;">
-                                <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Bot Mesajları</h4>
-                                <div id="messages-container" style="max-height: 200px; overflow-y: auto;">
-                                    <p style="color: var(--text-muted); font-size: 0.875rem; text-align: center; padding: 1rem;">
-                                        Bot mesajları burada görünecek
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    <h3>Otomatik Trading</h3>
+                    <p>EMA 9/21 crossover stratejisi ile 7/24 otomatik işlem. Manuel müdahale gerektirmez.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
                     </div>
+                    <h3>Güvenli & Şifrelenmiş</h3>
+                    <p>API anahtarlarınız AES-256 ile şifrelenir. Verileriniz tamamen güvende.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3>Risk Yönetimi</h3>
+                    <p>Ayarlanabilir Stop Loss ve Take Profit ile risklerinizi kontrol edin.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Mobil Uyumlu</h3>
+                    <p>Her cihazdan erişim. Responsive tasarım ile mükemmel kullanıcı deneyimi.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>Gerçek Zamanlı</h3>
+                    <p>WebSocket ile anlık fiyat güncellemeleri ve işlem bildirimleri.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <h3>Özelleştirilebilir</h3>
+                    <p>Kaldıraç, pozisyon büyüklüğü ve timeframe ayarlarını isteğinize göre düzenleyin.</p>
                 </div>
             </div>
-        </main>
-    </div>
-    
-    <!-- API Keys Modal -->
-    <div id="api-keys-modal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Binance API Anahtarları</h3>
-                <button class="modal-close" onclick="closeApiKeysModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">250+</div>
+                    <div class="stat-label">Aktif Kullanıcı</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15,000+</div>
+                    <div class="stat-label">Toplam İşlem</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">73%</div>
+                    <div class="stat-label">Kazanma Oranı</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">$2.1M</div>
+                    <div class="stat-label">İşlem Hacmi</div>
+                </div>
             </div>
-            <div class="modal-content">
-                <div class="warning-box">
-                    <i class="fas fa-shield-alt"></i>
-                    <div>
-                        <strong>Güvenlik Bilgisi:</strong>
-                        <p>API anahtarlarınız güvenli şekilde şifrelenerek saklanır. Sadece futures trading izinlerini aktif edin.</p>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <h2>Trading'e Başlamaya Hazır mısınız?</h2>
+            <p>7 gün ücretsiz deneme - Kredi kartı gerektirmez</p>
+            <a href="/register.html" class="btn btn-primary" style="background: white; color: var(--primary); font-size: 1.1rem; padding: 1rem 2rem;">
+                <i class="fas fa-rocket"></i>
+                Hemen Başla
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 EzyagoTrading. Tüm hakları saklıdır.</p>
+            <div class="footer-links">
+                <a href="#terms">Kullanım Şartları</a>
+                <a href="#privacy">Gizlilik Politikası</a>
+                <a href="#support">Destek</a>
+                <a href="#contact">İletişim</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
