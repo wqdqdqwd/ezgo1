@@ -1,679 +1,3647 @@
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+import uvicorn
 import asyncio
-import time
 import json
 import os
-from flask import Flask, request, jsonify, send_from_directory, send_file
-from flask_cors import CORS
-from datetime import datetime, timedelta, timezone
-from functools import wraps
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+import firebase_admin
+from firebase_admin import credentials, firestore
+import bcrypt
+import jwt
+from cryptography.fernet import Fernet
+from contextlib import asynccontextmanager
 import logging
 
-from app.bot_manager import bot_manager
-from app.config import settings
-from app.firebase_manager import firebase_manager, db
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Simple logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("main")
+# Pydantic Models
+class UserRegistration(BaseModel):
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+import uvicorn
+import asyncio
+import json
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth, firestore
+import bcrypt
+import jwt
+from cryptography.fernet import Fernet
+import os
+from contextlib import asynccontextmanager
 
-# FIXED: Static klasörün doğru yolunu belirleme
-# Render.com'da proje yapısına uygun path
-if os.path.exists('/opt/render/project/src/static'):
-    STATIC_FOLDER = '/opt/render/project/src/static'
-elif os.path.exists('static'):
-    STATIC_FOLDER = 'static'
-else:
-    # Eğer static klasör yoksa oluştur
-    STATIC_FOLDER = 'static'
-    os.makedirs(STATIC_FOLDER, exist_ok=True)
-    
-    # Basit bir index.html oluştur
-    with open(os.path.join(STATIC_FOLDER, 'index.html'), 'w', encoding='utf-8') as f:
-        f.write('''<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EzyagoTrading - Bot is Running</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 2rem; 
-            background: #0f172a; 
-            color: #f8fafc; 
-            text-align: center;
-        }
-        .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background: #1e293b; 
-            padding: 2rem; 
-            border-radius: 1rem; 
-            border: 1px solid #334155;
-        }
-        .status { color: #16a34a; font-size: 1.2rem; font-weight: bold; }
-        .api-link { 
-            display: inline-block; 
-            margin: 0.5rem; 
-            padding: 0.75rem 1.5rem; 
-            background: #2563eb; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 0.5rem; 
-            transition: background 0.3s;
-        }
-        .api-link:hover { background: #1d4ed8; }
-        .info { margin: 1rem 0; color: #cbd5e1; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🤖 EzyagoTrading Bot</h1>
-        <div class="status">✅ Service is Running</div>
-        <div class="info">
-            <p>The trading bot backend is successfully deployed and operational.</p>
-            <p><strong>Version:</strong> 4.1.0</p>
-            <p><strong>Status:</strong> Online</p>
-            <p><strong>Server Time:</strong> <span id="time"></span></p>
-        </div>
-        
-        <h3>🔗 API Endpoints</h3>
-        <div>
-            <a href="/health" class="api-link">Health Check</a>
-            <a href="/api/firebase-config" class="api-link">Firebase Config</a>
-        </div>
-        
-        <h3>📊 System Information</h3>
-        <div class="info">
-            <p><strong>Environment:</strong> Production</p>
-            <p><strong>Database:</strong> Firebase Realtime DB</p>
-            <p><strong>WebSocket:</strong> Binance Futures Stream</p>
-        </div>
-        
-        <div style="margin-top: 2rem; font-size: 0.9rem; color: #94a3b8;">
-            <p>© 2025 EzyagoTrading. Professional Crypto Trading Bot.</p>
-        </div>
-    </div>
-    
-    <script>
-        function updateTime() {
-            document.getElementById('time').textContent = new Date().toLocaleString();
-        }
-        updateTime();
-        setInterval(updateTime, 1000);
-    </script>
-</body>
-</html>''')
+# Pydantic Models
+class UserRegistration(BaseModel):
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=50)
 
-# Flask app'i static folder ile başlat
-app = Flask(__name__, static_folder=STATIC_FOLDER, static_url_path='/static')
+class UserLogin(BaseModel):
+    email: str
+    password: str
 
-# CORS setup - Fixed for Render deployment
-CORS(app, 
-     origins=["*"] if settings.ENVIRONMENT == "DEVELOPMENT" else [
-         "https://ezyago.com",
-         "https://www.ezyago.com",
-         "https://*.render.com",  # Render subdomains
-         "https://ezyagotrading.onrender.com"  # Your Render URL
-     ])
+class TradingSettings(BaseModel):
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDT$')
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    leverage: int = Field(default=5, ge=1, le=125)
+    order_size_usdt: float = Field(default=35.0, ge=10.0, le=10000.0)
+    stop_loss_percent: float = Field(..., ge=0.1, le=50.0)
+    take_profit_percent: float = Field(..., ge=0.1, le=100.0)
+    margin_type: str = Field(default="isolated", regex=r'^(isolated|cross)$')
+    
+    @validator('take_profit_percent')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss_percent' in values and v <= values['stop_loss_percent']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
 
-# Request logging middleware
-@app.before_request
-def log_request():
-    app.logger.info(f"{request.method} {request.path} from {request.remote_addr}")
+class APIKeys(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
 
-@app.after_request
-def log_response(response):
-    app.logger.info(f"{request.method} {request.path} - {response.status_code}")
-    return response
+class BotAction(BaseModel):
+    action: str = Field(..., regex=r'^(start|stop)$')
 
-# Helper functions for validation
-def validate_start_request(data):
-    """Validate bot start request"""
-    required_fields = ['symbol', 'timeframe', 'leverage', 'order_size', 'stop_loss', 'take_profit']
-    
-    for field in required_fields:
-        if field not in data:
-            return False, f"Missing field: {field}"
-    
-    # Basic validation
-    if not data['symbol'].endswith('USDT'):
-        return False, "Invalid symbol"
-    
-    if data['leverage'] < 1 or data['leverage'] > 125:
-        return False, "Leverage must be between 1 and 125"
-    
-    if data['order_size'] < 10 or data['order_size'] > 10000:
-        return False, "Order size must be between 10 and 10000"
-    
-    if data['take_profit'] <= data['stop_loss']:
-        return False, "Take profit must be greater than stop loss"
-    
-    return True, None
+# Global Variables
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0")
+security = HTTPBearer()
+connected_websockets: Dict[str, WebSocket] = {}
+bot_instances: Dict[str, 'TradingBot'] = {}
 
-def validate_api_keys(data):
-    """Validate API keys"""
-    if 'api_key' not in data or 'api_secret' not in data:
-        return False, "Missing API key or secret"
-    
-    if len(data['api_key']) < 60 or len(data['api_secret']) < 60:
-        return False, "Invalid API key format"
-    
-    return True, None
+# Encryption setup
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', Fernet.generate_key().decode())
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
 
-# Authentication decorator
-def require_auth(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({"error": "Missing or invalid authorization header"}), 401
-        
-        token = auth_header.split(' ')[1]
-        try:
-            user_payload = firebase_manager.verify_token(token)
-            if not user_payload:
-                return jsonify({"error": "Invalid token"}), 401
-            
-            uid = user_payload['uid']
-            
-            # Get or create user data
-            user_data = firebase_manager.get_user_data(uid)
-            if not user_data:
-                user_data = firebase_manager.create_user_record(uid, user_payload.get('email', ''))
-            
-            user_data['uid'] = uid
-            user_data['role'] = 'admin' if user_payload.get('admin', False) else 'user'
-            
-            # Add user to request context
-            request.current_user = user_data
-            return f(*args, **kwargs)
-        except Exception as e:
-            logger.error(f"Authentication failed: {e}")
-            return jsonify({"error": "Authentication failed"}), 401
-    
-    return decorated_function
+# JWT Settings
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-super-secret-jwt-key')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
 
-def require_subscription(f):
-    @wraps(f)
-    @require_auth
-    def decorated_function(*args, **kwargs):
-        if not firebase_manager.is_subscription_active(request.current_user['uid']):
-            return jsonify({"error": "Active subscription required"}), 403
-        return f(*args, **kwargs)
-    
-    return decorated_function
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await initialize_firebase()
+    await initialize_bot_manager()
+    yield
+    # Shutdown
+    await cleanup_bots()
 
-def require_admin(f):
-    @wraps(f)
-    @require_auth
-    def decorated_function(*args, **kwargs):
-        if request.current_user.get('role') != 'admin':
-            return jsonify({"error": "Admin access required"}), 403
-        return f(*args, **kwargs)
-    
-    return decorated_function
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0", lifespan=lifespan)
 
-# FIXED: Static file routes
-@app.route('/')
-def index():
-    """Ana sayfa - Fixed static file serving"""
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Production'da spesifik domain'ler ekleyin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Utility Functions
+def encrypt_data(data: str) -> str:
+    """Veriyi şifreler"""
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Şifrelenmiş veriyi çözer"""
     try:
-        return send_from_directory(STATIC_FOLDER, 'index.html')
-    except FileNotFoundError:
-        # Fallback HTML response
-        return '''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>EzyagoTrading - Bot Running</title>
-            <meta charset="UTF-8">
-            <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; 
-                       background: #0f172a; color: #f8fafc; text-align: center; }
-                .container { max-width: 500px; margin: 0 auto; background: #1e293b; 
-                            padding: 2rem; border-radius: 1rem; }
-                .status { color: #16a34a; font-size: 1.2rem; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🤖 EzyagoTrading</h1>
-                <div class="status">✅ Service is Running</div>
-                <p>Professional crypto trading bot is operational.</p>
-                <p><a href="/health" style="color: #2563eb;">Health Check</a></p>
-            </div>
-        </body>
-        </html>
-        '''
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except:
+        return ""
 
-@app.route('/admin')
-@require_admin
-def admin_page():
-    """Admin paneli"""
-    try:
-        return send_from_directory(STATIC_FOLDER, 'admin.html')
-    except FileNotFoundError:
-        return jsonify({"error": "Admin panel not found"}), 404
-
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """Static dosyalar"""
-    try:
-        return send_from_directory(STATIC_FOLDER, filename)
-    except FileNotFoundError:
-        return jsonify({"error": "File not found"}), 404
-
-# API Routes
-@app.route('/api/firebase-config', methods=['GET'])
-def get_firebase_config():
-    """Frontend için Firebase yapılandırması"""
-    return jsonify({
-        "apiKey": settings.FIREBASE_WEB_API_KEY,
-        "authDomain": settings.FIREBASE_WEB_AUTH_DOMAIN,
-        "databaseURL": settings.FIREBASE_DATABASE_URL,
-        "projectId": settings.FIREBASE_WEB_PROJECT_ID,
-        "storageBucket": settings.FIREBASE_WEB_STORAGE_BUCKET,
-        "messagingSenderId": settings.FIREBASE_WEB_MESSAGING_SENDER_ID,
-        "appId": settings.FIREBASE_WEB_APP_ID,
-    })
-
-@app.route('/api/start', methods=['POST'])
-@require_subscription
-def start_bot():
-    """Botu başlatır"""
-    try:
-        data = request.get_json()
-        
-        # Validate request
-        is_valid, error_msg = validate_start_request(data)
-        if not is_valid:
-            return jsonify({"error": error_msg}), 400
-        
-        user = request.current_user
-        logger.info(f"Bot start requested for user {user['uid']}, symbol {data['symbol']}")
-        
-        # Save user settings
-        save_user_settings_sync(user['uid'], {
-            'symbol': data['symbol'],
-            'leverage': data['leverage'],
-            'orderSize': data['order_size'],
-            'tp': data['take_profit'],
-            'sl': data['stop_loss'],
-            'timeframe': data['timeframe']
-        })
-        
-        # Create simple request object for bot manager
-        class SimpleRequest:
-            def __init__(self, data):
-                self.symbol = data['symbol']
-                self.timeframe = data['timeframe']
-                self.leverage = data['leverage']
-                self.order_size = data['order_size']
-                self.stop_loss = data['stop_loss']
-                self.take_profit = data['take_profit']
-            
-            def dict(self):
-                return {
-                    'symbol': self.symbol,
-                    'timeframe': self.timeframe,
-                    'leverage': self.leverage,
-                    'order_size': self.order_size,
-                    'stop_loss': self.stop_loss,
-                    'take_profit': self.take_profit
-                }
-        
-        simple_request = SimpleRequest(data)
-        
-        # Start bot using asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(bot_manager.start_bot_for_user(user['uid'], simple_request))
-        finally:
-            loop.close()
-        
-        if "error" in result:
-            logger.error(f"Bot start failed for user {user['uid']}: {result['error']}")
-            return jsonify({"error": result["error"]}), 400
-        
-        logger.info(f"Bot started successfully for user {user['uid']}")
-        return jsonify({"success": True, **result})
-    
-    except Exception as e:
-        logger.error(f"Unexpected error in bot start: {e}")
-        return jsonify({"error": "Internal server error"}), 500
-
-@app.route('/api/stop', methods=['POST'])
-@require_auth
-def stop_bot():
-    """Botu durdurur"""
-    try:
-        user = request.current_user
-        logger.info(f"Bot stop requested for user {user['uid']}")
-        
-        # Stop bot using asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(bot_manager.stop_bot_for_user(user['uid']))
-        finally:
-            loop.close()
-        
-        if "error" in result:
-            logger.error(f"Bot stop failed for user {user['uid']}: {result['error']}")
-            return jsonify({"error": result["error"]}), 400
-        
-        logger.info(f"Bot stopped successfully for user {user['uid']}")
-        return jsonify({"success": True, **result})
-    
-    except Exception as e:
-        logger.error(f"Unexpected error in bot stop: {e}")
-        return jsonify({"error": "Internal server error"}), 500
-
-@app.route('/api/status', methods=['GET'])
-@require_auth
-def get_status():
-    """Bot durumunu alır"""
-    user = request.current_user
-    status = bot_manager.get_bot_status(user['uid'])
-    
-    return jsonify({
-        "is_running": status.get("is_running", False),
-        "status_message": status.get("status_message", "Bot durumu bilinmiyor"),
-        "symbol": status.get("symbol"),
-        "position_side": status.get("position_side"),
-        "last_check_time": status.get("last_check_time")
-    })
-
-@app.route('/api/save-user-settings', methods=['POST'])
-@require_auth
-def save_user_settings_endpoint():
-    """Kullanıcı ayarlarını kaydeder"""
-    try:
-        data = request.get_json()
-        if 'settings' not in data:
-            return jsonify({"error": "Missing settings"}), 400
-        
-        user = request.current_user
-        save_user_settings_sync(user['uid'], data['settings'])
-        return jsonify({"success": True, "message": "Ayarlar kaydedildi"})
-    
-    except Exception as e:
-        logger.error(f"Error saving user settings: {e}")
-        return jsonify({"error": "Failed to save settings"}), 500
-
-def save_user_settings_sync(uid, settings):
-    """İç kullanım için ayar kaydetme fonksiyonu"""
-    user_ref = firebase_manager.get_user_ref(uid)
-    user_ref.update({
-        'settings': settings,
-        'settings_updated_at': datetime.now(timezone.utc).isoformat()
-    })
-
-@app.route('/api/trading-stats', methods=['GET'])
-@require_auth
-def get_trading_stats():
-    """Trading istatistiklerini alır"""
-    try:
-        user = request.current_user
-        trades_ref = firebase_manager.get_trades_ref(user['uid'])
-        trades_data = trades_ref.get() or {}
-        
-        # İstatistikleri hesapla
-        stats = calculate_trading_stats(trades_data)
-        
-        return jsonify({
-            "success": True,
-            "stats": stats
-        })
-    except Exception as e:
-        logger.error(f"Trading stats calculation error: {e}")
-        return jsonify({
-            "success": False,
-            "stats": {
-                "total_trades": 0,
-                "winning_trades": 0,
-                "losing_trades": 0,
-                "total_pnl": 0.0,
-                "win_rate": 0.0,
-                "uptime_hours": 0.0
-            }
-        })
-
-def calculate_trading_stats(trades_data):
-    """Trading verilerinden istatistik hesaplar"""
-    if not trades_data:
-        return {
-            "total_trades": 0,
-            "winning_trades": 0,
-            "losing_trades": 0,
-            "total_pnl": 0.0,
-            "win_rate": 0.0,
-            "uptime_hours": 0.0
-        }
-    
-    total_trades = len(trades_data)
-    total_pnl = 0.0
-    winning_trades = 0
-    losing_trades = 0
-    
-    for trade_id, trade in trades_data.items():
-        pnl = trade.get('pnl', 0.0)
-        total_pnl += pnl
-        
-        if pnl > 0:
-            winning_trades += 1
-        elif pnl < 0:
-            losing_trades += 1
-    
-    win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
-    uptime_hours = total_trades * 0.5
-    
-    return {
-        "total_trades": total_trades,
-        "winning_trades": winning_trades,
-        "losing_trades": losing_trades,
-        "total_pnl": round(total_pnl, 2),
-        "win_rate": round(win_rate, 1),
-        "uptime_hours": round(uptime_hours, 1)
+def create_jwt_token(user_id: str, email: str) -> str:
+    """JWT token oluşturur"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-@app.route('/api/user-profile', methods=['GET'])
-@require_auth
-def get_user_profile():
-    """Kullanıcı profil bilgileri"""
-    user = request.current_user
-    bot_status = bot_manager.get_bot_status(user['uid'])
-    
-    # Trading istatistiklerini al
+def verify_jwt_token(token: str) -> Optional[Dict]:
+    """JWT token doğrular"""
     try:
-        trades_ref = firebase_manager.get_trades_ref(user['uid'])
-        trades_data = trades_ref.get() or {}
-        stats = calculate_trading_stats(trades_data)
-    except Exception as e:
-        logger.error(f"Stats calculation error: {e}")
-        stats = {
-            "total_trades": 0,
-            "winning_trades": 0,
-            "losing_trades": 0,
-            "total_pnl": 0.0,
-            "win_rate": 0.0,
-            "uptime_hours": 0.0
-        }
-    
-    # Kullanıcı ayarlarını al
-    user_settings = user.get('settings', {
-        'leverage': 10,
-        'orderSize': 20,
-        'tp': 4,
-        'sl': 2,
-        'symbol': 'BTCUSDT',
-        'timeframe': '15m'
-    })
-    
-    return jsonify({
-        "email": user.get('email'),
-        "subscription_status": user.get('subscription_status'),
-        "subscription_expiry": user.get('subscription_expiry'),
-        "registration_date": user.get('created_at'),
-        "has_api_keys": bool(user.get('binance_api_key')),
-        "payment_address": settings.PAYMENT_TRC20_ADDRESS,
-        "is_admin": user.get('role') == 'admin',
-        "server_ips": ["18.156.158.53", "18.156.42.200", "52.59.103.54"],
-        "bot_last_check": bot_status.get("last_check_time"),
-        "settings": user_settings,
-        "stats": stats
-    })
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
 
-@app.route('/api/save-keys', methods=['POST'])
-@require_auth
-def save_api_keys():
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Mevcut kullanıcıyı döndürür"""
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return payload
+
+def check_subscription_status(user_id: str) -> bool:
+    """Kullanıcının abonelik durumunu kontrol eder"""
+    db = firestore.client()
+    user_doc = db.collection('users').document(user_id).get()
+    
+    if not user_doc.exists:
+        return False
+    
+    user_data = user_doc.to_dict()
+    subscription_end = user_data.get('subscription_end')
+    
+    if not subscription_end:
+        return False
+    
+    return subscription_end > datetime.utcnow()
+
+def require_active_subscription(user: dict = Depends(get_current_user)):
+    """Aktif abonelik gerektirir"""
+    if not check_subscription_status(user['user_id']):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required"
+        )
+    return user
+
+# Firebase Initialization
+async def initialize_firebase():
+    """Firebase'i başlatır"""
+    try:
+        # Firebase credentials from environment
+        cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+        if cred_path and os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+        else:
+            # Fallback to environment variable
+            cred_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if cred_json:
+                cred_dict = json.loads(cred_json)
+                cred = credentials.Certificate(cred_dict)
+            else:
+                raise ValueError("Firebase credentials not found")
+        
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase initialized successfully")
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        raise
+
+# Authentication Endpoints
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Kullanıcı kaydı"""
+    try:
+        db = firestore.client()
+        
+        # Email kontrolü
+        existing_user = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Şifre hash'leme
+        password_hash = bcrypt.hashpw(user_data.password.encode(), bcrypt.gensalt())
+        
+        # Kullanıcı oluşturma
+        user_doc = {
+            'email': user_data.email,
+            'full_name': user_data.full_name,
+            'password_hash': password_hash.decode(),
+            'created_at': datetime.utcnow(),
+            'subscription_start': datetime.utcnow(),
+            'subscription_end': datetime.utcnow() + timedelta(days=7),  # 7 gün deneme
+            'is_trial': True,
+            'api_keys_set': False,
+            'bot_active': False
+        }
+        
+        user_ref = db.collection('users').add(user_doc)
+        user_id = user_ref[1].id
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "trial_days_left": 7
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+@app.post("/api/auth/login")
+async def login_user(user_data: UserLogin):
+    """Kullanıcı girişi"""
+    try:
+        db = firestore.client()
+        
+        # Kullanıcı bulma
+        users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        user_doc = users[0]
+        user_dict = user_doc.to_dict()
+        user_id = user_doc.id
+        
+        # Şifre kontrolü
+        if not bcrypt.checkpw(user_data.password.encode(), user_dict['password_hash'].encode()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        if user_dict.get('is_trial', False):
+            subscription_end = user_dict.get('subscription_end')
+            if subscription_end:
+                remaining = subscription_end - datetime.utcnow()
+                trial_days_left = max(0, remaining.days)
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_dict['email'],
+                "full_name": user_dict['full_name'],
+                "api_keys_set": user_dict.get('api_keys_set', False),
+                "bot_active": user_dict.get('bot_active', False),
+                "is_trial": user_dict.get('is_trial', False),
+                "trial_days_left": trial_days_left
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+# API Key Management
+@app.post("/api/user/api-keys")
+async def save_api_keys(api_keys: APIKeys, user: dict = Depends(get_current_user)):
     """API anahtarlarını kaydeder"""
     try:
-        data = request.get_json()
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
         
-        # Validate keys
-        is_valid, error_msg = validate_api_keys(data)
-        if not is_valid:
-            return jsonify({"error": error_msg}), 400
+        # API anahtarlarını şifrele
+        encrypted_api_key = encrypt_data(api_keys.api_key)
+        encrypted_api_secret = encrypt_data(api_keys.api_secret)
         
-        user = request.current_user
-        logger.info(f"API keys save requested for user {user['uid']}")
+        # Veritabanına kaydet
+        user_ref.update({
+            'api_key': encrypted_api_key,
+            'api_secret': encrypted_api_secret,
+            'api_keys_set': True,
+            'updated_at': datetime.utcnow()
+        })
         
-        firebase_manager.update_user_api_keys(user['uid'], data['api_key'], data['api_secret'])
-        
-        logger.info(f"API keys saved successfully for user {user['uid']}")
-        return jsonify({"success": True, "message": "API anahtarları güvenli şekilde kaydedildi"})
-    except Exception as e:
-        logger.error(f"Failed to save API keys: {e}")
-        return jsonify({"error": "API anahtarları kaydedilemedi"}), 500
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Sistem sağlık kontrolü"""
-    try:
-        health_status = {
-            "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "version": "4.1.0",
-            "components": {},
-            "static_folder": STATIC_FOLDER,
-            "static_folder_exists": os.path.exists(STATIC_FOLDER)
+        return {
+            "success": True,
+            "message": "API keys saved securely"
         }
         
-        # Firebase health check
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save API keys: {str(e)}"
+        )
+
+@app.get("/api/user/profile")
+async def get_user_profile(user: dict = Depends(get_current_user)):
+    """Kullanıcı profil bilgileri"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        subscription_active = False
+        
+        if user_data.get('subscription_end'):
+            remaining = user_data['subscription_end'] - datetime.utcnow()
+            if remaining.total_seconds() > 0:
+                subscription_active = True
+                if user_data.get('is_trial', False):
+                    trial_days_left = remaining.days
+        
+        return {
+            "id": user['user_id'],
+            "email": user_data['email'],
+            "full_name": user_data['full_name'],
+            "api_keys_set": user_data.get('api_keys_set', False),
+            "bot_active": user_data.get('bot_active', False),
+            "is_trial": user_data.get('is_trial', False),
+            "trial_days_left": trial_days_left,
+            "subscription_active": subscription_active,
+            "created_at": user_data['created_at'].isoformat() if user_data.get('created_at') else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get profile: {str(e)}"
+        )
+
+# WebSocket for real-time updates
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket bağlantısı"""
+    await websocket.accept()
+    connected_websockets[user_id] = websocket
+    
+    try:
+        while True:
+            # Heartbeat için ping-pong
+            await websocket.receive_text()
+            await websocket.send_text(json.dumps({
+                "type": "pong",
+                "timestamp": datetime.utcnow().isoformat()
+            }))
+    except WebSocketDisconnect:
+        if user_id in connected_websockets:
+            del connected_websockets[user_id]
+
+async def send_websocket_message(user_id: str, message: dict):
+    """WebSocket üzerinden mesaj gönderir"""
+    if user_id in connected_websockets:
         try:
-            db.reference('health').set({
-                'last_check': datetime.now(timezone.utc).isoformat(),
-                'status': 'healthy'
+            await connected_websockets[user_id].send_text(json.dumps(message))
+        except:
+            # Bağlantı kopmuşsa listeden çıkar
+            if user_id in connected_websockets:
+                del connected_websockets[user_id]
+
+# Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """Ana sayfa"""
+    return FileResponse("static/index.html")
+
+# Health Check
+@app.get("/api/health")
+async def health_check():
+    """Sistem sağlık kontrolü"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "active_connections": len(connected_websockets),
+        "active_bots": len(bot_instances)
+    }
+
+# Bot Management Endpoints
+@app.post("/api/bot/start")
+async def start_bot(settings: TradingSettings, user: dict = Depends(require_active_subscription)):
+    """Botu başlatır"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # API anahtarlarını kontrol et
+        if not user_data.get('api_keys_set', False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please set your API keys first"
+            )
+        
+        # API anahtarlarını çöz
+        api_key = decrypt_data(user_data.get('api_key', ''))
+        api_secret = decrypt_data(user_data.get('api_secret', ''))
+        
+        if not api_key or not api_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid API keys"
+            )
+        
+        # Trading settings oluştur
+        from trading_bot import TradingSettings as BotTradingSettings, bot_manager
+        
+        bot_settings = BotTradingSettings(
+            symbol=settings.symbol,
+            timeframe=settings.timeframe,
+            leverage=settings.leverage,
+            order_size_usdt=settings.order_size_usdt,
+            stop_loss_percent=settings.stop_loss_percent,
+            take_profit_percent=settings.take_profit_percent,
+            margin_type=settings.margin_type,
+            api_key=api_key,
+            api_secret=api_secret
+        )
+        
+        # Botu başlat
+        result = await bot_manager.start_bot(
+            user['user_id'], 
+            bot_settings, 
+            send_websocket_message
+        )
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': True,
+                'bot_started_at': datetime.utcnow(),
+                'current_symbol': settings.symbol
             })
-            health_status["components"]["firebase"] = "healthy"
-        except Exception as e:
-            health_status["components"]["firebase"] = f"unhealthy: {str(e)}"
-            health_status["status"] = "degraded"
         
-        # Bot manager health check
-        try:
-            active_bots = len(bot_manager.active_bots)
-            health_status["components"]["bot_manager"] = "healthy"
-            health_status["active_bots"] = active_bots
-        except Exception as e:
-            health_status["components"]["bot_manager"] = f"unhealthy: {str(e)}"
-            health_status["status"] = "degraded"
+        return result
         
-        if health_status["status"] == "degraded":
-            return jsonify(health_status), 503
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start bot: {str(e)}"
+        )
+
+@app.post("/api/bot/stop")
+async def stop_bot(user: dict = Depends(get_current_user)):
+    """Botu durdurur"""
+    try:
+        from trading_bot import bot_manager
         
-        return jsonify(health_status)
+        result = await bot_manager.stop_bot(user['user_id'])
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db = firestore.client()
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': False,
+                'bot_stopped_at': datetime.utcnow()
+            })
+        
+        return result
         
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return jsonify({
-            "status": "unhealthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "error": str(e)
-        }), 503
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop bot: {str(e)}"
+        )
 
-# Admin routes
-@app.route('/api/admin/users', methods=['GET'])
-@require_admin
-def get_all_users():
-    """Admin için tüm kullanıcıları listeler"""
+@app.get("/api/bot/status")
+async def get_bot_status(user: dict = Depends(get_current_user)):
+    """Bot durumunu döndürür"""
     try:
-        all_users_data = db.reference('users').get() or {}
+        from trading_bot import bot_manager
         
-        sanitized_users = {}
-        for uid, user_data in all_users_data.items():
-            sanitized_users[uid] = {
-                'email': user_data.get('email'),
-                'subscription_status': user_data.get('subscription_status'),
-                'subscription_expiry': user_data.get('subscription_expiry'),
-                'created_at': user_data.get('created_at'),
-                'role': user_data.get('role', 'user'),
-                'has_api_keys': bool(user_data.get('binance_api_key') and user_data.get('binance_api_secret')),
-                'total_trades': 0,
-                'total_pnl': 0.0
-            }
+        status = bot_manager.get_bot_status(user['user_id'])
+        return {
+            "success": True,
+            "status": status
+        }
         
-        return jsonify({"users": sanitized_users})
     except Exception as e:
-        logger.error(f"Admin users list error: {e}")
-        return jsonify({"error": "Kullanıcı listesi alınamadı"}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get bot status: {str(e)}"
+        )
 
-@app.route('/api/admin/activate-subscription', methods=['POST'])
-@require_admin
-def activate_subscription():
-    """Abonelik uzatır (Admin)"""
+@app.get("/api/market/symbols")
+async def get_futures_symbols():
+    """Futures sembollerini döndürür"""
     try:
-        data = request.get_json()
-        user_id = data.get('user_id')
+        # Binance'den popüler USDT futures sembollerini al
+        popular_symbols = [
+            "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+            "SOLUSDT", "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "MATICUSDT",
+            "LINKUSDT", "LTCUSDT", "UNIUSDT", "ATOMUSDT", "FILUSDT",
+            "TRXUSDT", "XLMUSDT", "VETUSDT", "ICPUSDT", "THETAUSDT"
+        ]
         
-        if not user_id:
-            return jsonify({"error": "Missing user_id"}), 400
+        return {
+            "success": True,
+            "symbols": popular_symbols
+        }
         
-        user_ref = firebase_manager.get_user_ref(user_id)
-        user_data = user_ref.get()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get symbols: {str(e)}"
+        )
+
+@app.get("/api/market/price/{symbol}")
+async def get_symbol_price(symbol: str):
+    """Sembol fiyatını döndürür"""
+    try:
+        # Bu endpoint gerçek zamanlı fiyat için Binance API'si kullanabilir
+        # Şimdilik basit bir response döndürüyoruz
+        return {
+            "success": True,
+            "symbol": symbol,
+            "price": "0.00",
+            "change_24h": "0.00",
+            "timestamp": datetime.utcnow().isoformat()
+        }
         
-        if not user_data:
-            return jsonify({"error": "Kullanıcı bulunamadı"}), 404
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get price: {str(e)}"
+        )
+
+# Trading History
+@app.get("/api/trading/history")
+async def get_trading_history(user: dict = Depends(get_current_user)):
+    """Kullanıcının trading geçmişini döndürür"""
+    try:
+        db = firestore.client()
         
-        # 30 gün ekle
-        new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
+        # Son 30 günün işlemlerini al
+        trades = db.collection('trades')\
+                  .where('user_id', '==', user['user_id'])\
+                  .order_by('created_at', direction=firestore.Query.DESCENDING)\
+                  .limit(100)\
+                  .get()
+        
+        trade_list = []
+        for trade in trades:
+            trade_data = trade.to_dict()
+            trade_data['id'] = trade.id
+            trade_list.append(trade_data)
+        
+        return {
+            "success": True,
+            "trades": trade_list
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trading history: {str(e)}"
+        )
+
+# Subscription Management
+@app.post("/api/subscription/extend")
+async def extend_subscription(days: int, user: dict = Depends(get_current_user)):
+    """Aboneliği uzatır (admin veya ödeme sonrası)"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        current_end = user_data.get('subscription_end', datetime.utcnow())
+        
+        # Eğer abonelik bitmiş ise bugünden başlat, değilse mevcut bitiş tarihine ekle
+        if current_end < datetime.utcnow():
+            new_end = datetime.utcnow() + timedelta(days=days)
+        else:
+            new_end = current_end + timedelta(days=days)
         
         user_ref.update({
-            "subscription_status": "active",
-            "subscription_expiry": new_expiry.isoformat(),
-            "last_updated_by": request.current_user['email'],
-            "last_updated_at": datetime.now(timezone.utc).isoformat()
+            'subscription_end': new_end,
+            'is_trial': False,
+            'last_payment': datetime.utcnow()
         })
         
-        admin_email = request.current_user['email']
-        logger.info(f"Admin {admin_email} extended subscription for {user_id}")
-        return jsonify({
-            "success": True, 
-            "message": "Abonelik 30 gün uzatıldı", 
-            "new_expiry": new_expiry.isoformat()
-        })
+        return {
+            "success": True,
+            "message": f"Subscription extended by {days} days",
+            "new_end_date": new_end.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extend subscription: {str(e)}"
+        )
+
+# Bot Management Functions
+async def initialize_bot_manager():
+    """Bot yöneticisini başlatır"""
+    from trading_bot import bot_manager
+    print("✅ Bot manager initialized")
+
+async def cleanup_bots():
+    """Tüm botları güvenli şekilde kapatır"""
+    from trading_bot import bot_manager
+    await bot_manager.stop_all_bots()
+    print("✅ All bots stopped safely")
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    ))
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=50)
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class TradingSettings(BaseModel):
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDTfrom fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+import uvicorn
+import asyncio
+import json
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth, firestore
+import bcrypt
+import jwt
+from cryptography.fernet import Fernet
+import os
+from contextlib import asynccontextmanager
+
+# Pydantic Models
+class UserRegistration(BaseModel):
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=50)
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class TradingSettings(BaseModel):
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDT$')
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    leverage: int = Field(default=5, ge=1, le=125)
+    order_size_usdt: float = Field(default=35.0, ge=10.0, le=10000.0)
+    stop_loss_percent: float = Field(..., ge=0.1, le=50.0)
+    take_profit_percent: float = Field(..., ge=0.1, le=100.0)
+    margin_type: str = Field(default="isolated", regex=r'^(isolated|cross)$')
+    
+    @validator('take_profit_percent')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss_percent' in values and v <= values['stop_loss_percent']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
+
+class APIKeys(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
+
+class BotAction(BaseModel):
+    action: str = Field(..., regex=r'^(start|stop)$')
+
+# Global Variables
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0")
+security = HTTPBearer()
+connected_websockets: Dict[str, WebSocket] = {}
+bot_instances: Dict[str, 'TradingBot'] = {}
+
+# Encryption setup
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', Fernet.generate_key().decode())
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+
+# JWT Settings
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-super-secret-jwt-key')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await initialize_firebase()
+    await initialize_bot_manager()
+    yield
+    # Shutdown
+    await cleanup_bots()
+
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0", lifespan=lifespan)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Production'da spesifik domain'ler ekleyin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Utility Functions
+def encrypt_data(data: str) -> str:
+    """Veriyi şifreler"""
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Şifrelenmiş veriyi çözer"""
+    try:
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except:
+        return ""
+
+def create_jwt_token(user_id: str, email: str) -> str:
+    """JWT token oluşturur"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str) -> Optional[Dict]:
+    """JWT token doğrular"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Mevcut kullanıcıyı döndürür"""
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return payload
+
+def check_subscription_status(user_id: str) -> bool:
+    """Kullanıcının abonelik durumunu kontrol eder"""
+    db = firestore.client()
+    user_doc = db.collection('users').document(user_id).get()
+    
+    if not user_doc.exists:
+        return False
+    
+    user_data = user_doc.to_dict()
+    subscription_end = user_data.get('subscription_end')
+    
+    if not subscription_end:
+        return False
+    
+    return subscription_end > datetime.utcnow()
+
+def require_active_subscription(user: dict = Depends(get_current_user)):
+    """Aktif abonelik gerektirir"""
+    if not check_subscription_status(user['user_id']):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required"
+        )
+    return user
+
+# Firebase Initialization
+async def initialize_firebase():
+    """Firebase'i başlatır"""
+    try:
+        # Firebase credentials from environment
+        cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+        if cred_path and os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+        else:
+            # Fallback to environment variable
+            cred_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if cred_json:
+                cred_dict = json.loads(cred_json)
+                cred = credentials.Certificate(cred_dict)
+            else:
+                raise ValueError("Firebase credentials not found")
+        
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase initialized successfully")
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        raise
+
+# Authentication Endpoints
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Kullanıcı kaydı"""
+    try:
+        db = firestore.client()
+        
+        # Email kontrolü
+        existing_user = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Şifre hash'leme
+        password_hash = bcrypt.hashpw(user_data.password.encode(), bcrypt.gensalt())
+        
+        # Kullanıcı oluşturma
+        user_doc = {
+            'email': user_data.email,
+            'full_name': user_data.full_name,
+            'password_hash': password_hash.decode(),
+            'created_at': datetime.utcnow(),
+            'subscription_start': datetime.utcnow(),
+            'subscription_end': datetime.utcnow() + timedelta(days=7),  # 7 gün deneme
+            'is_trial': True,
+            'api_keys_set': False,
+            'bot_active': False
+        }
+        
+        user_ref = db.collection('users').add(user_doc)
+        user_id = user_ref[1].id
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "trial_days_left": 7
+            }
+        }
         
     except Exception as e:
-        logger.error(f"Subscription extension error: {e}")
-        return jsonify({"error": "Abonelik uzatılamadı"}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
 
-# Error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "Not found", "requested_path": request.path}), 404
+@app.post("/api/auth/login")
+async def login_user(user_data: UserLogin):
+    """Kullanıcı girişi"""
+    try:
+        db = firestore.client()
+        
+        # Kullanıcı bulma
+        users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        user_doc = users[0]
+        user_dict = user_doc.to_dict()
+        user_id = user_doc.id
+        
+        # Şifre kontrolü
+        if not bcrypt.checkpw(user_data.password.encode(), user_dict['password_hash'].encode()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        if user_dict.get('is_trial', False):
+            subscription_end = user_dict.get('subscription_end')
+            if subscription_end:
+                remaining = subscription_end - datetime.utcnow()
+                trial_days_left = max(0, remaining.days)
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_dict['email'],
+                "full_name": user_dict['full_name'],
+                "api_keys_set": user_dict.get('api_keys_set', False),
+                "bot_active": user_dict.get('bot_active', False),
+                "is_trial": user_dict.get('is_trial', False),
+                "trial_days_left": trial_days_left
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
 
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"Internal server error: {error}")
-    return jsonify({"error": "Internal server error"}), 500
+# API Key Management
+@app.post("/api/user/api-keys")
+async def save_api_keys(api_keys: APIKeys, user: dict = Depends(get_current_user)):
+    """API anahtarlarını kaydeder"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        
+        # API anahtarlarını şifrele
+        encrypted_api_key = encrypt_data(api_keys.api_key)
+        encrypted_api_secret = encrypt_data(api_keys.api_secret)
+        
+        # Veritabanına kaydet
+        user_ref.update({
+            'api_key': encrypted_api_key,
+            'api_secret': encrypted_api_secret,
+            'api_keys_set': True,
+            'updated_at': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": "API keys saved securely"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save API keys: {str(e)}"
+        )
 
-if __name__ == '__main__':
-    port = int(os.getenv("PORT", 8000))
-    logger.info(f"Starting EzyagoTrading Backend on port {port}")
-    logger.info(f"Static folder: {STATIC_FOLDER}")
-    logger.info(f"Static folder exists: {os.path.exists(STATIC_FOLDER)}")
-    app.run(host='0.0.0.0', port=port, debug=settings.ENVIRONMENT == "DEVELOPMENT")
+@app.get("/api/user/profile")
+async def get_user_profile(user: dict = Depends(get_current_user)):
+    """Kullanıcı profil bilgileri"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        subscription_active = False
+        
+        if user_data.get('subscription_end'):
+            remaining = user_data['subscription_end'] - datetime.utcnow()
+            if remaining.total_seconds() > 0:
+                subscription_active = True
+                if user_data.get('is_trial', False):
+                    trial_days_left = remaining.days
+        
+        return {
+            "id": user['user_id'],
+            "email": user_data['email'],
+            "full_name": user_data['full_name'],
+            "api_keys_set": user_data.get('api_keys_set', False),
+            "bot_active": user_data.get('bot_active', False),
+            "is_trial": user_data.get('is_trial', False),
+            "trial_days_left": trial_days_left,
+            "subscription_active": subscription_active,
+            "created_at": user_data['created_at'].isoformat() if user_data.get('created_at') else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get profile: {str(e)}"
+        )
+
+# WebSocket for real-time updates
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket bağlantısı"""
+    await websocket.accept()
+    connected_websockets[user_id] = websocket
+    
+    try:
+        while True:
+            # Heartbeat için ping-pong
+            await websocket.receive_text()
+            await websocket.send_text(json.dumps({
+                "type": "pong",
+                "timestamp": datetime.utcnow().isoformat()
+            }))
+    except WebSocketDisconnect:
+        if user_id in connected_websockets:
+            del connected_websockets[user_id]
+
+async def send_websocket_message(user_id: str, message: dict):
+    """WebSocket üzerinden mesaj gönderir"""
+    if user_id in connected_websockets:
+        try:
+            await connected_websockets[user_id].send_text(json.dumps(message))
+        except:
+            # Bağlantı kopmuşsa listeden çıkar
+            if user_id in connected_websockets:
+                del connected_websockets[user_id]
+
+# Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """Ana sayfa"""
+    return FileResponse("static/index.html")
+
+# Health Check
+@app.get("/api/health")
+async def health_check():
+    """Sistem sağlık kontrolü"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "active_connections": len(connected_websockets),
+        "active_bots": len(bot_instances)
+    }
+
+# Bot Management Endpoints
+@app.post("/api/bot/start")
+async def start_bot(settings: TradingSettings, user: dict = Depends(require_active_subscription)):
+    """Botu başlatır"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # API anahtarlarını kontrol et
+        if not user_data.get('api_keys_set', False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please set your API keys first"
+            )
+        
+        # API anahtarlarını çöz
+        api_key = decrypt_data(user_data.get('api_key', ''))
+        api_secret = decrypt_data(user_data.get('api_secret', ''))
+        
+        if not api_key or not api_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid API keys"
+            )
+        
+        # Trading settings oluştur
+        from trading_bot import TradingSettings as BotTradingSettings, bot_manager
+        
+        bot_settings = BotTradingSettings(
+            symbol=settings.symbol,
+            timeframe=settings.timeframe,
+            leverage=settings.leverage,
+            order_size_usdt=settings.order_size_usdt,
+            stop_loss_percent=settings.stop_loss_percent,
+            take_profit_percent=settings.take_profit_percent,
+            margin_type=settings.margin_type,
+            api_key=api_key,
+            api_secret=api_secret
+        )
+        
+        # Botu başlat
+        result = await bot_manager.start_bot(
+            user['user_id'], 
+            bot_settings, 
+            send_websocket_message
+        )
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': True,
+                'bot_started_at': datetime.utcnow(),
+                'current_symbol': settings.symbol
+            })
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start bot: {str(e)}"
+        )
+
+@app.post("/api/bot/stop")
+async def stop_bot(user: dict = Depends(get_current_user)):
+    """Botu durdurur"""
+    try:
+        from trading_bot import bot_manager
+        
+        result = await bot_manager.stop_bot(user['user_id'])
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db = firestore.client()
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': False,
+                'bot_stopped_at': datetime.utcnow()
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop bot: {str(e)}"
+        )
+
+@app.get("/api/bot/status")
+async def get_bot_status(user: dict = Depends(get_current_user)):
+    """Bot durumunu döndürür"""
+    try:
+        from trading_bot import bot_manager
+        
+        status = bot_manager.get_bot_status(user['user_id'])
+        return {
+            "success": True,
+            "status": status
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get bot status: {str(e)}"
+        )
+
+@app.get("/api/market/symbols")
+async def get_futures_symbols():
+    """Futures sembollerini döndürür"""
+    try:
+        # Binance'den popüler USDT futures sembollerini al
+        popular_symbols = [
+            "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+            "SOLUSDT", "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "MATICUSDT",
+            "LINKUSDT", "LTCUSDT", "UNIUSDT", "ATOMUSDT", "FILUSDT",
+            "TRXUSDT", "XLMUSDT", "VETUSDT", "ICPUSDT", "THETAUSDT"
+        ]
+        
+        return {
+            "success": True,
+            "symbols": popular_symbols
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get symbols: {str(e)}"
+        )
+
+@app.get("/api/market/price/{symbol}")
+async def get_symbol_price(symbol: str):
+    """Sembol fiyatını döndürür"""
+    try:
+        # Bu endpoint gerçek zamanlı fiyat için Binance API'si kullanabilir
+        # Şimdilik basit bir response döndürüyoruz
+        return {
+            "success": True,
+            "symbol": symbol,
+            "price": "0.00",
+            "change_24h": "0.00",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get price: {str(e)}"
+        )
+
+# Trading History
+@app.get("/api/trading/history")
+async def get_trading_history(user: dict = Depends(get_current_user)):
+    """Kullanıcının trading geçmişini döndürür"""
+    try:
+        db = firestore.client()
+        
+        # Son 30 günün işlemlerini al
+        trades = db.collection('trades')\
+                  .where('user_id', '==', user['user_id'])\
+                  .order_by('created_at', direction=firestore.Query.DESCENDING)\
+                  .limit(100)\
+                  .get()
+        
+        trade_list = []
+        for trade in trades:
+            trade_data = trade.to_dict()
+            trade_data['id'] = trade.id
+            trade_list.append(trade_data)
+        
+        return {
+            "success": True,
+            "trades": trade_list
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trading history: {str(e)}"
+        )
+
+# Subscription Management
+@app.post("/api/subscription/extend")
+async def extend_subscription(days: int, user: dict = Depends(get_current_user)):
+    """Aboneliği uzatır (admin veya ödeme sonrası)"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        current_end = user_data.get('subscription_end', datetime.utcnow())
+        
+        # Eğer abonelik bitmiş ise bugünden başlat, değilse mevcut bitiş tarihine ekle
+        if current_end < datetime.utcnow():
+            new_end = datetime.utcnow() + timedelta(days=days)
+        else:
+            new_end = current_end + timedelta(days=days)
+        
+        user_ref.update({
+            'subscription_end': new_end,
+            'is_trial': False,
+            'last_payment': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": f"Subscription extended by {days} days",
+            "new_end_date": new_end.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extend subscription: {str(e)}"
+        )
+
+# Bot Management Functions
+async def initialize_bot_manager():
+    """Bot yöneticisini başlatır"""
+    from trading_bot import bot_manager
+    print("✅ Bot manager initialized")
+
+async def cleanup_bots():
+    """Tüm botları güvenli şekilde kapatır"""
+    from trading_bot import bot_manager
+    await bot_manager.stop_all_bots()
+    print("✅ All bots stopped safely")
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    ))
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+import uvicorn
+import asyncio
+import json
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth, firestore
+import bcrypt
+import jwt
+from cryptography.fernet import Fernet
+import os
+from contextlib import asynccontextmanager
+
+# Pydantic Models
+class UserRegistration(BaseModel):
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=50)
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class TradingSettings(BaseModel):
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDT$')
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    leverage: int = Field(default=5, ge=1, le=125)
+    order_size_usdt: float = Field(default=35.0, ge=10.0, le=10000.0)
+    stop_loss_percent: float = Field(..., ge=0.1, le=50.0)
+    take_profit_percent: float = Field(..., ge=0.1, le=100.0)
+    margin_type: str = Field(default="isolated", regex=r'^(isolated|cross)$')
+    
+    @validator('take_profit_percent')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss_percent' in values and v <= values['stop_loss_percent']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
+
+class APIKeys(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
+
+class BotAction(BaseModel):
+    action: str = Field(..., regex=r'^(start|stop)$')
+
+# Global Variables
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0")
+security = HTTPBearer()
+connected_websockets: Dict[str, WebSocket] = {}
+bot_instances: Dict[str, 'TradingBot'] = {}
+
+# Encryption setup
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', Fernet.generate_key().decode())
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+
+# JWT Settings
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-super-secret-jwt-key')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await initialize_firebase()
+    await initialize_bot_manager()
+    yield
+    # Shutdown
+    await cleanup_bots()
+
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0", lifespan=lifespan)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Production'da spesifik domain'ler ekleyin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Utility Functions
+def encrypt_data(data: str) -> str:
+    """Veriyi şifreler"""
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Şifrelenmiş veriyi çözer"""
+    try:
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except:
+        return ""
+
+def create_jwt_token(user_id: str, email: str) -> str:
+    """JWT token oluşturur"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str) -> Optional[Dict]:
+    """JWT token doğrular"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Mevcut kullanıcıyı döndürür"""
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return payload
+
+def check_subscription_status(user_id: str) -> bool:
+    """Kullanıcının abonelik durumunu kontrol eder"""
+    db = firestore.client()
+    user_doc = db.collection('users').document(user_id).get()
+    
+    if not user_doc.exists:
+        return False
+    
+    user_data = user_doc.to_dict()
+    subscription_end = user_data.get('subscription_end')
+    
+    if not subscription_end:
+        return False
+    
+    return subscription_end > datetime.utcnow()
+
+def require_active_subscription(user: dict = Depends(get_current_user)):
+    """Aktif abonelik gerektirir"""
+    if not check_subscription_status(user['user_id']):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required"
+        )
+    return user
+
+# Firebase Initialization
+async def initialize_firebase():
+    """Firebase'i başlatır"""
+    try:
+        # Firebase credentials from environment
+        cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+        if cred_path and os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+        else:
+            # Fallback to environment variable
+            cred_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if cred_json:
+                cred_dict = json.loads(cred_json)
+                cred = credentials.Certificate(cred_dict)
+            else:
+                raise ValueError("Firebase credentials not found")
+        
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase initialized successfully")
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        raise
+
+# Authentication Endpoints
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Kullanıcı kaydı"""
+    try:
+        db = firestore.client()
+        
+        # Email kontrolü
+        existing_user = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Şifre hash'leme
+        password_hash = bcrypt.hashpw(user_data.password.encode(), bcrypt.gensalt())
+        
+        # Kullanıcı oluşturma
+        user_doc = {
+            'email': user_data.email,
+            'full_name': user_data.full_name,
+            'password_hash': password_hash.decode(),
+            'created_at': datetime.utcnow(),
+            'subscription_start': datetime.utcnow(),
+            'subscription_end': datetime.utcnow() + timedelta(days=7),  # 7 gün deneme
+            'is_trial': True,
+            'api_keys_set': False,
+            'bot_active': False
+        }
+        
+        user_ref = db.collection('users').add(user_doc)
+        user_id = user_ref[1].id
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "trial_days_left": 7
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+@app.post("/api/auth/login")
+async def login_user(user_data: UserLogin):
+    """Kullanıcı girişi"""
+    try:
+        db = firestore.client()
+        
+        # Kullanıcı bulma
+        users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        user_doc = users[0]
+        user_dict = user_doc.to_dict()
+        user_id = user_doc.id
+        
+        # Şifre kontrolü
+        if not bcrypt.checkpw(user_data.password.encode(), user_dict['password_hash'].encode()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        if user_dict.get('is_trial', False):
+            subscription_end = user_dict.get('subscription_end')
+            if subscription_end:
+                remaining = subscription_end - datetime.utcnow()
+                trial_days_left = max(0, remaining.days)
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_dict['email'],
+                "full_name": user_dict['full_name'],
+                "api_keys_set": user_dict.get('api_keys_set', False),
+                "bot_active": user_dict.get('bot_active', False),
+                "is_trial": user_dict.get('is_trial', False),
+                "trial_days_left": trial_days_left
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+# API Key Management
+@app.post("/api/user/api-keys")
+async def save_api_keys(api_keys: APIKeys, user: dict = Depends(get_current_user)):
+    """API anahtarlarını kaydeder"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        
+        # API anahtarlarını şifrele
+        encrypted_api_key = encrypt_data(api_keys.api_key)
+        encrypted_api_secret = encrypt_data(api_keys.api_secret)
+        
+        # Veritabanına kaydet
+        user_ref.update({
+            'api_key': encrypted_api_key,
+            'api_secret': encrypted_api_secret,
+            'api_keys_set': True,
+            'updated_at': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": "API keys saved securely"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save API keys: {str(e)}"
+        )
+
+@app.get("/api/user/profile")
+async def get_user_profile(user: dict = Depends(get_current_user)):
+    """Kullanıcı profil bilgileri"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        subscription_active = False
+        
+        if user_data.get('subscription_end'):
+            remaining = user_data['subscription_end'] - datetime.utcnow()
+            if remaining.total_seconds() > 0:
+                subscription_active = True
+                if user_data.get('is_trial', False):
+                    trial_days_left = remaining.days
+        
+        return {
+            "id": user['user_id'],
+            "email": user_data['email'],
+            "full_name": user_data['full_name'],
+            "api_keys_set": user_data.get('api_keys_set', False),
+            "bot_active": user_data.get('bot_active', False),
+            "is_trial": user_data.get('is_trial', False),
+            "trial_days_left": trial_days_left,
+            "subscription_active": subscription_active,
+            "created_at": user_data['created_at'].isoformat() if user_data.get('created_at') else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get profile: {str(e)}"
+        )
+
+# WebSocket for real-time updates
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket bağlantısı"""
+    await websocket.accept()
+    connected_websockets[user_id] = websocket
+    
+    try:
+        while True:
+            # Heartbeat için ping-pong
+            await websocket.receive_text()
+            await websocket.send_text(json.dumps({
+                "type": "pong",
+                "timestamp": datetime.utcnow().isoformat()
+            }))
+    except WebSocketDisconnect:
+        if user_id in connected_websockets:
+            del connected_websockets[user_id]
+
+async def send_websocket_message(user_id: str, message: dict):
+    """WebSocket üzerinden mesaj gönderir"""
+    if user_id in connected_websockets:
+        try:
+            await connected_websockets[user_id].send_text(json.dumps(message))
+        except:
+            # Bağlantı kopmuşsa listeden çıkar
+            if user_id in connected_websockets:
+                del connected_websockets[user_id]
+
+# Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """Ana sayfa"""
+    return FileResponse("static/index.html")
+
+# Health Check
+@app.get("/api/health")
+async def health_check():
+    """Sistem sağlık kontrolü"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "active_connections": len(connected_websockets),
+        "active_bots": len(bot_instances)
+    }
+
+# Bot Management Endpoints
+@app.post("/api/bot/start")
+async def start_bot(settings: TradingSettings, user: dict = Depends(require_active_subscription)):
+    """Botu başlatır"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # API anahtarlarını kontrol et
+        if not user_data.get('api_keys_set', False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please set your API keys first"
+            )
+        
+        # API anahtarlarını çöz
+        api_key = decrypt_data(user_data.get('api_key', ''))
+        api_secret = decrypt_data(user_data.get('api_secret', ''))
+        
+        if not api_key or not api_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid API keys"
+            )
+        
+        # Trading settings oluştur
+        from trading_bot import TradingSettings as BotTradingSettings, bot_manager
+        
+        bot_settings = BotTradingSettings(
+            symbol=settings.symbol,
+            timeframe=settings.timeframe,
+            leverage=settings.leverage,
+            order_size_usdt=settings.order_size_usdt,
+            stop_loss_percent=settings.stop_loss_percent,
+            take_profit_percent=settings.take_profit_percent,
+            margin_type=settings.margin_type,
+            api_key=api_key,
+            api_secret=api_secret
+        )
+        
+        # Botu başlat
+        result = await bot_manager.start_bot(
+            user['user_id'], 
+            bot_settings, 
+            send_websocket_message
+        )
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': True,
+                'bot_started_at': datetime.utcnow(),
+                'current_symbol': settings.symbol
+            })
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start bot: {str(e)}"
+        )
+
+@app.post("/api/bot/stop")
+async def stop_bot(user: dict = Depends(get_current_user)):
+    """Botu durdurur"""
+    try:
+        from trading_bot import bot_manager
+        
+        result = await bot_manager.stop_bot(user['user_id'])
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db = firestore.client()
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': False,
+                'bot_stopped_at': datetime.utcnow()
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop bot: {str(e)}"
+        )
+
+@app.get("/api/bot/status")
+async def get_bot_status(user: dict = Depends(get_current_user)):
+    """Bot durumunu döndürür"""
+    try:
+        from trading_bot import bot_manager
+        
+        status = bot_manager.get_bot_status(user['user_id'])
+        return {
+            "success": True,
+            "status": status
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get bot status: {str(e)}"
+        )
+
+@app.get("/api/market/symbols")
+async def get_futures_symbols():
+    """Futures sembollerini döndürür"""
+    try:
+        # Binance'den popüler USDT futures sembollerini al
+        popular_symbols = [
+            "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+            "SOLUSDT", "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "MATICUSDT",
+            "LINKUSDT", "LTCUSDT", "UNIUSDT", "ATOMUSDT", "FILUSDT",
+            "TRXUSDT", "XLMUSDT", "VETUSDT", "ICPUSDT", "THETAUSDT"
+        ]
+        
+        return {
+            "success": True,
+            "symbols": popular_symbols
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get symbols: {str(e)}"
+        )
+
+@app.get("/api/market/price/{symbol}")
+async def get_symbol_price(symbol: str):
+    """Sembol fiyatını döndürür"""
+    try:
+        # Bu endpoint gerçek zamanlı fiyat için Binance API'si kullanabilir
+        # Şimdilik basit bir response döndürüyoruz
+        return {
+            "success": True,
+            "symbol": symbol,
+            "price": "0.00",
+            "change_24h": "0.00",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get price: {str(e)}"
+        )
+
+# Trading History
+@app.get("/api/trading/history")
+async def get_trading_history(user: dict = Depends(get_current_user)):
+    """Kullanıcının trading geçmişini döndürür"""
+    try:
+        db = firestore.client()
+        
+        # Son 30 günün işlemlerini al
+        trades = db.collection('trades')\
+                  .where('user_id', '==', user['user_id'])\
+                  .order_by('created_at', direction=firestore.Query.DESCENDING)\
+                  .limit(100)\
+                  .get()
+        
+        trade_list = []
+        for trade in trades:
+            trade_data = trade.to_dict()
+            trade_data['id'] = trade.id
+            trade_list.append(trade_data)
+        
+        return {
+            "success": True,
+            "trades": trade_list
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trading history: {str(e)}"
+        )
+
+# Subscription Management
+@app.post("/api/subscription/extend")
+async def extend_subscription(days: int, user: dict = Depends(get_current_user)):
+    """Aboneliği uzatır (admin veya ödeme sonrası)"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        current_end = user_data.get('subscription_end', datetime.utcnow())
+        
+        # Eğer abonelik bitmiş ise bugünden başlat, değilse mevcut bitiş tarihine ekle
+        if current_end < datetime.utcnow():
+            new_end = datetime.utcnow() + timedelta(days=days)
+        else:
+            new_end = current_end + timedelta(days=days)
+        
+        user_ref.update({
+            'subscription_end': new_end,
+            'is_trial': False,
+            'last_payment': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": f"Subscription extended by {days} days",
+            "new_end_date": new_end.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extend subscription: {str(e)}"
+        )
+
+# Bot Management Functions
+async def initialize_bot_manager():
+    """Bot yöneticisini başlatır"""
+    from trading_bot import bot_manager
+    print("✅ Bot manager initialized")
+
+async def cleanup_bots():
+    """Tüm botları güvenli şekilde kapatır"""
+    from trading_bot import bot_manager
+    await bot_manager.stop_all_bots()
+    print("✅ All bots stopped safely")
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    ))
+    leverage: int = Field(default=5, ge=1, le=125)
+    order_size_usdt: float = Field(default=35.0, ge=10.0, le=10000.0)
+    stop_loss_percent: float = Field(..., ge=0.1, le=50.0)
+    take_profit_percent: float = Field(..., ge=0.1, le=100.0)
+    margin_type: str = Field(default="isolated", regex=r'^(isolated|cross)from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+import uvicorn
+import asyncio
+import json
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth, firestore
+import bcrypt
+import jwt
+from cryptography.fernet import Fernet
+import os
+from contextlib import asynccontextmanager
+
+# Pydantic Models
+class UserRegistration(BaseModel):
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=50)
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class TradingSettings(BaseModel):
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDT$')
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    leverage: int = Field(default=5, ge=1, le=125)
+    order_size_usdt: float = Field(default=35.0, ge=10.0, le=10000.0)
+    stop_loss_percent: float = Field(..., ge=0.1, le=50.0)
+    take_profit_percent: float = Field(..., ge=0.1, le=100.0)
+    margin_type: str = Field(default="isolated", regex=r'^(isolated|cross)$')
+    
+    @validator('take_profit_percent')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss_percent' in values and v <= values['stop_loss_percent']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
+
+class APIKeys(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
+
+class BotAction(BaseModel):
+    action: str = Field(..., regex=r'^(start|stop)$')
+
+# Global Variables
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0")
+security = HTTPBearer()
+connected_websockets: Dict[str, WebSocket] = {}
+bot_instances: Dict[str, 'TradingBot'] = {}
+
+# Encryption setup
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', Fernet.generate_key().decode())
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+
+# JWT Settings
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-super-secret-jwt-key')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await initialize_firebase()
+    await initialize_bot_manager()
+    yield
+    # Shutdown
+    await cleanup_bots()
+
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0", lifespan=lifespan)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Production'da spesifik domain'ler ekleyin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Utility Functions
+def encrypt_data(data: str) -> str:
+    """Veriyi şifreler"""
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Şifrelenmiş veriyi çözer"""
+    try:
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except:
+        return ""
+
+def create_jwt_token(user_id: str, email: str) -> str:
+    """JWT token oluşturur"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str) -> Optional[Dict]:
+    """JWT token doğrular"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Mevcut kullanıcıyı döndürür"""
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return payload
+
+def check_subscription_status(user_id: str) -> bool:
+    """Kullanıcının abonelik durumunu kontrol eder"""
+    db = firestore.client()
+    user_doc = db.collection('users').document(user_id).get()
+    
+    if not user_doc.exists:
+        return False
+    
+    user_data = user_doc.to_dict()
+    subscription_end = user_data.get('subscription_end')
+    
+    if not subscription_end:
+        return False
+    
+    return subscription_end > datetime.utcnow()
+
+def require_active_subscription(user: dict = Depends(get_current_user)):
+    """Aktif abonelik gerektirir"""
+    if not check_subscription_status(user['user_id']):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required"
+        )
+    return user
+
+# Firebase Initialization
+async def initialize_firebase():
+    """Firebase'i başlatır"""
+    try:
+        # Firebase credentials from environment
+        cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+        if cred_path and os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+        else:
+            # Fallback to environment variable
+            cred_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if cred_json:
+                cred_dict = json.loads(cred_json)
+                cred = credentials.Certificate(cred_dict)
+            else:
+                raise ValueError("Firebase credentials not found")
+        
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase initialized successfully")
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        raise
+
+# Authentication Endpoints
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Kullanıcı kaydı"""
+    try:
+        db = firestore.client()
+        
+        # Email kontrolü
+        existing_user = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Şifre hash'leme
+        password_hash = bcrypt.hashpw(user_data.password.encode(), bcrypt.gensalt())
+        
+        # Kullanıcı oluşturma
+        user_doc = {
+            'email': user_data.email,
+            'full_name': user_data.full_name,
+            'password_hash': password_hash.decode(),
+            'created_at': datetime.utcnow(),
+            'subscription_start': datetime.utcnow(),
+            'subscription_end': datetime.utcnow() + timedelta(days=7),  # 7 gün deneme
+            'is_trial': True,
+            'api_keys_set': False,
+            'bot_active': False
+        }
+        
+        user_ref = db.collection('users').add(user_doc)
+        user_id = user_ref[1].id
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "trial_days_left": 7
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+@app.post("/api/auth/login")
+async def login_user(user_data: UserLogin):
+    """Kullanıcı girişi"""
+    try:
+        db = firestore.client()
+        
+        # Kullanıcı bulma
+        users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        user_doc = users[0]
+        user_dict = user_doc.to_dict()
+        user_id = user_doc.id
+        
+        # Şifre kontrolü
+        if not bcrypt.checkpw(user_data.password.encode(), user_dict['password_hash'].encode()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        if user_dict.get('is_trial', False):
+            subscription_end = user_dict.get('subscription_end')
+            if subscription_end:
+                remaining = subscription_end - datetime.utcnow()
+                trial_days_left = max(0, remaining.days)
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_dict['email'],
+                "full_name": user_dict['full_name'],
+                "api_keys_set": user_dict.get('api_keys_set', False),
+                "bot_active": user_dict.get('bot_active', False),
+                "is_trial": user_dict.get('is_trial', False),
+                "trial_days_left": trial_days_left
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+# API Key Management
+@app.post("/api/user/api-keys")
+async def save_api_keys(api_keys: APIKeys, user: dict = Depends(get_current_user)):
+    """API anahtarlarını kaydeder"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        
+        # API anahtarlarını şifrele
+        encrypted_api_key = encrypt_data(api_keys.api_key)
+        encrypted_api_secret = encrypt_data(api_keys.api_secret)
+        
+        # Veritabanına kaydet
+        user_ref.update({
+            'api_key': encrypted_api_key,
+            'api_secret': encrypted_api_secret,
+            'api_keys_set': True,
+            'updated_at': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": "API keys saved securely"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save API keys: {str(e)}"
+        )
+
+@app.get("/api/user/profile")
+async def get_user_profile(user: dict = Depends(get_current_user)):
+    """Kullanıcı profil bilgileri"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        subscription_active = False
+        
+        if user_data.get('subscription_end'):
+            remaining = user_data['subscription_end'] - datetime.utcnow()
+            if remaining.total_seconds() > 0:
+                subscription_active = True
+                if user_data.get('is_trial', False):
+                    trial_days_left = remaining.days
+        
+        return {
+            "id": user['user_id'],
+            "email": user_data['email'],
+            "full_name": user_data['full_name'],
+            "api_keys_set": user_data.get('api_keys_set', False),
+            "bot_active": user_data.get('bot_active', False),
+            "is_trial": user_data.get('is_trial', False),
+            "trial_days_left": trial_days_left,
+            "subscription_active": subscription_active,
+            "created_at": user_data['created_at'].isoformat() if user_data.get('created_at') else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get profile: {str(e)}"
+        )
+
+# WebSocket for real-time updates
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket bağlantısı"""
+    await websocket.accept()
+    connected_websockets[user_id] = websocket
+    
+    try:
+        while True:
+            # Heartbeat için ping-pong
+            await websocket.receive_text()
+            await websocket.send_text(json.dumps({
+                "type": "pong",
+                "timestamp": datetime.utcnow().isoformat()
+            }))
+    except WebSocketDisconnect:
+        if user_id in connected_websockets:
+            del connected_websockets[user_id]
+
+async def send_websocket_message(user_id: str, message: dict):
+    """WebSocket üzerinden mesaj gönderir"""
+    if user_id in connected_websockets:
+        try:
+            await connected_websockets[user_id].send_text(json.dumps(message))
+        except:
+            # Bağlantı kopmuşsa listeden çıkar
+            if user_id in connected_websockets:
+                del connected_websockets[user_id]
+
+# Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """Ana sayfa"""
+    return FileResponse("static/index.html")
+
+# Health Check
+@app.get("/api/health")
+async def health_check():
+    """Sistem sağlık kontrolü"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "active_connections": len(connected_websockets),
+        "active_bots": len(bot_instances)
+    }
+
+# Bot Management Endpoints
+@app.post("/api/bot/start")
+async def start_bot(settings: TradingSettings, user: dict = Depends(require_active_subscription)):
+    """Botu başlatır"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # API anahtarlarını kontrol et
+        if not user_data.get('api_keys_set', False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please set your API keys first"
+            )
+        
+        # API anahtarlarını çöz
+        api_key = decrypt_data(user_data.get('api_key', ''))
+        api_secret = decrypt_data(user_data.get('api_secret', ''))
+        
+        if not api_key or not api_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid API keys"
+            )
+        
+        # Trading settings oluştur
+        from trading_bot import TradingSettings as BotTradingSettings, bot_manager
+        
+        bot_settings = BotTradingSettings(
+            symbol=settings.symbol,
+            timeframe=settings.timeframe,
+            leverage=settings.leverage,
+            order_size_usdt=settings.order_size_usdt,
+            stop_loss_percent=settings.stop_loss_percent,
+            take_profit_percent=settings.take_profit_percent,
+            margin_type=settings.margin_type,
+            api_key=api_key,
+            api_secret=api_secret
+        )
+        
+        # Botu başlat
+        result = await bot_manager.start_bot(
+            user['user_id'], 
+            bot_settings, 
+            send_websocket_message
+        )
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': True,
+                'bot_started_at': datetime.utcnow(),
+                'current_symbol': settings.symbol
+            })
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start bot: {str(e)}"
+        )
+
+@app.post("/api/bot/stop")
+async def stop_bot(user: dict = Depends(get_current_user)):
+    """Botu durdurur"""
+    try:
+        from trading_bot import bot_manager
+        
+        result = await bot_manager.stop_bot(user['user_id'])
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db = firestore.client()
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': False,
+                'bot_stopped_at': datetime.utcnow()
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop bot: {str(e)}"
+        )
+
+@app.get("/api/bot/status")
+async def get_bot_status(user: dict = Depends(get_current_user)):
+    """Bot durumunu döndürür"""
+    try:
+        from trading_bot import bot_manager
+        
+        status = bot_manager.get_bot_status(user['user_id'])
+        return {
+            "success": True,
+            "status": status
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get bot status: {str(e)}"
+        )
+
+@app.get("/api/market/symbols")
+async def get_futures_symbols():
+    """Futures sembollerini döndürür"""
+    try:
+        # Binance'den popüler USDT futures sembollerini al
+        popular_symbols = [
+            "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+            "SOLUSDT", "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "MATICUSDT",
+            "LINKUSDT", "LTCUSDT", "UNIUSDT", "ATOMUSDT", "FILUSDT",
+            "TRXUSDT", "XLMUSDT", "VETUSDT", "ICPUSDT", "THETAUSDT"
+        ]
+        
+        return {
+            "success": True,
+            "symbols": popular_symbols
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get symbols: {str(e)}"
+        )
+
+@app.get("/api/market/price/{symbol}")
+async def get_symbol_price(symbol: str):
+    """Sembol fiyatını döndürür"""
+    try:
+        # Bu endpoint gerçek zamanlı fiyat için Binance API'si kullanabilir
+        # Şimdilik basit bir response döndürüyoruz
+        return {
+            "success": True,
+            "symbol": symbol,
+            "price": "0.00",
+            "change_24h": "0.00",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get price: {str(e)}"
+        )
+
+# Trading History
+@app.get("/api/trading/history")
+async def get_trading_history(user: dict = Depends(get_current_user)):
+    """Kullanıcının trading geçmişini döndürür"""
+    try:
+        db = firestore.client()
+        
+        # Son 30 günün işlemlerini al
+        trades = db.collection('trades')\
+                  .where('user_id', '==', user['user_id'])\
+                  .order_by('created_at', direction=firestore.Query.DESCENDING)\
+                  .limit(100)\
+                  .get()
+        
+        trade_list = []
+        for trade in trades:
+            trade_data = trade.to_dict()
+            trade_data['id'] = trade.id
+            trade_list.append(trade_data)
+        
+        return {
+            "success": True,
+            "trades": trade_list
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trading history: {str(e)}"
+        )
+
+# Subscription Management
+@app.post("/api/subscription/extend")
+async def extend_subscription(days: int, user: dict = Depends(get_current_user)):
+    """Aboneliği uzatır (admin veya ödeme sonrası)"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        current_end = user_data.get('subscription_end', datetime.utcnow())
+        
+        # Eğer abonelik bitmiş ise bugünden başlat, değilse mevcut bitiş tarihine ekle
+        if current_end < datetime.utcnow():
+            new_end = datetime.utcnow() + timedelta(days=days)
+        else:
+            new_end = current_end + timedelta(days=days)
+        
+        user_ref.update({
+            'subscription_end': new_end,
+            'is_trial': False,
+            'last_payment': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": f"Subscription extended by {days} days",
+            "new_end_date": new_end.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extend subscription: {str(e)}"
+        )
+
+# Bot Management Functions
+async def initialize_bot_manager():
+    """Bot yöneticisini başlatır"""
+    from trading_bot import bot_manager
+    print("✅ Bot manager initialized")
+
+async def cleanup_bots():
+    """Tüm botları güvenli şekilde kapatır"""
+    from trading_bot import bot_manager
+    await bot_manager.stop_all_bots()
+    print("✅ All bots stopped safely")
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    ))
+    
+    @validator('take_profit_percent')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss_percent' in values and v <= values['stop_loss_percent']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
+
+class APIKeys(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
+
+# Global Variables
+connected_websockets: Dict[str, WebSocket] = {}
+
+# Environment Variables
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+if not ENCRYPTION_KEY:
+    ENCRYPTION_KEY = Fernet.generate_key().decode()
+    logger.warning("Generated new encryption key. Set ENCRYPTION_KEY environment variable for production!")
+
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+
+# JWT Settings
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-super-secret-jwt-key-change-in-production')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await initialize_firebase()
+    await initialize_bot_manager()
+    logger.info("🚀 EzyagoTrading started successfully!")
+    yield
+    # Shutdown
+    await cleanup_bots()
+    logger.info("👋 EzyagoTrading stopped gracefully!")
+
+app = FastAPI(
+    title="EzyagoTrading Bot", 
+    version="2.0.0",
+    description="Professional Crypto Futures Trading Bot",
+    lifespan=lifespan
+)
+
+# CORS Middleware
+allowed_origins = os.getenv('ALLOWED_ORIGINS', '*').split(',')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if allowed_origins == ['*'] else allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+security = HTTPBearer()
+
+# Utility Functions
+def encrypt_data(data: str) -> str:
+    """Veriyi şifreler"""
+    if not data:
+        return ""
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Şifrelenmiş veriyi çözer"""
+    if not encrypted_data:
+        return ""
+    try:
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except Exception as e:
+        logger.error(f"Decryption failed: {e}")
+        return ""
+
+def create_jwt_token(user_id: str, email: str) -> str:
+    """JWT token oluşturur"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str) -> Optional[Dict]:
+    """JWT token doğrular"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("JWT token expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid JWT token: {e}")
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Mevcut kullanıcıyı döndürür"""
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+def check_subscription_status(user_id: str) -> bool:
+    """Kullanıcının abonelik durumunu kontrol eder"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user_id).get()
+        
+        if not user_doc.exists:
+            return False
+        
+        user_data = user_doc.to_dict()
+        subscription_end = user_data.get('subscription_end')
+        
+        if not subscription_end:
+            return False
+        
+        return subscription_end > datetime.utcnow()
+    except Exception as e:
+        logger.error(f"Error checking subscription status: {e}")
+        return False
+
+def require_active_subscription(user: dict = Depends(get_current_user)):
+    """Aktif abonelik gerektirir"""
+    if not check_subscription_status(user['user_id']):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required. Please renew your subscription to continue using the bot."
+        )
+    return user
+
+# Firebase Initialization
+async def initialize_firebase():
+    """Firebase'i başlatır"""
+    try:
+        if firebase_admin._apps:
+            logger.info("Firebase already initialized")
+            return
+            
+        # Try to load credentials from path first
+        cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+        if cred_path and os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+            logger.info("Using Firebase credentials from file")
+        else:
+            # Fallback to environment variable
+            cred_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if cred_json:
+                try:
+                    cred_dict = json.loads(cred_json)
+                    cred = credentials.Certificate(cred_dict)
+                    logger.info("Using Firebase credentials from environment variable")
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid Firebase credentials JSON: {e}")
+            else:
+                raise ValueError("Firebase credentials not found. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON")
+        
+        firebase_admin.initialize_app(cred)
+        
+        # Test the connection
+        db = firestore.client()
+        test_doc = db.collection('_health').document('test')
+        test_doc.set({'timestamp': datetime.utcnow(), 'status': 'healthy'})
+        
+        logger.info("✅ Firebase initialized successfully")
+    except Exception as e:
+        logger.critical(f"❌ Firebase initialization failed: {e}")
+        raise
+
+# Authentication Endpoints
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Kullanıcı kaydı"""
+    try:
+        db = firestore.client()
+        
+        # Email kontrolü
+        existing_users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if existing_users:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Şifre hash'leme
+        password_hash = bcrypt.hashpw(user_data.password.encode(), bcrypt.gensalt())
+        
+        # Kullanıcı oluşturma
+        trial_days = int(os.getenv('TRIAL_DAYS', 7))
+        user_doc = {
+            'email': user_data.email,
+            'full_name': user_data.full_name,
+            'password_hash': password_hash.decode(),
+            'created_at': datetime.utcnow(),
+            'subscription_start': datetime.utcnow(),
+            'subscription_end': datetime.utcnow() + timedelta(days=trial_days),
+            'is_trial': True,
+            'api_keys_set': False,
+            'bot_active': False,
+            'last_login': datetime.utcnow()
+        }
+        
+        user_ref = db.collection('users').add(user_doc)
+        user_id = user_ref[1].id
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        logger.info(f"New user registered: {user_data.email}")
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "trial_days_left": trial_days,
+                "is_trial": True,
+                "api_keys_set": False
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Registration failed for {user_data.email}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed. Please try again."
+        )
+
+@app.post("/api/auth/login")
+async def login_user(user_data: UserLogin):
+    """Kullanıcı girişi"""
+    try:
+        db = firestore.client()
+        
+        # Kullanıcı bulma
+        users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        user_doc = users[0]
+        user_dict = user_doc.to_dict()
+        user_id = user_doc.id
+        
+        # Şifre kontrolü
+        if not bcrypt.checkpw(user_data.password.encode(), user_dict['password_hash'].encode()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Last login güncelle
+        db.collection('users').document(user_id).update({
+            'last_login': datetime.utcnow()
+        from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+import uvicorn
+import asyncio
+import json
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field, validator
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth, firestore
+import bcrypt
+import jwt
+from cryptography.fernet import Fernet
+import os
+from contextlib import asynccontextmanager
+
+# Pydantic Models
+class UserRegistration(BaseModel):
+    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=50)
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class TradingSettings(BaseModel):
+    symbol: str = Field(..., regex=r'^[A-Z]{3,10}USDT$')
+    timeframe: str = Field(..., regex=r'^(1m|3m|5m|15m|30m|1h|2h|4h|6h|8h|12h|1d)$')
+    leverage: int = Field(default=5, ge=1, le=125)
+    order_size_usdt: float = Field(default=35.0, ge=10.0, le=10000.0)
+    stop_loss_percent: float = Field(..., ge=0.1, le=50.0)
+    take_profit_percent: float = Field(..., ge=0.1, le=100.0)
+    margin_type: str = Field(default="isolated", regex=r'^(isolated|cross)$')
+    
+    @validator('take_profit_percent')
+    def validate_tp_greater_than_sl(cls, v, values):
+        if 'stop_loss_percent' in values and v <= values['stop_loss_percent']:
+            raise ValueError('Take profit must be greater than stop loss')
+        return v
+
+class APIKeys(BaseModel):
+    api_key: str = Field(..., min_length=60, max_length=70)
+    api_secret: str = Field(..., min_length=60, max_length=70)
+
+class BotAction(BaseModel):
+    action: str = Field(..., regex=r'^(start|stop)$')
+
+# Global Variables
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0")
+security = HTTPBearer()
+connected_websockets: Dict[str, WebSocket] = {}
+bot_instances: Dict[str, 'TradingBot'] = {}
+
+# Encryption setup
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', Fernet.generate_key().decode())
+cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+
+# JWT Settings
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-super-secret-jwt-key')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await initialize_firebase()
+    await initialize_bot_manager()
+    yield
+    # Shutdown
+    await cleanup_bots()
+
+app = FastAPI(title="EzyagoTrading Bot", version="2.0.0", lifespan=lifespan)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Production'da spesifik domain'ler ekleyin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Utility Functions
+def encrypt_data(data: str) -> str:
+    """Veriyi şifreler"""
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Şifrelenmiş veriyi çözer"""
+    try:
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except:
+        return ""
+
+def create_jwt_token(user_id: str, email: str) -> str:
+    """JWT token oluşturur"""
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str) -> Optional[Dict]:
+    """JWT token doğrular"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Mevcut kullanıcıyı döndürür"""
+    token = credentials.credentials
+    payload = verify_jwt_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return payload
+
+def check_subscription_status(user_id: str) -> bool:
+    """Kullanıcının abonelik durumunu kontrol eder"""
+    db = firestore.client()
+    user_doc = db.collection('users').document(user_id).get()
+    
+    if not user_doc.exists:
+        return False
+    
+    user_data = user_doc.to_dict()
+    subscription_end = user_data.get('subscription_end')
+    
+    if not subscription_end:
+        return False
+    
+    return subscription_end > datetime.utcnow()
+
+def require_active_subscription(user: dict = Depends(get_current_user)):
+    """Aktif abonelik gerektirir"""
+    if not check_subscription_status(user['user_id']):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required"
+        )
+    return user
+
+# Firebase Initialization
+async def initialize_firebase():
+    """Firebase'i başlatır"""
+    try:
+        # Firebase credentials from environment
+        cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+        if cred_path and os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+        else:
+            # Fallback to environment variable
+            cred_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+            if cred_json:
+                cred_dict = json.loads(cred_json)
+                cred = credentials.Certificate(cred_dict)
+            else:
+                raise ValueError("Firebase credentials not found")
+        
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase initialized successfully")
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        raise
+
+# Authentication Endpoints
+@app.post("/api/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Kullanıcı kaydı"""
+    try:
+        db = firestore.client()
+        
+        # Email kontrolü
+        existing_user = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Şifre hash'leme
+        password_hash = bcrypt.hashpw(user_data.password.encode(), bcrypt.gensalt())
+        
+        # Kullanıcı oluşturma
+        user_doc = {
+            'email': user_data.email,
+            'full_name': user_data.full_name,
+            'password_hash': password_hash.decode(),
+            'created_at': datetime.utcnow(),
+            'subscription_start': datetime.utcnow(),
+            'subscription_end': datetime.utcnow() + timedelta(days=7),  # 7 gün deneme
+            'is_trial': True,
+            'api_keys_set': False,
+            'bot_active': False
+        }
+        
+        user_ref = db.collection('users').add(user_doc)
+        user_id = user_ref[1].id
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "trial_days_left": 7
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+@app.post("/api/auth/login")
+async def login_user(user_data: UserLogin):
+    """Kullanıcı girişi"""
+    try:
+        db = firestore.client()
+        
+        # Kullanıcı bulma
+        users = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        user_doc = users[0]
+        user_dict = user_doc.to_dict()
+        user_id = user_doc.id
+        
+        # Şifre kontrolü
+        if not bcrypt.checkpw(user_data.password.encode(), user_dict['password_hash'].encode()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        if user_dict.get('is_trial', False):
+            subscription_end = user_dict.get('subscription_end')
+            if subscription_end:
+                remaining = subscription_end - datetime.utcnow()
+                trial_days_left = max(0, remaining.days)
+        
+        # JWT token oluştur
+        token = create_jwt_token(user_id, user_data.email)
+        
+        return {
+            "success": True,
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": user_dict['email'],
+                "full_name": user_dict['full_name'],
+                "api_keys_set": user_dict.get('api_keys_set', False),
+                "bot_active": user_dict.get('bot_active', False),
+                "is_trial": user_dict.get('is_trial', False),
+                "trial_days_left": trial_days_left
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+# API Key Management
+@app.post("/api/user/api-keys")
+async def save_api_keys(api_keys: APIKeys, user: dict = Depends(get_current_user)):
+    """API anahtarlarını kaydeder"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        
+        # API anahtarlarını şifrele
+        encrypted_api_key = encrypt_data(api_keys.api_key)
+        encrypted_api_secret = encrypt_data(api_keys.api_secret)
+        
+        # Veritabanına kaydet
+        user_ref.update({
+            'api_key': encrypted_api_key,
+            'api_secret': encrypted_api_secret,
+            'api_keys_set': True,
+            'updated_at': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": "API keys saved securely"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save API keys: {str(e)}"
+        )
+
+@app.get("/api/user/profile")
+async def get_user_profile(user: dict = Depends(get_current_user)):
+    """Kullanıcı profil bilgileri"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # Abonelik durumu hesaplama
+        trial_days_left = 0
+        subscription_active = False
+        
+        if user_data.get('subscription_end'):
+            remaining = user_data['subscription_end'] - datetime.utcnow()
+            if remaining.total_seconds() > 0:
+                subscription_active = True
+                if user_data.get('is_trial', False):
+                    trial_days_left = remaining.days
+        
+        return {
+            "id": user['user_id'],
+            "email": user_data['email'],
+            "full_name": user_data['full_name'],
+            "api_keys_set": user_data.get('api_keys_set', False),
+            "bot_active": user_data.get('bot_active', False),
+            "is_trial": user_data.get('is_trial', False),
+            "trial_days_left": trial_days_left,
+            "subscription_active": subscription_active,
+            "created_at": user_data['created_at'].isoformat() if user_data.get('created_at') else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get profile: {str(e)}"
+        )
+
+# WebSocket for real-time updates
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket bağlantısı"""
+    await websocket.accept()
+    connected_websockets[user_id] = websocket
+    
+    try:
+        while True:
+            # Heartbeat için ping-pong
+            await websocket.receive_text()
+            await websocket.send_text(json.dumps({
+                "type": "pong",
+                "timestamp": datetime.utcnow().isoformat()
+            }))
+    except WebSocketDisconnect:
+        if user_id in connected_websockets:
+            del connected_websockets[user_id]
+
+async def send_websocket_message(user_id: str, message: dict):
+    """WebSocket üzerinden mesaj gönderir"""
+    if user_id in connected_websockets:
+        try:
+            await connected_websockets[user_id].send_text(json.dumps(message))
+        except:
+            # Bağlantı kopmuşsa listeden çıkar
+            if user_id in connected_websockets:
+                del connected_websockets[user_id]
+
+# Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """Ana sayfa"""
+    return FileResponse("static/index.html")
+
+# Health Check
+@app.get("/api/health")
+async def health_check():
+    """Sistem sağlık kontrolü"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "active_connections": len(connected_websockets),
+        "active_bots": len(bot_instances)
+    }
+
+# Bot Management Endpoints
+@app.post("/api/bot/start")
+async def start_bot(settings: TradingSettings, user: dict = Depends(require_active_subscription)):
+    """Botu başlatır"""
+    try:
+        db = firestore.client()
+        user_doc = db.collection('users').document(user['user_id']).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # API anahtarlarını kontrol et
+        if not user_data.get('api_keys_set', False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please set your API keys first"
+            )
+        
+        # API anahtarlarını çöz
+        api_key = decrypt_data(user_data.get('api_key', ''))
+        api_secret = decrypt_data(user_data.get('api_secret', ''))
+        
+        if not api_key or not api_secret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid API keys"
+            )
+        
+        # Trading settings oluştur
+        from trading_bot import TradingSettings as BotTradingSettings, bot_manager
+        
+        bot_settings = BotTradingSettings(
+            symbol=settings.symbol,
+            timeframe=settings.timeframe,
+            leverage=settings.leverage,
+            order_size_usdt=settings.order_size_usdt,
+            stop_loss_percent=settings.stop_loss_percent,
+            take_profit_percent=settings.take_profit_percent,
+            margin_type=settings.margin_type,
+            api_key=api_key,
+            api_secret=api_secret
+        )
+        
+        # Botu başlat
+        result = await bot_manager.start_bot(
+            user['user_id'], 
+            bot_settings, 
+            send_websocket_message
+        )
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': True,
+                'bot_started_at': datetime.utcnow(),
+                'current_symbol': settings.symbol
+            })
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start bot: {str(e)}"
+        )
+
+@app.post("/api/bot/stop")
+async def stop_bot(user: dict = Depends(get_current_user)):
+    """Botu durdurur"""
+    try:
+        from trading_bot import bot_manager
+        
+        result = await bot_manager.stop_bot(user['user_id'])
+        
+        if result["success"]:
+            # Veritabanında bot durumunu güncelle
+            db = firestore.client()
+            db.collection('users').document(user['user_id']).update({
+                'bot_active': False,
+                'bot_stopped_at': datetime.utcnow()
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop bot: {str(e)}"
+        )
+
+@app.get("/api/bot/status")
+async def get_bot_status(user: dict = Depends(get_current_user)):
+    """Bot durumunu döndürür"""
+    try:
+        from trading_bot import bot_manager
+        
+        status = bot_manager.get_bot_status(user['user_id'])
+        return {
+            "success": True,
+            "status": status
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get bot status: {str(e)}"
+        )
+
+@app.get("/api/market/symbols")
+async def get_futures_symbols():
+    """Futures sembollerini döndürür"""
+    try:
+        # Binance'den popüler USDT futures sembollerini al
+        popular_symbols = [
+            "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+            "SOLUSDT", "DOTUSDT", "DOGEUSDT", "AVAXUSDT", "MATICUSDT",
+            "LINKUSDT", "LTCUSDT", "UNIUSDT", "ATOMUSDT", "FILUSDT",
+            "TRXUSDT", "XLMUSDT", "VETUSDT", "ICPUSDT", "THETAUSDT"
+        ]
+        
+        return {
+            "success": True,
+            "symbols": popular_symbols
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get symbols: {str(e)}"
+        )
+
+@app.get("/api/market/price/{symbol}")
+async def get_symbol_price(symbol: str):
+    """Sembol fiyatını döndürür"""
+    try:
+        # Bu endpoint gerçek zamanlı fiyat için Binance API'si kullanabilir
+        # Şimdilik basit bir response döndürüyoruz
+        return {
+            "success": True,
+            "symbol": symbol,
+            "price": "0.00",
+            "change_24h": "0.00",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get price: {str(e)}"
+        )
+
+# Trading History
+@app.get("/api/trading/history")
+async def get_trading_history(user: dict = Depends(get_current_user)):
+    """Kullanıcının trading geçmişini döndürür"""
+    try:
+        db = firestore.client()
+        
+        # Son 30 günün işlemlerini al
+        trades = db.collection('trades')\
+                  .where('user_id', '==', user['user_id'])\
+                  .order_by('created_at', direction=firestore.Query.DESCENDING)\
+                  .limit(100)\
+                  .get()
+        
+        trade_list = []
+        for trade in trades:
+            trade_data = trade.to_dict()
+            trade_data['id'] = trade.id
+            trade_list.append(trade_data)
+        
+        return {
+            "success": True,
+            "trades": trade_list
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trading history: {str(e)}"
+        )
+
+# Subscription Management
+@app.post("/api/subscription/extend")
+async def extend_subscription(days: int, user: dict = Depends(get_current_user)):
+    """Aboneliği uzatır (admin veya ödeme sonrası)"""
+    try:
+        db = firestore.client()
+        user_ref = db.collection('users').document(user['user_id'])
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        current_end = user_data.get('subscription_end', datetime.utcnow())
+        
+        # Eğer abonelik bitmiş ise bugünden başlat, değilse mevcut bitiş tarihine ekle
+        if current_end < datetime.utcnow():
+            new_end = datetime.utcnow() + timedelta(days=days)
+        else:
+            new_end = current_end + timedelta(days=days)
+        
+        user_ref.update({
+            'subscription_end': new_end,
+            'is_trial': False,
+            'last_payment': datetime.utcnow()
+        })
+        
+        return {
+            "success": True,
+            "message": f"Subscription extended by {days} days",
+            "new_end_date": new_end.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extend subscription: {str(e)}"
+        )
+
+# Bot Management Functions
+async def initialize_bot_manager():
+    """Bot yöneticisini başlatır"""
+    from trading_bot import bot_manager
+    print("✅ Bot manager initialized")
+
+async def cleanup_bots():
+    """Tüm botları güvenli şekilde kapatır"""
+    from trading_bot import bot_manager
+    await bot_manager.stop_all_bots()
+    print("✅ All bots stopped safely")
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
