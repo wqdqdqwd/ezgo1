@@ -4,11 +4,9 @@ services:
     env: python
     region: frankfurt
     plan: starter
-    # Bu satırı ekleyin veya güncelleyin
-    pythonVersion: 3.11.9
     buildCommand: |
-      pip install --upgrade pip==24.0
-      pip install --no-cache-dir -r requirements.txt
+      python3.11 -m pip install --upgrade pip==24.0
+      python3.11 -m pip install --no-cache-dir -r requirements.txt
     startCommand: gunicorn app.main:app --bind 0.0.0.0:$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 120
     envVars:
       - key: ENVIRONMENT
@@ -17,5 +15,7 @@ services:
         value: INFO
       - key: PYTHONPATH
         value: /opt/render/project/src
+      - key: PYTHON_VERSION # We'll keep this just in case, it doesn't hurt.
+        value: 3.11.9
     healthCheckPath: /health
     autoDeploy: true
