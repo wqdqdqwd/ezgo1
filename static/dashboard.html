@@ -11,7 +11,872 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
-    <link rel="stylesheet" href="/static/dashboard.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #64748b;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --info: #0891b2;
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-card: #1e293b;
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            
+            --border-color: #334155;
+            --border-radius: 0.75rem;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+            
+            --profit-color: #16a34a;
+            --loss-color: #dc2626;
+            --profit-bg: #14532d;
+            --loss-bg: #7f1d1d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .loading-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .loading-logo i {
+            color: var(--primary);
+            font-size: 2rem;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard.hidden {
+            display: none;
+        }
+
+        /* Header */
+        .dashboard-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .logo i {
+            color: var(--primary);
+            font-size: 1.75rem;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .subscription-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--profit-bg);
+            color: var(--profit-color);
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .subscription-badge.trial {
+            background: rgba(234, 88, 12, 0.2);
+            color: var(--warning);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            gap: 0.5rem;
+            min-height: 40px;
+            user-select: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #15803d);
+            color: white;
+            box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+            color: white;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            min-height: 32px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 1fr;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header h2 i {
+            color: var(--primary);
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        /* Bot Status */
+        .bot-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: rgba(234, 88, 12, 0.1);
+            border: 1px solid rgba(234, 88, 12, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .warning-box i {
+            color: var(--warning);
+            font-size: 1.25rem;
+            margin-top: 0.125rem;
+        }
+
+        .warning-box strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .warning-box p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Trading Settings */
+        .trading-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .setting-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Status Messages */
+        .status-messages {
+            margin-top: 1rem;
+        }
+
+        .status-message {
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-message.info {
+            background: rgba(8, 145, 178, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(8, 145, 178, 0.2);
+        }
+
+        .status-message.success {
+            background: var(--profit-bg);
+            color: var(--profit-color);
+            border: 1px solid var(--profit-color);
+        }
+
+        .status-message.error {
+            background: var(--loss-bg);
+            color: var(--loss-color);
+            border: 1px solid var(--loss-color);
+        }
+
+        /* Account Stats */
+        .account-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.primary { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); }
+        .stat-icon.success { background: linear-gradient(135deg, var(--success), #15803d); }
+        .stat-icon.info { background: linear-gradient(135deg, var(--info), #0e7490); }
+        .stat-icon.warning { background: linear-gradient(135deg, var(--warning), #c2410c); }
+
+        .stat-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Subscription Info */
+        .subscription-info {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .subscription-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .subscription-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .subscription-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.trial {
+            background: rgba(234, 88, 12, 0.2);
+            color: var(--warning);
+        }
+
+        .subscription-note {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Current Position */
+        .no-position {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .no-position-icon {
+            margin-bottom: 1rem;
+        }
+
+        .no-position-icon i {
+            font-size: 3rem;
+            opacity: 0.5;
+        }
+
+        .no-position h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .no-position p {
+            font-size: 0.9rem;
+        }
+
+        .current-position.hidden {
+            display: none;
+        }
+
+        /* Recent Activity */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.info { background: linear-gradient(135deg, var(--info), #0e7490); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .api-warning {
+            background: rgba(8, 145, 178, 0.1);
+            border: 1px solid rgba(8, 145, 178, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .api-warning i {
+            color: var(--info);
+            font-size: 1.25rem;
+            margin-top: 0.125rem;
+        }
+
+        .api-warning strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .api-warning p {
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-info {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .user-info {
+                align-items: center;
+            }
+
+            .header-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .dashboard-grid {
+                gap: 1rem;
+            }
+
+            .card-header {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .card-content {
+                padding: 1rem;
+            }
+
+            .setting-row {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .account-stats {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .control-buttons {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .subscription-status {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                margin: 0.5rem;
+                max-width: none;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 1rem 0;
+            }
+
+            .card-header h2 {
+                font-size: 1.1rem;
+            }
+
+            .stat-item {
+                padding: 0.75rem;
+            }
+
+            .stat-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 0.875rem;
+            }
+
+            .stat-value {
+                font-size: 1.1rem;
+            }
+
+            .activity-item {
+                padding: 0.75rem;
+            }
+
+            .activity-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 0.875rem;
+            }
+        }
+
+        /* Grid Layout for larger screens */
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 2fr 1fr;
+                gap: 2rem;
+            }
+
+            .trading-card {
+                grid-row: span 2;
+            }
+
+            .account-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Focus states for accessibility */
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Loading states */
+        .btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -40,7 +905,7 @@
                     <div class="header-info">
                         <div class="user-info">
                             <span id="user-name">Kullanıcı</span>
-                            <div class="subscription-badge" id="subscription-badge">
+                            <div class="subscription-badge trial" id="subscription-badge">
                                 <i class="fas fa-crown"></i>
                                 <span id="subscription-text">Deneme</span>
                             </div>
@@ -224,7 +1089,7 @@
                                 <h3>Abonelik Durumu</h3>
                                 <div class="subscription-details">
                                     <div class="subscription-status">
-                                        <span class="status-badge" id="sub-status-badge">Deneme</span>
+                                        <span class="status-badge trial" id="sub-status-badge">Deneme</span>
                                         <span id="days-remaining">7 gün kaldı</span>
                                     </div>
                                     <p class="subscription-note">
@@ -255,19 +1120,6 @@
 
                             <div id="current-position" class="current-position hidden">
                                 <div class="position-header">
-                                    <div class="position-symbol" id="pos-symbol">BTCUSDT</div>
-                                    <div class="position-side" id="pos-side">LONG</div>
-                                </div>
-                                
-                                <div class="position-stats">
-                                    <div class="position-stat">
-                                        <span class="stat-label">Boyut</span>
-                                        <span class="stat-value" id="pos-size">0.001 BTC</span>
-                                    </div>
-                                    <div class="position-stat">
-                                        <span class="stat-label">Giriş</span>
-                                        <span class="stat-value" id="pos-entry">$45,000</span>
-                                    </div>
                                     <div class="position-stat">
                                         <span class="stat-label">Güncel</span>
                                         <span class="stat-value" id="pos-current">$45,500</span>
@@ -361,6 +1213,534 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <script src="/static/dashboard.js"></script>
+    <script>
+        // Dashboard JavaScript
+        let firebaseApp = null;
+        let auth = null;
+        let database = null;
+        let currentUser = null;
+        let botStatus = 'offline';
+
+        // Initialize dashboard
+        async function initializeDashboard() {
+            try {
+                // Get Firebase configuration
+                const firebaseConfig = await getFirebaseConfig();
+                
+                // Initialize Firebase
+                if (!firebaseApp) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    auth = firebase.auth();
+                    database = firebase.database();
+                }
+
+                // Auth state listener
+                auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        currentUser = user;
+                        
+                        // Hide loading screen
+                        document.getElementById('loading-screen').style.display = 'none';
+                        document.getElementById('dashboard').classList.remove('hidden');
+                        
+                        // Load user data
+                        await loadUserData();
+                        
+                        // Initialize dashboard components
+                        initializeDashboardComponents();
+                        
+                    } else {
+                        // Redirect to login if not authenticated
+                        window.location.href = '/login.html';
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Dashboard initialization failed:', error);
+                showError('Dashboard yüklenemedi. Lütfen sayfayı yenileyin.');
+            }
+        }
+
+        // Get Firebase configuration from backend
+        async function getFirebaseConfig() {
+            try {
+                const response = await fetch('/api/firebase-config');
+                if (!response.ok) {
+                    throw new Error('Firebase config could not be loaded');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error getting Firebase config:', error);
+                // Fallback configuration for demo
+                return {
+                    apiKey: "demo-api-key",
+                    authDomain: "demo.firebaseapp.com",
+                    databaseURL: "https://demo-default-rtdb.firebaseio.com/",
+                    projectId: "demo-project",
+                    storageBucket: "demo-project.appspot.com",
+                    messagingSenderId: "123456789",
+                    appId: "1:123456789:web:abcdef123456"
+                };
+            }
+        }
+
+        // Load user data
+        async function loadUserData() {
+            if (!currentUser) return;
+
+            try {
+                // Update user name
+                const userName = document.getElementById('user-name');
+                if (userName) {
+                    userName.textContent = currentUser.displayName || currentUser.email || 'Kullanıcı';
+                }
+
+                // Load user profile from database
+                const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = userSnapshot.val();
+
+                if (userData) {
+                    updateUserProfile(userData);
+                    updateUserStats(userData);
+                    checkSubscriptionStatus(userData);
+                }
+
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        // Update user profile
+        function updateUserProfile(userData) {
+            // Update subscription badge
+            const subscriptionBadge = document.getElementById('subscription-badge');
+            const subscriptionText = document.getElementById('subscription-text');
+            const subStatusBadge = document.getElementById('sub-status-badge');
+            
+            if (userData.subscription_status) {
+                const status = userData.subscription_status;
+                
+                if (subscriptionText) {
+                    subscriptionText.textContent = status === 'trial' ? 'Deneme' : 
+                                                 status === 'active' ? 'Aktif' : 'Süresi Doldu';
+                }
+                
+                if (subscriptionBadge) {
+                    subscriptionBadge.className = `subscription-badge ${status}`;
+                }
+                
+                if (subStatusBadge) {
+                    subStatusBadge.textContent = status === 'trial' ? 'Deneme' : 
+                                               status === 'active' ? 'Aktif' : 'Süresi Doldu';
+                    subStatusBadge.className = `status-badge ${status}`;
+                }
+            }
+        }
+
+        // Update user stats
+        function updateUserStats(userData) {
+            const totalTrades = document.getElementById('total-trades');
+            const winRate = document.getElementById('win-rate');
+            const totalPnl = document.getElementById('total-pnl');
+            const uptime = document.getElementById('uptime');
+
+            if (totalTrades) totalTrades.textContent = userData.total_trades || '0';
+            if (winRate) winRate.textContent = `${userData.win_rate || '0'}%`;
+            if (totalPnl) totalPnl.textContent = `${userData.total_pnl || '0.00'}`;
+            if (uptime) uptime.textContent = `${userData.uptime || '0'}h`;
+        }
+
+        // Check subscription status
+        function checkSubscriptionStatus(userData) {
+            const daysRemaining = document.getElementById('days-remaining');
+            
+            if (userData.subscription_expiry && daysRemaining) {
+                const expiryDate = new Date(userData.subscription_expiry);
+                const now = new Date();
+                const diffTime = expiryDate - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays > 0) {
+                    daysRemaining.textContent = `${diffDays} gün kaldı`;
+                } else {
+                    daysRemaining.textContent = 'Süresi doldu';
+                }
+            }
+        }
+
+        // Initialize dashboard components
+        function initializeDashboardComponents() {
+            // Logout button
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+
+            // Settings button
+            const settingsBtn = document.getElementById('settings-btn');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => {
+                    showMessage('Ayarlar özelliği yakında eklenecek.', 'info');
+                });
+            }
+
+            // API setup button
+            const setupApiBtn = document.getElementById('setup-api-btn');
+            if (setupApiBtn) {
+                setupApiBtn.addEventListener('click', showApiModal);
+            }
+
+            // Bot control buttons
+            const startBotBtn = document.getElementById('start-bot-btn');
+            const stopBotBtn = document.getElementById('stop-bot-btn');
+            
+            if (startBotBtn) {
+                startBotBtn.addEventListener('click', startBot);
+            }
+            
+            if (stopBotBtn) {
+                stopBotBtn.addEventListener('click', stopBot);
+            }
+
+            // Modal controls
+            const modalClose = document.getElementById('modal-close');
+            const cancelApi = document.getElementById('cancel-api');
+            const apiModal = document.getElementById('api-modal');
+            
+            if (modalClose) {
+                modalClose.addEventListener('click', () => hideApiModal());
+            }
+            
+            if (cancelApi) {
+                cancelApi.addEventListener('click', () => hideApiModal());
+            }
+            
+            if (apiModal) {
+                apiModal.addEventListener('click', (e) => {
+                    if (e.target === apiModal) {
+                        hideApiModal();
+                    }
+                });
+            }
+
+            // API form
+            const apiForm = document.getElementById('api-form');
+            if (apiForm) {
+                apiForm.addEventListener('submit', handleApiSubmit);
+            }
+
+            // Trading settings
+            initializeTradingSettings();
+        }
+
+        // Initialize trading settings
+        function initializeTradingSettings() {
+            // Load saved settings or set defaults
+            const symbolSelect = document.getElementById('symbol-select');
+            const timeframeSelect = document.getElementById('timeframe-select');
+            const leverageSelect = document.getElementById('leverage-select');
+            const orderSize = document.getElementById('order-size');
+            const stopLoss = document.getElementById('stop-loss');
+            const takeProfit = document.getElementById('take-profit');
+
+            // Add change listeners to save settings
+            [symbolSelect, timeframeSelect, leverageSelect, orderSize, stopLoss, takeProfit].forEach(element => {
+                if (element) {
+                    element.addEventListener('change', saveTradingSettings);
+                }
+            });
+        }
+
+        // Save trading settings
+        async function saveTradingSettings() {
+            if (!currentUser) return;
+
+            try {
+                const settings = {
+                    symbol: document.getElementById('symbol-select')?.value,
+                    timeframe: document.getElementById('timeframe-select')?.value,
+                    leverage: document.getElementById('leverage-select')?.value,
+                    order_size: document.getElementById('order-size')?.value,
+                    stop_loss: document.getElementById('stop-loss')?.value,
+                    take_profit: document.getElementById('take-profit')?.value,
+                    updated_at: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                await database.ref(`users/${currentUser.uid}/trading_settings`).set(settings);
+                console.log('Trading settings saved');
+            } catch (error) {
+                console.error('Error saving trading settings:', error);
+            }
+        }
+
+        // Handle logout
+        async function handleLogout() {
+            if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+                try {
+                    await auth.signOut();
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showMessage('Çıkış yapılırken bir hata oluştu.', 'error');
+                }
+            }
+        }
+
+        // Show API modal
+        function showApiModal() {
+            const modal = document.getElementById('api-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        // Hide API modal
+        function hideApiModal() {
+            const modal = document.getElementById('api-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            
+            // Clear form
+            const form = document.getElementById('api-form');
+            if (form) {
+                form.reset();
+            }
+        }
+
+        // Handle API form submission
+        async function handleApiSubmit(event) {
+            event.preventDefault();
+            
+            const apiKey = document.getElementById('api-key')?.value.trim();
+            const apiSecret = document.getElementById('api-secret')?.value.trim();
+            
+            if (!apiKey || !apiSecret) {
+                showMessage('Lütfen tüm alanları doldurun.', 'error');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('save-api');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
+            }
+            
+            try {
+                // In a real app, you would encrypt these and send to your backend
+                // For demo purposes, we'll just save to Firebase
+                await database.ref(`users/${currentUser.uid}/api_keys`).set({
+                    api_key: apiKey, // In production, encrypt this
+                    api_secret: apiSecret, // In production, encrypt this
+                    created_at: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                // Update UI
+                const apiWarning = document.getElementById('api-warning');
+                if (apiWarning) {
+                    apiWarning.style.display = 'none';
+                }
+                
+                // Enable bot buttons
+                const startBtn = document.getElementById('start-bot-btn');
+                if (startBtn) {
+                    startBtn.disabled = false;
+                }
+                
+                showMessage('API anahtarları başarıyla kaydedildi!', 'success');
+                hideApiModal();
+                
+            } catch (error) {
+                console.error('Error saving API keys:', error);
+                showMessage('API anahtarları kaydedilirken bir hata oluştu.', 'error');
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
+                }
+            }
+        }
+
+        // Start bot
+        async function startBot() {
+            const startBtn = document.getElementById('start-bot-btn');
+            if (!startBtn) return;
+            
+            startBtn.disabled = true;
+            startBtn.classList.add('loading');
+            
+            try {
+                // Update bot status in database
+                await database.ref(`users/${currentUser.uid}/bot_status`).set('active');
+                
+                // Update UI
+                updateBotStatus('active');
+                showMessage('Bot başarıyla başlatıldı!', 'success');
+                
+                // Add activity
+                addActivity('Bot başlatıldı', 'Bot trading moduna geçti');
+                
+            } catch (error) {
+                console.error('Error starting bot:', error);
+                showMessage('Bot başlatılırken bir hata oluştu.', 'error');
+            } finally {
+                startBtn.disabled = false;
+                startBtn.classList.remove('loading');
+            }
+        }
+
+        // Stop bot
+        async function stopBot() {
+            const stopBtn = document.getElementById('stop-bot-btn');
+            if (!stopBtn) return;
+            
+            stopBtn.disabled = true;
+            stopBtn.classList.add('loading');
+            
+            try {
+                // Update bot status in database
+                await database.ref(`users/${currentUser.uid}/bot_status`).set('inactive');
+                
+                // Update UI
+                updateBotStatus('inactive');
+                showMessage('Bot başarıyla durduruldu!', 'success');
+                
+                // Add activity
+                addActivity('Bot durduruldu', 'Trading aktivitesi sonlandırıldı');
+                
+            } catch (error) {
+                console.error('Error stopping bot:', error);
+                showMessage('Bot durdurulurken bir hata oluştu.', 'error');
+            } finally {
+                stopBtn.disabled = false;
+                stopBtn.classList.remove('loading');
+            }
+        }
+
+        // Update bot status
+        function updateBotStatus(status) {
+            botStatus = status;
+            
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const startBtn = document.getElementById('start-bot-btn');
+            const stopBtn = document.getElementById('stop-bot-btn');
+            
+            if (status === 'active') {
+                if (statusDot) statusDot.classList.add('active');
+                if (statusText) statusText.textContent = 'Aktif';
+                if (startBtn) startBtn.disabled = true;
+                if (stopBtn) stopBtn.disabled = false;
+            } else {
+                if (statusDot) statusDot.classList.remove('active');
+                if (statusText) statusText.textContent = 'Çevrimdışı';
+                if (startBtn) startBtn.disabled = false;
+                if (stopBtn) stopBtn.disabled = true;
+            }
+        }
+
+        // Add activity to the list
+        function addActivity(title, description) {
+            const activityList = document.getElementById('activity-list');
+            if (!activityList) return;
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            activityItem.innerHTML = `
+                <div class="activity-icon info">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">${title}</div>
+                    <div class="activity-time">Az önce</div>
+                </div>
+            `;
+            
+            activityList.insertBefore(activityItem, activityList.firstChild);
+            
+            // Keep only last 5 activities
+            while (activityList.children.length > 5) {
+                activityList.removeChild(activityList.lastChild);
+            }
+        }
+
+        // Show message
+        function showMessage(message, type = 'info') {
+            const statusMessages = document.getElementById('status-messages');
+            if (!statusMessages) return;
+            
+            const iconClass = {
+                'info': 'fas fa-info-circle',
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle'
+            };
+            
+            statusMessages.innerHTML = `
+                <div class="status-message ${type}">
+                    <i class="${iconClass[type] || iconClass.info}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // Auto hide success and info messages
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    if (statusMessages.innerHTML.includes(message)) {
+                        statusMessages.innerHTML = `
+                            <div class="status-message info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Bot hazır. Ayarları yapılandırıp başlatabilirsiniz.</span>
+                            </div>
+                        `;
+                    }
+                }, 3000);
+            }
+        }
+
+        // Show error
+        function showError(message) {
+            console.error(message);
+            
+            // Show error page
+            document.body.innerHTML = `
+                <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    padding: 2rem;
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
+                    text-align: center;
+                ">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;"></i>
+                    <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">Bir Hata Oluştu</h1>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">${message}</p>
+                    <button onclick="location.reload()" class="btn btn-primary">
+                        <i class="fas fa-redo"></i> Sayfayı Yenile
+                    </button>
+                </div>
+            `;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDashboard();
+        });
+    </script>
 </body>
-</html>
+</html>-symbol" id="pos-symbol">BTCUSDT</div>
+                                    <div class="position-side" id="pos-side">LONG</div>
+                                </div>
+                                
+                                <div class="position-stats">
+                                    <div class="position-stat">
+                                        <span class="stat-label">Boyut</span>
+                                        <span class="stat-value" id="pos-size">0.001 BTC</span>
+                                    </div>
+                                    <div class="position-stat">
+                                        <span class="stat-label">Giriş</span>
+                                        <span class="stat-value" id="pos-entry">$45,000</span>
+                                    </div>
+                                    <div class="position
