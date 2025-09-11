@@ -9,7 +9,7 @@ services:
       python3.11 -m venv .venv
       . .venv/bin/activate
       pip install --no-cache-dir -r requirements.txt
-    startCommand: gunicorn app.main:app --bind 0.0.0.0:$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 120 --access-logfile -
+    # startCommand: gunicorn app.main:app --bind 0.0.0.0:$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 120 --access-logfile -
     envVars:
       - key: ENVIRONMENT
         value: PRODUCTION
