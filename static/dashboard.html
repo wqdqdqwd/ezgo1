@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ayarlar - EzyagoTrading</title>
+    <title>Dashboard - EzyagoTrading</title>
+    <meta name="description" content="EzyagoTrading professional futures trading dashboard">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,42 +75,291 @@
             gap: 1rem;
         }
 
-        .back-btn {
+        .hamburger-menu {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 0.5rem;
-            border-radius: 0.375rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
             cursor: pointer;
             transition: var(--transition);
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
+            font-size: 1.1rem;
         }
 
-        .back-btn:hover {
+        .hamburger-menu:hover {
             background: var(--bg-tertiary);
         }
 
-        .header-title {
-            font-size: 1.25rem;
-            font-weight: 600;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
             color: var(--text-primary);
+        }
+
+        .logo i {
+            color: var(--primary);
+            font-size: 1.75rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .current-pair-info {
+            display: none;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .pair-symbol {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .pair-price {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-btn:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+        }
+
+        .logout-btn:hover {
+            background: #b91c1c;
+        }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(4px);
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* Mobile Sidebar */
+        .mobile-sidebar {
+            position: fixed;
+            top: 0;
+            left: -320px;
+            width: 320px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .mobile-sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-logo i {
+            color: var(--primary);
+            font-size: 1.75rem;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .sidebar-nav {
+            padding: 1rem;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+        }
+
+        .nav-item i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-item span {
+            flex: 1;
+        }
+
+        .nav-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 99px;
+            font-weight: 600;
         }
 
         /* Main Content */
         .main-content {
             padding: 1.5rem;
-            max-width: 800px;
-            margin: 0 auto;
+            min-height: calc(100vh - 80px);
         }
 
-        /* Card Styles */
+        /* Page Sections */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* Dashboard Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.success { background: linear-gradient(135deg, var(--success), #15803d); }
+        .stat-icon.warning { background: linear-gradient(135deg, var(--warning), #c2410c); }
+        .stat-icon.primary { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); }
+        .stat-icon.danger { background: linear-gradient(135deg, var(--danger), #b91c1c); }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Cards */
         .card {
             background: var(--bg-card);
-            border-radius: var(--border-radius);
+            border-radius: 0.75rem;
             border: 1px solid var(--border-color);
             margin-bottom: 1.5rem;
             overflow: hidden;
@@ -185,7 +435,7 @@
             margin-top: 0.5rem;
         }
 
-        /* Button Styles */
+        /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -218,15 +468,16 @@
             box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
         }
 
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #15803d);
+            color: white;
+            box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+        }
+
         .btn-danger {
             background: linear-gradient(135deg, var(--danger), #b91c1c);
             color: white;
             box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
         }
 
         .btn-outline {
@@ -237,12 +488,6 @@
 
         .btn-outline:hover:not(:disabled) {
             background: var(--bg-secondary);
-        }
-
-        .btn-sm {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.75rem;
-            min-height: 36px;
         }
 
         .btn-full {
@@ -448,6 +693,55 @@
             user-select: all;
         }
 
+        /* Trading Bot Section */
+        .bot-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .bot-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .trading-settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-item {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .setting-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .setting-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
         /* Success/Error Messages */
         .message {
             padding: 1rem;
@@ -481,6 +775,11 @@
                 padding: 1rem;
             }
 
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
             .card-header,
             .card-body {
                 padding: 1rem;
@@ -497,6 +796,24 @@
                 gap: 0.5rem;
                 text-align: center;
             }
+
+            .bot-controls {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .trading-settings {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .current-pair-info {
+                display: flex;
+            }
+
+            .logo span {
+                display: none;
+            }
         }
 
         @media (max-width: 480px) {
@@ -508,12 +825,35 @@
                 padding: 0.75rem;
             }
 
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+            }
+
             .card {
                 margin-bottom: 1rem;
             }
 
-            .header-title {
-                font-size: 1.1rem;
+            .header-actions {
+                gap: 0.5rem;
+            }
+
+            .user-btn span {
+                display: none;
             }
         }
 
@@ -531,229 +871,568 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <button class="back-btn" onclick="window.location.href='/dashboard.html'">
-                <i class="fas fa-arrow-left"></i>
+            <button class="hamburger-menu" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
             </button>
-            <h1 class="header-title">Ayarlar</h1>
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+                <span>EzyagoTrading</span>
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            <div class="current-pair-info">
+                <div class="pair-symbol">BTCUSDT</div>
+                <div class="pair-price">$42,156.78</div>
+            </div>
+            
+            <div class="user-menu">
+                <button class="user-btn">
+                    <i class="fas fa-user"></i>
+                    <span id="user-email">user@example.com</span>
+                </button>
+            </div>
+            
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- API Keys Section -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-key"></i>
-                <div>
-                    <div class="card-title">Binance API Anahtarları</div>
-                    <div class="card-subtitle">Futures trading için API anahtarlarınızı ayarlayın</div>
-                </div>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Mobile Sidebar -->
+    <nav class="mobile-sidebar" id="mobile-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-chart-line"></i>
+                <span>EzyagoTrading</span>
             </div>
-            <div class="card-body">
-                <!-- API Status -->
-                <div class="api-status">
-                    <div class="status-dot" id="api-status-dot"></div>
-                    <span id="api-status-text">API anahtarları yapılandırılmadı</span>
-                </div>
+            <div class="sidebar-subtitle">Professional Trading</div>
+        </div>
+        
+        <div class="sidebar-nav">
+            <!-- Ana Menü -->
+            <div class="nav-section">
+                <div class="nav-section-title">Ana Menü</div>
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="trading">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Trading Bot</span>
+                </a>
+                <a href="#" class="nav-item" data-section="positions">
+                    <i class="fas fa-list"></i>
+                    <span>Pozisyonlar</span>
+                </a>
+                <a href="#" class="nav-item" data-section="history">
+                    <i class="fas fa-history"></i>
+                    <span>İşlem Geçmişi</span>
+                </a>
+            </div>
 
-                <!-- API Warning -->
-                <div class="api-warning">
-                    <i class="fas fa-shield-alt"></i>
-                    <div class="api-warning-content">
-                        <strong>Güvenlik Bilgisi</strong>
-                        <p>API anahtarlarınız AES-256 şifreleme ile güvenli bir şekilde saklanır. Sadece futures trading izinlerini aktif edin, spot trading iznini vermeyin.</p>
-                    </div>
-                </div>
+            <!-- Ayarlar -->
+            <div class="nav-section">
+                <div class="nav-section-title">Ayarlar</div>
+                <a href="#" class="nav-item" data-section="api">
+                    <i class="fas fa-key"></i>
+                    <span>API Anahtarları</span>
+                </a>
+                <a href="#" class="nav-item" data-section="subscription">
+                    <i class="fas fa-crown"></i>
+                    <span>Abonelik</span>
+                    <span class="nav-badge">PRO</span>
+                </a>
+                <a href="#" class="nav-item" data-section="profile">
+                    <i class="fas fa-user-cog"></i>
+                    <span>Profil Ayarları</span>
+                </a>
+            </div>
 
-                <!-- API Form -->
-                <form id="api-form">
-                    <div class="form-group">
-                        <label class="form-label">API Key</label>
-                        <input type="text" id="api-key" class="form-input" placeholder="Binance API Key'inizi girin">
-                        <div class="form-help">64 karakterlik API anahtarınızı buraya girin</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">API Secret</label>
-                        <input type="password" id="api-secret" class="form-input" placeholder="Binance API Secret'ınızı girin">
-                        <div class="form-help">64 karakterlik API secret'ınızı buraya girin</div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-full" id="save-api-btn">
-                        <i class="fas fa-save"></i>
-                        API Anahtarlarını Kaydet
-                    </button>
-                </form>
-
-                <!-- IP Whitelist -->
-                <div style="margin-top: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">
-                        <i class="fas fa-network-wired" style="color: var(--primary); margin-right: 0.5rem;"></i>
-                        IP Whitelist Bilgileri
-                    </h4>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                        Binance API ayarlarınızda bu IP adreslerini whitelist'e ekleyin:
-                    </p>
-                    <div class="ip-list">
-                        <div class="ip-item">18.156.158.53</div>
-                        <div class="ip-item">18.156.42.200</div>
-                        <div class="ip-item">52.59.103.54</div>
-                    </div>
-                </div>
+            <!-- Destek -->
+            <div class="nav-section">
+                <div class="nav-section-title">Destek</div>
+                <a href="#" class="nav-item" data-section="support">
+                    <i class="fas fa-headset"></i>
+                    <span>Destek</span>
+                </a>
+                <a href="#" class="nav-item" data-section="docs">
+                    <i class="fas fa-book"></i>
+                    <span>Dökümanlar</span>
+                </a>
             </div>
         </div>
+    </nav>
 
-        <!-- Subscription Section -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-crown"></i>
-                <div>
-                    <div class="card-title">Abonelik & Ödeme</div>
-                    <div class="card-subtitle">Abonelik planınızı yönetin ve ödeme yapın</div>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section class="page-section active" id="dashboard-section">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">$12,450.00</div>
+                        <div class="stat-label">Portfolio Değeri</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">+24.5%</div>
+                        <div class="stat-label">Bu Ay Kar</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">156</div>
+                        <div class="stat-label">Toplam İşlem</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon danger">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">78%</div>
+                        <div class="stat-label">Başarı Oranı</div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <!-- Current Subscription -->
-                <div class="subscription-info">
-                    <div class="subscription-details">
-                        <h4>Mevcut Plan</h4>
-                        <p id="subscription-expiry">7 gün ücretsiz deneme</p>
-                    </div>
-                    <div class="subscription-status trial" id="subscription-status">
-                        Deneme
+
+            <!-- Quick Overview -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-area"></i>
+                    <div>
+                        <div class="card-title">Trading Bot Durumu</div>
+                        <div class="card-subtitle">Otomatik trading bot'unuzun mevcut durumu</div>
                     </div>
                 </div>
-
-                <!-- Payment Methods -->
-                <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Ödeme Planları</h4>
-                <div class="payment-methods">
-                    <div class="payment-method" data-plan="monthly">
-                        <div class="payment-method-header">
-                            <div class="payment-method-title">Aylık Abonelik</div>
-                            <div class="payment-method-price">$29.99</div>
+                <div class="card-body">
+                    <div class="bot-status-indicator">
+                        <div class="status-dot" id="bot-status-dot"></div>
+                        <span class="status-text" id="bot-status-text">Bot durumu: Offline</span>
+                    </div>
+                    
+                    <div class="trading-settings">
+                        <div class="setting-item">
+                            <div class="setting-label">Seçili Pair</div>
+                            <div class="setting-value">BTCUSDT</div>
                         </div>
-                        <div class="payment-method-desc">
-                            Tam erişim + 7/24 destek + Gelişmiş özellikler
+                        <div class="setting-item">
+                            <div class="setting-label">Kaldıraç</div>
+                            <div class="setting-value">10x</div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Pozisyon Büyüklüğü</div>
+                            <div class="setting-value">$100</div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Take Profit</div>
+                            <div class="setting-value">4%</div>
                         </div>
                     </div>
                     
-                    <div class="payment-method" data-plan="yearly">
-                        <div class="payment-method-header">
-                            <div class="payment-method-title">Yıllık Abonelik</div>
-                            <div class="payment-method-price">$299.99</div>
-                        </div>
-                        <div class="payment-method-desc">
-                            2 ay ücretsiz + Öncelikli destek + Özel özellikler
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Crypto Payment -->
-                <div id="crypto-payment" style="margin-top: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Kripto Ödeme</h4>
-                    <div class="crypto-address">
-                        <div class="address-header">
-                            <span class="address-label">USDT (TRC20) Adresi:</span>
-                            <button type="button" class="copy-btn" onclick="copyToClipboard('payment-address')">
-                                <i class="fas fa-copy"></i> Kopyala
-                            </button>
-                        </div>
-                        <div class="address-value" id="payment-address">
-                            TQn9Y2khEsLMWD7uZ7H5L2wBdx3QzMp7hL
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 1rem;">
-                        <button class="btn btn-primary" id="payment-confirm-btn">
-                            <i class="fas fa-check"></i>
-                            Ödeme Yaptım, Aktivasyon İsteyin
+                    <div class="bot-controls">
+                        <button class="btn btn-success" onclick="startBot()">
+                            <i class="fas fa-play"></i>
+                            Bot'u Başlat
+                        </button>
+                        <button class="btn btn-danger" onclick="stopBot()" disabled>
+                            <i class="fas fa-stop"></i>
+                            Bot'u Durdur
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Account Settings -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-user-cog"></i>
-                <div>
-                    <div class="card-title">Hesap Ayarları</div>
-                    <div class="card-subtitle">Kişisel bilgilerinizi ve tercihlerinizi yönetin</div>
-                </div>
-            </div>
-            <div class="card-body">
-                <form id="account-settings-form">
-                    <div class="form-group">
-                        <label class="form-label">E-posta Adresi</label>
-                        <input type="email" id="user-email" class="form-input" readonly>
-                        <div class="form-help">E-posta adresiniz değiştirilemez</div>
+        <!-- Trading Bot Section -->
+        <section class="page-section" id="trading-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-robot"></i>
+                    <div>
+                        <div class="card-title">Trading Bot Ayarları</div>
+                        <div class="card-subtitle">Bot parametrelerini yapılandırın</div>
                     </div>
-
+                </div>
+                <div class="card-body">
                     <div class="form-group">
-                        <label class="form-label">Dil / Language</label>
-                        <select id="language-select" class="form-select">
-                            <option value="tr">Türkçe</option>
-                            <option value="en">English</option>
+                        <label class="form-label">Trading Pair</label>
+                        <select class="form-select" id="trading-pair">
+                            <option value="BTCUSDT">BTCUSDT</option>
+                            <option value="ETHUSDT">ETHUSDT</option>
+                            <option value="BNBUSDT">BNBUSDT</option>
                         </select>
                     </div>
-
+                    
                     <div class="form-group">
-                        <label class="form-label">Bildirimler</label>
-                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
-                            <input type="checkbox" id="email-notifications" checked>
-                            <label for="email-notifications" style="margin: 0; color: var(--text-primary);">
-                                E-posta bildirimleri al
-                            </label>
-                        </div>
+                        <label class="form-label">Pozisyon Büyüklüğü (USDT)</label>
+                        <input type="number" class="form-input" id="position-size" value="100" min="10">
+                        <div class="form-help">Minimum 10 USDT</div>
                     </div>
-
+                    
                     <div class="form-group">
-                        <label class="form-label">İletişim Tercihi</label>
-                        <textarea id="user-notes" class="form-textarea" placeholder="Özel notlarınız veya tercihleriniz..."></textarea>
+                        <label class="form-label">Kaldıraç</label>
+                        <select class="form-select" id="leverage">
+                            <option value="5">5x</option>
+                            <option value="10" selected>10x</option>
+                            <option value="20">20x</option>
+                            <option value="50">50x</option>
+                        </select>
                     </div>
-
-                    <button type="submit" class="btn btn-primary btn-full">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Take Profit (%)</label>
+                        <input type="number" class="form-input" id="take-profit" value="4" min="0.1" max="50" step="0.1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss (%)</label>
+                        <input type="number" class="form-input" id="stop-loss" value="2" min="0.1" max="25" step="0.1">
+                    </div>
+                    
+                    <button class="btn btn-primary btn-full" onclick="saveSettings()">
                         <i class="fas fa-save"></i>
                         Ayarları Kaydet
                     </button>
-                </form>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Danger Zone -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                <div>
-                    <div class="card-title" style="color: var(--danger);">Tehlikeli Alan</div>
-                    <div class="card-subtitle">Bu işlemler geri alınamaz</div>
+        <!-- Positions Section -->
+        <section class="page-section" id="positions-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-list"></i>
+                    <div>
+                        <div class="card-title">Açık Pozisyonlar</div>
+                        <div class="card-subtitle">Mevcut trading pozisyonlarınız</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="positions-list">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <i class="fas fa-chart-line" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <h3>Henüz açık pozisyon yok</h3>
+                            <p>Bot'u başlattığınızda pozisyonlar burada görünecek</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div style="margin-bottom: 1rem;">
-                    <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">API Anahtarlarını Sil</h4>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                        Kayıtlı API anahtarlarınızı kalıcı olarak silin. Bu işlem geri alınamaz.
-                    </p>
-                    <button class="btn btn-danger" id="delete-api-btn">
-                        <i class="fas fa-trash"></i>
-                        API Anahtarlarını Sil
-                    </button>
-                </div>
+        </section>
 
-                <div>
-                    <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">Hesabı Sil</h4>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                        Hesabınızı ve tüm verilerinizi kalıcı olarak silin. Bu işlem geri alınamaz.
-                    </p>
-                    <button class="btn btn-danger" id="delete-account-btn">
-                        <i class="fas fa-user-times"></i>
-                        Hesabı Kalıcı Olarak Sil
-                    </button>
+        <!-- History Section -->
+        <section class="page-section" id="history-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-history"></i>
+                    <div>
+                        <div class="card-title">İşlem Geçmişi</div>
+                        <div class="card-subtitle">Geçmiş trading işlemleriniz</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <i class="fas fa-clock" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <h3>İşlem geçmişi yok</h3>
+                        <p>İlk işleminiz tamamlandığında burada görünecek</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- API Section -->
+        <section class="page-section" id="api-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-key"></i>
+                    <div>
+                        <div class="card-title">Binance API Anahtarları</div>
+                        <div class="card-subtitle">Futures trading için API anahtarlarınızı ayarlayın</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- API Status -->
+                    <div class="api-status">
+                        <div class="status-dot" id="api-status-dot"></div>
+                        <span id="api-status-text">API anahtarları yapılandırılmadı</span>
+                    </div>
+
+                    <!-- API Warning -->
+                    <div class="api-warning">
+                        <i class="fas fa-shield-alt"></i>
+                        <div class="api-warning-content">
+                            <strong>Güvenlik Bilgisi</strong>
+                            <p>API anahtarlarınız AES-256 şifreleme ile güvenli bir şekilde saklanır. Sadece futures trading izinlerini aktif edin, spot trading iznini vermeyin.</p>
+                        </div>
+                    </div>
+
+                    <!-- API Form -->
+                    <form id="api-form">
+                        <div class="form-group">
+                            <label class="form-label">API Key</label>
+                            <input type="text" id="api-key" class="form-input" placeholder="Binance API Key'inizi girin">
+                            <div class="form-help">64 karakterlik API anahtarınızı buraya girin</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">API Secret</label>
+                            <input type="password" id="api-secret" class="form-input" placeholder="Binance API Secret'ınızı girin">
+                            <div class="form-help">64 karakterlik API secret'ınızı buraya girin</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full" id="save-api-btn">
+                            <i class="fas fa-save"></i>
+                            API Anahtarlarını Kaydet
+                        </button>
+                    </form>
+
+                    <!-- IP Whitelist -->
+                    <div style="margin-top: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: var(--text-primary);">
+                            <i class="fas fa-network-wired" style="color: var(--primary); margin-right: 0.5rem;"></i>
+                            IP Whitelist Bilgileri
+                        </h4>
+                        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Binance API ayarlarınızda bu IP adreslerini whitelist'e ekleyin:
+                        </p>
+                        <div class="ip-list">
+                            <div class="ip-item">18.156.158.53</div>
+                            <div class="ip-item">18.156.42.200</div>
+                            <div class="ip-item">52.59.103.54</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Subscription Section -->
+        <section class="page-section" id="subscription-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-crown"></i>
+                    <div>
+                        <div class="card-title">Abonelik & Ödeme</div>
+                        <div class="card-subtitle">Abonelik planınızı yönetin ve ödeme yapın</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Current Subscription -->
+                    <div class="subscription-info">
+                        <div class="subscription-details">
+                            <h4>Mevcut Plan</h4>
+                            <p id="subscription-expiry">7 gün ücretsiz deneme</p>
+                        </div>
+                        <div class="subscription-status trial" id="subscription-status">
+                            Deneme
+                        </div>
+                    </div>
+
+                    <!-- Payment Methods -->
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Ödeme Planları</h4>
+                    <div class="payment-methods">
+                        <div class="payment-method" data-plan="monthly">
+                            <div class="payment-method-header">
+                                <div class="payment-method-title">Aylık Abonelik</div>
+                                <div class="payment-method-price">$29.99</div>
+                            </div>
+                            <div class="payment-method-desc">
+                                Tam erişim + 7/24 destek + Gelişmiş özellikler
+                            </div>
+                        </div>
+                        
+                        <div class="payment-method" data-plan="yearly">
+                            <div class="payment-method-header">
+                                <div class="payment-method-title">Yıllık Abonelik</div>
+                                <div class="payment-method-price">$299.99</div>
+                            </div>
+                            <div class="payment-method-desc">
+                                2 ay ücretsiz + Öncelikli destek + Özel özellikler
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crypto Payment -->
+                    <div id="crypto-payment" style="margin-top: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Kripto Ödeme</h4>
+                        <div class="crypto-address">
+                            <div class="address-header">
+                                <span class="address-label">USDT (TRC20) Adresi:</span>
+                                <button type="button" class="copy-btn" onclick="copyToClipboard('payment-address')">
+                                    <i class="fas fa-copy"></i> Kopyala
+                                </button>
+                            </div>
+                            <div class="address-value" id="payment-address">
+                                TQn9Y2khEsLMWD7uZ7H5L2wBdx3QzMp7hL
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 1rem;">
+                            <button class="btn btn-primary" id="payment-confirm-btn">
+                                <i class="fas fa-check"></i>
+                                Ödeme Yaptım, Aktivasyon İsteyin
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section class="page-section" id="profile-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-cog"></i>
+                    <div>
+                        <div class="card-title">Profil Ayarları</div>
+                        <div class="card-subtitle">Kişisel bilgilerinizi ve tercihlerinizi yönetin</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="profile-form">
+                        <div class="form-group">
+                            <label class="form-label">E-posta Adresi</label>
+                            <input type="email" id="user-email-input" class="form-input" readonly>
+                            <div class="form-help">E-posta adresiniz değiştirilemez</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Dil / Language</label>
+                            <select id="language-select" class="form-select">
+                                <option value="tr">Türkçe</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Bildirimler</label>
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                                <input type="checkbox" id="email-notifications" checked>
+                                <label for="email-notifications" style="margin: 0; color: var(--text-primary);">
+                                    E-posta bildirimleri al
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-save"></i>
+                            Ayarları Kaydet
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Support Section -->
+        <section class="page-section" id="support-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-headset"></i>
+                    <div>
+                        <div class="card-title">Destek</div>
+                        <div class="card-subtitle">Yardım ve destek için bizimle iletişime geçin</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <h3>Nasıl yardımcı olabiliriz?</h3>
+                        <p style="color: var(--text-secondary);">Herhangi bir sorunuz veya sorununuz var mı? 7/24 buradayız!</p>
+                    </div>
+                    
+                    <div style="display: grid; gap: 1rem;">
+                        <a href="mailto:bilgi@ezyagotrading.com" class="btn btn-outline btn-full">
+                            <i class="fas fa-envelope"></i>
+                            E-posta Gönder
+                        </a>
+                        
+                        <button class="btn btn-primary btn-full" onclick="openChat()">
+                            <i class="fas fa-comments"></i>
+                            Canlı Destek
+                        </button>
+                        
+                        <a href="https://wa.me/905555555555" target="_blank" class="btn btn-success btn-full">
+                            <i class="fab fa-whatsapp"></i>
+                            WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Docs Section -->
+        <section class="page-section" id="docs-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-book"></i>
+                    <div>
+                        <div class="card-title">Dökümanlar</div>
+                        <div class="card-subtitle">Kullanım kılavuzları ve eğitim materyalleri</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-play-circle" style="color: var(--primary); margin-right: 0.5rem;"></i>
+                                Başlangıç Kılavuzu
+                            </h4>
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                Bot'u nasıl kuracağınızı ve ilk işleminizi nasıl yapacağınızı öğrenin
+                            </p>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-external-link-alt"></i>
+                                Kılavuzu Aç
+                            </button>
+                        </div>
+                        
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-shield-alt" style="color: var(--success); margin-right: 0.5rem;"></i>
+                                API Güvenlik Kılavuzu
+                            </h4>
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                Binance API anahtarlarınızı güvenli bir şekilde nasıl oluşturacağınızı öğrenin
+                            </p>
+                            <button class="btn btn-outline">
+                                <i class="fas fa-external-link-alt"></i>
+                                Kılavuzu Aç
+                            </button>
+                        </div>
+                        
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-chart-line" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                                Risk Yönetimi
+                            </h4>
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                Trading risklerini minimize etmek için önemli ipuçları
+                            </p>
+                            <button class="btn btn-outline">
+                                <i class="fas fa-external-link-alt"></i>
+                                Kılavuzu Aç
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Messages -->
@@ -770,26 +1449,104 @@
     <script>
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            initializeAPI();
-            initializePayment();
-            initializeSettings();
+            initializePage();
             loadUserData();
         });
 
-        // API Functions
-        function initializeAPI() {
-            const apiForm = document.getElementById('api-form');
-            const deleteApiBtn = document.getElementById('delete-api-btn');
+        // Initialize page functionality
+        function initializePage() {
+            const hamburgerMenu = document.getElementById('hamburger-menu');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            const navItems = document.querySelectorAll('.nav-item');
 
+            // Hamburger menu toggle
+            hamburgerMenu.addEventListener('click', () => {
+                mobileSidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+            });
+
+            // Close sidebar when clicking overlay
+            sidebarOverlay.addEventListener('click', () => {
+                mobileSidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+            });
+
+            // Navigation items
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const section = item.dataset.section;
+                    if (section) {
+                        showSection(section);
+                        
+                        // Update active state
+                        navItems.forEach(nav => nav.classList.remove('active'));
+                        item.classList.add('active');
+                        
+                        // Close sidebar on mobile
+                        mobileSidebar.classList.remove('active');
+                        sidebarOverlay.classList.remove('active');
+                    }
+                });
+            });
+
+            // Initialize forms
+            initializeForms();
+        }
+
+        // Show specific section
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show target section
+            const targetSection = document.getElementById(`${sectionName}-section`);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+        }
+
+        // Initialize forms
+        function initializeForms() {
+            // API form
+            const apiForm = document.getElementById('api-form');
             if (apiForm) {
                 apiForm.addEventListener('submit', handleApiSubmit);
             }
 
-            if (deleteApiBtn) {
-                deleteApiBtn.addEventListener('click', handleDeleteApi);
+            // Profile form
+            const profileForm = document.getElementById('profile-form');
+            if (profileForm) {
+                profileForm.addEventListener('submit', handleProfileSubmit);
+            }
+
+            // Payment confirmation
+            const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
+            if (paymentConfirmBtn) {
+                paymentConfirmBtn.addEventListener('click', handlePaymentConfirm);
             }
         }
 
+        // Load user data
+        function loadUserData() {
+            // Mock user data
+            const userEmail = 'user@example.com';
+            
+            // Update user email displays
+            document.getElementById('user-email').textContent = userEmail;
+            document.getElementById('user-email-input').value = userEmail;
+            
+            // Load API status
+            updateApiStatus(false);
+            
+            // Load subscription status
+            updateSubscriptionStatus('trial', '7 gün kaldı');
+        }
+
+        // API Functions
         async function handleApiSubmit(event) {
             event.preventDefault();
             
@@ -847,18 +1604,122 @@
             }
         }
 
-        async function handleDeleteApi() {
-            if (confirm('API anahtarlarınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
-                updateApiStatus(false);
-                showSuccess('API anahtarları silindi');
-            }
+        // Profile Functions
+        async function handleProfileSubmit(event) {
+            event.preventDefault();
+            
+            showSuccess('Profil ayarları başarıyla kaydedildi!');
+        }
+
+        // Trading Functions
+        function startBot() {
+            const statusDot = document.getElementById('bot-status-dot');
+            const statusText = document.getElementById('bot-status-text');
+            
+            statusDot.className = 'status-dot active';
+            statusText.textContent = 'Bot durumu: Aktif';
+            
+            showSuccess('Trading bot başarıyla başlatıldı!');
+        }
+
+        function stopBot() {
+            const statusDot = document.getElementById('bot-status-dot');
+            const statusText = document.getElementById('bot-status-text');
+            
+            statusDot.className = 'status-dot';
+            statusText.textContent = 'Bot durumu: Offline';
+            
+            showSuccess('Trading bot durduruldu!');
+        }
+
+        function saveSettings() {
+            showSuccess('Bot ayarları başarıyla kaydedildi!');
         }
 
         // Payment Functions
-        function initializePayment() {
-            const paymentMethods = document.querySelectorAll('.payment-method');
-            const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
+        function handlePaymentConfirm() {
+            showSuccess('Ödeme talebiniz alındı! Aktivasyon için bekleyin.');
+        }
 
-            paymentMethods.forEach(method => {
-                method.addEventListener('click', () => {
-                    paymentM
+        function updateSubscriptionStatus(status, expiry) {
+            const statusElement = document.getElementById('subscription-status');
+            const expiryElement = document.getElementById('subscription-expiry');
+            
+            if (statusElement) {
+                statusElement.textContent = status === 'trial' ? 'Deneme' : 
+                                          status === 'active' ? 'Aktif' : 'Süresi Dolmuş';
+                statusElement.className = `subscription-status ${status}`;
+            }
+            
+            if (expiryElement) {
+                expiryElement.textContent = expiry;
+            }
+        }
+
+        // Copy to clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const text = element.textContent;
+            
+            if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopyFeedback(element);
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showCopyFeedback(element);
+            }
+        }
+
+        function showCopyFeedback(element) {
+            const originalText = element.textContent;
+            element.textContent = 'Kopyalandı!';
+            element.style.color = 'var(--success)';
+            
+            setTimeout(() => {
+                element.textContent = originalText;
+                element.style.color = '';
+            }, 1000);
+        }
+
+        // Support Functions
+        function openChat() {
+            showSuccess('Canlı destek yakında aktif olacak!');
+        }
+
+        // Logout Function
+        function logout() {
+            if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+                window.location.href = '/';
+            }
+        }
+
+        // Message Functions
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            const successText = document.getElementById('success-text');
+            const errorDiv = document.getElementById('error-message');
+            
+            if (successDiv && successText) {
+                successText.textContent = message;
+                successDiv.classList.remove('hidden');
+            }
+            
+            if (errorDiv) {
+                errorDiv.classList.add('hidden');
+            }
+            
+            setTimeout(() => {
+                if (successDiv) {
+                    successDiv.classList.add('hidden');
+                }
+            }, 5000);
+        }
