@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -18,9 +18,33 @@ from app.firebase_manager import firebase_manager
 from app.bot_manager import bot_manager, StartRequest
 from app.utils.logger import get_logger
 from app.utils.metrics import metrics, get_metrics_data, get_metrics_content_type
-from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
 
 logger = get_logger("main")
+
+# Rate limiter için fallback - Redis olmadığında in-memory kullan
+try:
+    from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
+    RATE_LIMITING_ENABLED = True
+    logger.info("Rate limiting enabled")
+except Exception as e:
+    logger.warning("Rate limiting disabled due to Redis unavailability", error=str(e))
+    RATE_LIMITING_ENABLED = False
+    # Dummy limiter oluştur
+    class DummyLimiter:
+        def limit(self, rate_string):
+            def decorator(func):
+                return func
+            return decorator
+        def init_app(self, app):
+            pass
+    
+    limiter = DummyLimiter()
+    
+    def rate_limit_exceeded_handler(request, exc):
+        return JSONResponse(
+            status_code=429,
+            content={"error": "Rate limit exceeded", "detail": "Too many requests"}
+        )
 
 # ---------------- Pydantic Models ----------------
 
@@ -88,6 +112,13 @@ def get_admin_user(current_user: dict = Depends(get_current_user)):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting EzyagoTrading application")
+    # Setup logging
+    import logging
+    logging.basicConfig(
+        level=getattr(logging, settings.LOG_LEVEL, logging.INFO),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler()]
+    )
     yield
     logger.info("Shutting down EzyagoTrading application")
     await bot_manager.shutdown_all_bots()
@@ -109,31 +140,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if hasattr(limiter, 'init_app'):
-    limiter.init_app(app)
-app.add_exception_handler(429, rate_limit_exceeded_handler)
+# Rate limiter'ı sadece aktifse ekle
+if RATE_LIMITING_ENABLED:
+    try:
+        limiter.init_app(app)
+        app.add_exception_handler(429, rate_limit_exceeded_handler)
+        logger.info("Rate limiting middleware added")
+    except Exception as e:
+        logger.warning("Failed to add rate limiting middleware", error=str(e))
 
 # ---------------- Logging Middleware ----------------
 
 @app.middleware("http")
-async def log_requests(request, call_next):
+async def log_requests(request: Request, call_next):
     start_time = datetime.now()
-    response = await call_next(request)
-    duration = (datetime.now() - start_time).total_seconds()
-    logger.info(
-        "HTTP Request",
-        method=request.method,
-        url=str(request.url),
-        status_code=response.status_code,
-        duration=duration
-    )
-    metrics.record_api_request(
-        endpoint=request.url.path,
-        method=request.method,
-        status_code=response.status_code,
-        duration=duration
-    )
-    return response
+    try:
+        response = await call_next(request)
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.info(
+            "HTTP Request",
+            method=request.method,
+            url=str(request.url),
+            status_code=response.status_code,
+            duration=duration
+        )
+        metrics.record_api_request(
+            endpoint=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            duration=duration
+        )
+        return response
+    except Exception as e:
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.error(
+            "HTTP Request failed",
+            method=request.method,
+            url=str(request.url),
+            error=str(e),
+            duration=duration
+        )
+        raise
 
 # ---------------- Static Files ----------------
 
@@ -168,7 +215,9 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "2.0.0",
         "active_connections": len(connected_websockets),
-        "active_bots": len(bot_manager.active_bots)
+        "active_bots": len(bot_manager.active_bots),
+        "environment": settings.ENVIRONMENT,
+        "rate_limiting": RATE_LIMITING_ENABLED
     }
 
 @app.get("/metrics")
@@ -191,9 +240,28 @@ async def get_firebase_config():
 
 # ---------------- User & Bot Endpoints ----------------
 
+# Rate limiting için decorator yardımcı fonksiyonu
+def apply_rate_limit(rate_string):
+    if RATE_LIMITING_ENABLED:
+        return limiter.limit(rate_string)
+    else:
+        def dummy_decorator(func):
+            return func
+        return dummy_decorator
+
 @app.post("/api/user/api-keys")
-@limiter.limit("5/minute")
-async def save_api_keys(api_keys: ApiKeysRequest, current_user: dict = Depends(get_current_user)):
+async def save_api_keys(
+    request: Request,
+    api_keys: ApiKeysRequest, 
+    current_user: dict = Depends(get_current_user)
+):
+    # Rate limiting manuel olarak kontrol et
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "5/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
     try:
         firebase_manager.update_user_api_keys(
             current_user['uid'],
@@ -225,8 +293,18 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Failed to get user profile")
 
 @app.post("/api/bot/start")
-@limiter.limit("3/minute")
-async def start_bot(bot_settings: BotSettingsRequest, current_user: dict = Depends(get_current_user)):
+async def start_bot(
+    request: Request,
+    bot_settings: BotSettingsRequest, 
+    current_user: dict = Depends(get_current_user)
+):
+    # Rate limiting manuel kontrol
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "3/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
     try:
         if not firebase_manager.is_subscription_active(current_user['uid']):
             raise HTTPException(status_code=402, detail="Active subscription required")
@@ -247,8 +325,17 @@ async def start_bot(bot_settings: BotSettingsRequest, current_user: dict = Depen
         raise HTTPException(status_code=500, detail="Failed to start bot")
 
 @app.post("/api/bot/stop")
-@limiter.limit("10/minute")
-async def stop_bot(current_user: dict = Depends(get_current_user)):
+async def stop_bot(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    # Rate limiting manuel kontrol
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "10/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
     try:
         result = await bot_manager.stop_bot_for_user(current_user['uid'])
         metrics.record_bot_stop(current_user['uid'], "unknown", "manual")
@@ -273,6 +360,7 @@ async def get_bot_status(current_user: dict = Depends(get_current_user)):
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await websocket.accept()
     connected_websockets[user_id] = websocket
+    logger.info("WebSocket connected", user_id=user_id)
     try:
         while True:
             data = await websocket.receive_text()
