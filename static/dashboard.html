@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - EzyagoTrading</title>
-    <meta name="description" content="EzyagoTrading Dashboard - Trading Bot Kontrolü">
+    <title>Ayarlar - EzyagoTrading</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,77 +55,8 @@
             min-height: 100vh;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        /* Loading Screen - Kısa süre göster */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease-out;
-        }
-
-        .loading-content {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .loading-logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-
-        .loading-logo i {
-            color: var(--primary);
-            font-size: 2rem;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Dashboard Layout */
-        .dashboard {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            opacity: 0;
-            transition: opacity 0.5s ease-in;
-        }
-
-        .dashboard.show {
-            opacity: 1;
-        }
-
-        /* Mobile Header */
-        .mobile-header {
+        /* Header */
+        .header {
             background: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
             padding: 1rem;
@@ -141,298 +71,118 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
         }
 
-        .hamburger-btn {
-            background: none;
-            border: none;
+        .back-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
             color: var(--text-primary);
-            font-size: 1.5rem;
-            cursor: pointer;
             padding: 0.5rem;
             border-radius: 0.375rem;
+            cursor: pointer;
             transition: var(--transition);
-        }
-
-        .hamburger-btn:hover {
-            background: var(--bg-secondary);
-        }
-
-        .logo {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .header-title {
             font-size: 1.25rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-
-        .logo i {
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .subscription-badge {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            background: var(--profit-bg);
-            color: var(--profit-color);
-            border-radius: 99px;
-            font-size: 0.75rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .subscription-badge.trial {
-            background: rgba(234, 88, 12, 0.2);
-            color: var(--warning);
-        }
-
-        /* Hamburger Menu */
-        .hamburger-menu {
-            position: fixed;
-            top: 0;
-            left: -320px;
-            width: 320px;
-            height: 100vh;
-            background: var(--bg-card);
-            border-right: 1px solid var(--border-color);
-            z-index: 9998;
-            transition: var(--transition);
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .hamburger-menu.open {
-            left: 0;
-        }
-
-        .hamburger-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9997;
-            opacity: 0;
-            visibility: hidden;
-            transition: var(--transition);
-        }
-
-        .hamburger-overlay.open {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .menu-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .menu-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            transition: var(--transition);
-        }
-
-        .menu-close:hover {
-            background: var(--bg-secondary);
             color: var(--text-primary);
-        }
-
-        .menu-nav {
-            flex: 1;
-            padding: 1rem;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border: none;
-            background: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-            width: 100%;
-            text-align: left;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .menu-item:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        .menu-item i {
-            margin-right: 1rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        .menu-footer {
-            padding: 1rem;
-            border-top: 1px solid var(--border-color);
         }
 
         /* Main Content */
         .main-content {
-            flex: 1;
-            padding: 1rem;
-            max-width: 100vw;
-            overflow-x: hidden;
+            padding: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
-        /* Bot Status Card */
-        .status-card {
+        /* Card Styles */
+        .card {
             background: var(--bg-card);
             border-radius: var(--border-radius);
             border: 1px solid var(--border-color);
-            padding: 1.5rem;
             margin-bottom: 1.5rem;
+            overflow: hidden;
         }
 
-        .status-header {
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            gap: 0.75rem;
         }
 
-        .status-title {
+        .card-header i {
+            color: var(--primary);
             font-size: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
         }
 
-        .status-title i {
-            color: var(--primary);
-        }
-
-        .bot-status {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--danger);
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.active {
-            background: var(--success);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* API Warning */
-        .api-warning {
-            background: rgba(234, 88, 12, 0.1);
-            border: 1px solid rgba(234, 88, 12, 0.2);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-
-        .api-warning i {
-            color: var(--warning);
-            font-size: 1.25rem;
-            margin-top: 0.125rem;
-        }
-
-        .api-warning strong {
-            color: var(--text-primary);
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        .api-warning p {
+        .card-subtitle {
+            font-size: 0.875rem;
             color: var(--text-secondary);
-            margin-bottom: 1rem;
+            margin-top: 0.25rem;
         }
 
-        /* Trading Settings */
-        .trading-settings {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Form Styles */
+        .form-group {
             margin-bottom: 1.5rem;
         }
 
-        .setting-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .setting-group label {
+        .form-label {
+            display: block;
             font-size: 0.875rem;
             font-weight: 500;
             color: var(--text-secondary);
+            margin-bottom: 0.5rem;
         }
 
-        .setting-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-input, .form-select {
+        .form-input, .form-select, .form-textarea {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.875rem 1rem;
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             background: var(--bg-secondary);
             color: var(--text-primary);
             font-size: 0.875rem;
+            transition: var(--transition);
         }
 
-        .form-input:focus, .form-select:focus {
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
 
-        /* Control Buttons */
-        .control-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1rem;
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
         }
 
         /* Button Styles */
@@ -440,7 +190,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.875rem 1rem;
+            padding: 0.875rem 1.5rem;
             border: none;
             border-radius: 0.5rem;
             font-size: 0.875rem;
@@ -450,13 +200,11 @@
             text-decoration: none;
             gap: 0.5rem;
             min-height: 48px;
-            user-select: none;
         }
 
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-            transform: none !important;
         }
 
         .btn-primary {
@@ -468,17 +216,6 @@
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-1px);
             box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, var(--success), #15803d);
-            color: white;
-            box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
-        }
-
-        .btn-success:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
         }
 
         .btn-danger {
@@ -500,859 +237,628 @@
 
         .btn-outline:hover:not(:disabled) {
             background: var(--bg-secondary);
-            border-color: var(--border-color);
         }
 
         .btn-sm {
             padding: 0.5rem 0.75rem;
             font-size: 0.75rem;
-            min-height: 32px;
+            min-height: 36px;
         }
 
-        /* Account Stats */
-        .account-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+        .btn-full {
+            width: 100%;
         }
 
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: var(--bg-secondary);
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .stat-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-
-        .stat-icon.primary { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); }
-        .stat-icon.success { background: linear-gradient(135deg, var(--success), #15803d); }
-        .stat-icon.info { background: linear-gradient(135deg, var(--info), #0e7490); }
-        .stat-icon.warning { background: linear-gradient(135deg, var(--warning), #c2410c); }
-
-        .stat-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        /* Status Messages */
-        .status-messages {
-            margin-top: 1rem;
-        }
-
-        .status-message {
-            padding: 0.875rem 1rem;
-            border-radius: 0.5rem;
+        /* API Section */
+        .api-status {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .status-message.info {
-            background: rgba(8, 145, 178, 0.1);
-            color: var(--info);
-            border: 1px solid rgba(8, 145, 178, 0.2);
-        }
-
-        .status-message.success {
-            background: var(--profit-bg);
-            color: var(--profit-color);
-            border: 1px solid var(--profit-color);
-        }
-
-        .status-message.error {
-            background: var(--loss-bg);
-            color: var(--loss-color);
-            border: 1px solid var(--loss-color);
-        }
-
-        /* Current Position */
-        .position-card {
-            background: var(--bg-card);
-            border-radius: var(--border-radius);
-            border: 1px solid var(--border-color);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .no-position {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-muted);
-        }
-
-        .no-position-icon {
             margin-bottom: 1rem;
         }
 
-        .no-position-icon i {
-            font-size: 3rem;
-            opacity: 0.5;
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
         }
 
-        .no-position h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
+        .status-dot.active {
+            background: var(--success);
         }
 
-        .no-position p {
-            font-size: 0.9rem;
-        }
-
-        /* Recent Activity */
-        .activity-list {
+        .api-warning {
+            background: rgba(234, 88, 12, 0.1);
+            border: 1px solid rgba(234, 88, 12, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
             display: flex;
-            flex-direction: column;
+            align-items: flex-start;
             gap: 0.75rem;
         }
 
-        .activity-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: var(--bg-secondary);
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
+        .api-warning i {
+            color: var(--warning);
+            font-size: 1.25rem;
+            margin-top: 0.125rem;
         }
 
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-
-        .activity-icon.info { background: linear-gradient(135deg, var(--info), #0e7490); }
-
-        .activity-content {
+        .api-warning-content {
             flex: 1;
         }
 
-        .activity-title {
+        .api-warning strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .ip-list {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .ip-item {
+            font-family: 'Courier New', monospace;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .ip-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Subscription Section */
+        .subscription-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .subscription-details h4 {
+            font-size: 1rem;
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 0.25rem;
         }
 
-        .activity-time {
+        .subscription-details p {
             font-size: 0.875rem;
             color: var(--text-secondary);
         }
 
-        /* Mobile Optimizations */
+        .subscription-status {
+            padding: 0.375rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .subscription-status.active {
+            background: var(--profit-bg);
+            color: var(--profit-color);
+        }
+
+        .subscription-status.trial {
+            background: rgba(234, 88, 12, 0.2);
+            color: var(--warning);
+        }
+
+        .subscription-status.expired {
+            background: var(--loss-bg);
+            color: var(--loss-color);
+        }
+
+        .payment-methods {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .payment-method {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .payment-method:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary);
+        }
+
+        .payment-method-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-method-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .payment-method-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .payment-method-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .crypto-address {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .address-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .address-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .address-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            line-height: 1.4;
+            user-select: all;
+        }
+
+        /* Success/Error Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .message.success {
+            background: var(--profit-bg);
+            color: var(--profit-color);
+            border: 1px solid var(--profit-color);
+        }
+
+        .message.error {
+            background: var(--loss-bg);
+            color: var(--loss-color);
+            border: 1px solid var(--loss-color);
+        }
+
+        .message.hidden {
+            display: none;
+        }
+
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .setting-row {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
+            .main-content {
+                padding: 1rem;
             }
 
-            .account-stats {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
+            .card-header,
+            .card-body {
+                padding: 1rem;
             }
 
-            .control-buttons {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
+            .subscription-info {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
             }
 
-            .stat-item {
-                padding: 0.75rem;
-            }
-
-            .stat-icon {
-                width: 32px;
-                height: 32px;
-                font-size: 0.875rem;
-            }
-
-            .stat-value {
-                font-size: 1rem;
-            }
-
-            .activity-item {
-                padding: 0.75rem;
-            }
-
-            .activity-icon {
-                width: 32px;
-                height: 32px;
-                font-size: 0.875rem;
+            .payment-method-header {
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
             }
         }
 
         @media (max-width: 480px) {
+            .header {
+                padding: 0.75rem;
+            }
+
             .main-content {
                 padding: 0.75rem;
             }
 
-            .status-card, .position-card {
-                padding: 1rem;
+            .card {
                 margin-bottom: 1rem;
             }
 
-            .status-title {
+            .header-title {
                 font-size: 1.1rem;
             }
-
-            .hamburger-menu {
-                width: 280px;
-                left: -280px;
-            }
-
-            .menu-header {
-                padding: 1rem;
-            }
         }
 
-        /* Loading states */
-        .btn.loading {
-            opacity: 0.7;
-            pointer-events: none;
+        /* Loading animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .btn.loading i {
+        .loading {
             animation: spin 1s linear infinite;
-        }
-
-        /* Focus states for accessibility */
-        button:focus-visible,
-        input:focus-visible,
-        select:focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-        }
-
-        /* Hide loading screen */
-        .loading-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-logo">
-                <i class="fas fa-chart-line"></i>
-                <span>EzyagoTrading</span>
-            </div>
-            <div class="loading-spinner"></div>
-            <p>Dashboard yükleniyor...</p>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="back-btn" onclick="window.location.href='/dashboard.html'">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1 class="header-title">Ayarlar</h1>
         </div>
-    </div>
+    </header>
 
-    <!-- Main Dashboard -->
-    <div id="dashboard" class="dashboard">
-        <!-- Mobile Header -->
-        <header class="mobile-header">
-            <div class="header-left">
-                <button class="hamburger-btn" id="hamburger-btn">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="logo">
-                    <i class="fas fa-chart-line"></i>
-                    <span>EzyagoTrading</span>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- API Keys Section -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-key"></i>
+                <div>
+                    <div class="card-title">Binance API Anahtarları</div>
+                    <div class="card-subtitle">Futures trading için API anahtarlarınızı ayarlayın</div>
                 </div>
             </div>
-            
-            <div class="header-right">
-                <div class="subscription-badge" id="subscription-badge">
-                    <i class="fas fa-crown"></i>
-                    <span id="subscription-text">Aktif</span>
+            <div class="card-body">
+                <!-- API Status -->
+                <div class="api-status">
+                    <div class="status-dot" id="api-status-dot"></div>
+                    <span id="api-status-text">API anahtarları yapılandırılmadı</span>
                 </div>
-            </div>
-        </header>
 
-        <!-- Hamburger Menu -->
-        <div class="hamburger-overlay" id="hamburger-overlay"></div>
-        <div class="hamburger-menu" id="hamburger-menu">
-            <div class="menu-header">
-                <div class="logo">
-                    <i class="fas fa-chart-line"></i>
-                    <span>EzyagoTrading</span>
-                </div>
-                <button class="menu-close" id="menu-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <nav class="menu-nav">
-                <button class="menu-item" id="api-menu-btn">
-                    <i class="fas fa-key"></i>
-                    <span>API Anahtarları</span>
-                </button>
-                <button class="menu-item" id="subscription-menu-btn">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Abonelik & Ödeme</span>
-                </button>
-                <button class="menu-item" id="settings-menu-btn">
-                    <i class="fas fa-cog"></i>
-                    <span>Ayarlar</span>
-                </button>
-                <button class="menu-item" id="support-menu-btn">
-                    <i class="fas fa-headset"></i>
-                    <span>Destek</span>
-                </button>
-            </nav>
-            
-            <div class="menu-footer">
-                <button class="btn btn-danger" id="logout-btn" style="width: 100%;">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Çıkış Yap
-                </button>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Bot Status Card -->
-            <div class="status-card">
-                <div class="status-header">
-                    <h2 class="status-title">
-                        <i class="fas fa-robot"></i>
-                        Trading Bot
-                    </h2>
-                    <div class="bot-status" id="bot-status">
-                        <div class="status-dot" id="status-dot"></div>
-                        <span id="status-text">Çevrimdışı</span>
+                <!-- API Warning -->
+                <div class="api-warning">
+                    <i class="fas fa-shield-alt"></i>
+                    <div class="api-warning-content">
+                        <strong>Güvenlik Bilgisi</strong>
+                        <p>API anahtarlarınız AES-256 şifreleme ile güvenli bir şekilde saklanır. Sadece futures trading izinlerini aktif edin, spot trading iznini vermeyin.</p>
                     </div>
                 </div>
-                
-                <!-- Trading Settings -->
-                <div class="trading-settings">
-                    <div class="setting-group">
-                        <label>Trading Çifti</label>
-                        <select id="symbol-select" class="form-select">
-                            <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
-                            <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
-                            <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
-                            <option value="ADAUSDT">Cardano (ADAUSDT)</option>
-                            <option value="SOLUSDT">Solana (SOLUSDT)</option>
+
+                <!-- API Form -->
+                <form id="api-form">
+                    <div class="form-group">
+                        <label class="form-label">API Key</label>
+                        <input type="text" id="api-key" class="form-input" placeholder="Binance API Key'inizi girin">
+                        <div class="form-help">64 karakterlik API anahtarınızı buraya girin</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">API Secret</label>
+                        <input type="password" id="api-secret" class="form-input" placeholder="Binance API Secret'ınızı girin">
+                        <div class="form-help">64 karakterlik API secret'ınızı buraya girin</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full" id="save-api-btn">
+                        <i class="fas fa-save"></i>
+                        API Anahtarlarını Kaydet
+                    </button>
+                </form>
+
+                <!-- IP Whitelist -->
+                <div style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">
+                        <i class="fas fa-network-wired" style="color: var(--primary); margin-right: 0.5rem;"></i>
+                        IP Whitelist Bilgileri
+                    </h4>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Binance API ayarlarınızda bu IP adreslerini whitelist'e ekleyin:
+                    </p>
+                    <div class="ip-list">
+                        <div class="ip-item">18.156.158.53</div>
+                        <div class="ip-item">18.156.42.200</div>
+                        <div class="ip-item">52.59.103.54</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Section -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-crown"></i>
+                <div>
+                    <div class="card-title">Abonelik & Ödeme</div>
+                    <div class="card-subtitle">Abonelik planınızı yönetin ve ödeme yapın</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Current Subscription -->
+                <div class="subscription-info">
+                    <div class="subscription-details">
+                        <h4>Mevcut Plan</h4>
+                        <p id="subscription-expiry">7 gün ücretsiz deneme</p>
+                    </div>
+                    <div class="subscription-status trial" id="subscription-status">
+                        Deneme
+                    </div>
+                </div>
+
+                <!-- Payment Methods -->
+                <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Ödeme Planları</h4>
+                <div class="payment-methods">
+                    <div class="payment-method" data-plan="monthly">
+                        <div class="payment-method-header">
+                            <div class="payment-method-title">Aylık Abonelik</div>
+                            <div class="payment-method-price">$29.99</div>
+                        </div>
+                        <div class="payment-method-desc">
+                            Tam erişim + 7/24 destek + Gelişmiş özellikler
+                        </div>
+                    </div>
+                    
+                    <div class="payment-method" data-plan="yearly">
+                        <div class="payment-method-header">
+                            <div class="payment-method-title">Yıllık Abonelik</div>
+                            <div class="payment-method-price">$299.99</div>
+                        </div>
+                        <div class="payment-method-desc">
+                            2 ay ücretsiz + Öncelikli destek + Özel özellikler
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crypto Payment -->
+                <div id="crypto-payment" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Kripto Ödeme</h4>
+                    <div class="crypto-address">
+                        <div class="address-header">
+                            <span class="address-label">USDT (TRC20) Adresi:</span>
+                            <button type="button" class="copy-btn" onclick="copyToClipboard('payment-address')">
+                                <i class="fas fa-copy"></i> Kopyala
+                            </button>
+                        </div>
+                        <div class="address-value" id="payment-address">
+                            TQn9Y2khEsLMWD7uZ7H5L2wBdx3QzMp7hL
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <button class="btn btn-primary" id="payment-confirm-btn">
+                            <i class="fas fa-check"></i>
+                            Ödeme Yaptım, Aktivasyon İsteyin
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Settings -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-user-cog"></i>
+                <div>
+                    <div class="card-title">Hesap Ayarları</div>
+                    <div class="card-subtitle">Kişisel bilgilerinizi ve tercihlerinizi yönetin</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="account-settings-form">
+                    <div class="form-group">
+                        <label class="form-label">E-posta Adresi</label>
+                        <input type="email" id="user-email" class="form-input" readonly>
+                        <div class="form-help">E-posta adresiniz değiştirilemez</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Dil / Language</label>
+                        <select id="language-select" class="form-select">
+                            <option value="tr">Türkçe</option>
+                            <option value="en">English</option>
                         </select>
                     </div>
 
-                    <div class="setting-row">
-                        <div class="setting-group">
-                            <label>Zaman Dilimi</label>
-                            <select id="timeframe-select" class="form-select">
-                                <option value="1m">1 Dakika</option>
-                                <option value="5m">5 Dakika</option>
-                                <option value="15m" selected>15 Dakika</option>
-                                <option value="30m">30 Dakika</option>
-                                <option value="1h">1 Saat</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-group">
-                            <label>Kaldıraç</label>
-                            <select id="leverage-select" class="form-select">
-                                <option value="1">1x</option>
-                                <option value="2">2x</option>
-                                <option value="5" selected>5x</option>
-                                <option value="10">10x</option>
-                                <option value="20">20x</option>
-                            </select>
+                    <div class="form-group">
+                        <label class="form-label">Bildirimler</label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                            <input type="checkbox" id="email-notifications" checked>
+                            <label for="email-notifications" style="margin: 0; color: var(--text-primary);">
+                                E-posta bildirimleri al
+                            </label>
                         </div>
                     </div>
 
-                    <div class="setting-row">
-                        <div class="setting-group">
-                            <label>Pozisyon Büyüklüğü (USDT)</label>
-                            <input type="number" id="order-size" class="form-input" value="35" min="10" max="10000">
-                        </div>
-
-                        <div class="setting-group">
-                            <label>Stop Loss (%)</label>
-                            <input type="number" id="stop-loss" class="form-input" value="2" min="0.1" max="50" step="0.1">
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">İletişim Tercihi</label>
+                        <textarea id="user-notes" class="form-textarea" placeholder="Özel notlarınız veya tercihleriniz..."></textarea>
                     </div>
 
-                    <div class="setting-group">
-                        <label>Take Profit (%)</label>
-                        <input type="number" id="take-profit" class="form-input" value="4" min="0.1" max="100" step="0.1">
-                    </div>
-                </div>
-
-                <!-- Control Buttons -->
-                <div class="control-buttons">
-                    <button class="btn btn-success" id="start-bot-btn">
-                        <i class="fas fa-play"></i>
-                        Bot'u Başlat
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-save"></i>
+                        Ayarları Kaydet
                     </button>
-                    <button class="btn btn-danger" id="stop-bot-btn" disabled>
-                        <i class="fas fa-stop"></i>
-                        Bot'u Durdur
+                </form>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                <div>
+                    <div class="card-title" style="color: var(--danger);">Tehlikeli Alan</div>
+                    <div class="card-subtitle">Bu işlemler geri alınamaz</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">API Anahtarlarını Sil</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Kayıtlı API anahtarlarınızı kalıcı olarak silin. Bu işlem geri alınamaz.
+                    </p>
+                    <button class="btn btn-danger" id="delete-api-btn">
+                        <i class="fas fa-trash"></i>
+                        API Anahtarlarını Sil
                     </button>
                 </div>
 
-                <!-- Status Messages -->
-                <div id="status-messages" class="status-messages">
-                    <div class="status-message info">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Bot hazır. Ayarları yapılandırıp başlatabilirsiniz.</span>
-                    </div>
+                <div>
+                    <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">Hesabı Sil</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Hesabınızı ve tüm verilerinizi kalıcı olarak silin. Bu işlem geri alınamaz.
+                    </p>
+                    <button class="btn btn-danger" id="delete-account-btn">
+                        <i class="fas fa-user-times"></i>
+                        Hesabı Kalıcı Olarak Sil
+                    </button>
                 </div>
             </div>
+        </div>
+    </main>
 
-            <!-- Account Stats -->
-            <div class="account-stats">
-                <div class="stat-item">
-                    <div class="stat-icon info">
-                        <i class="fas fa-dollar-sign"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value" id="total-pnl">$0.00</div>
-                        <div class="stat-label">Toplam P&L</div>
-                    </div>
-                </div>
-
-                <div class="stat-item">
-                    <div class="stat-icon warning">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value" id="uptime">0h</div>
-                        <div class="stat-label">Çalışma Süresi</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Current Position -->
-            <div class="position-card">
-                <h3 style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-chart-bar" style="color: var(--primary);"></i>
-                    Mevcut Pozisyon
-                </h3>
-                
-                <div id="no-position" class="no-position">
-                    <div class="no-position-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>Açık Pozisyon Yok</h3>
-                    <p>Bot başlatıldığında pozisyonlar burada görünecek</p>
-                </div>
-            </div>
-
-            <!-- Recent Activity -->
-            <div class="position-card">
-                <h3 style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-history" style="color: var(--primary);"></i>
-                    Son Aktiviteler
-                </h3>
-                
-                <div class="activity-list" id="activity-list">
-                    <div class="activity-item">
-                        <div class="activity-icon info">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-title">Hesap oluşturuldu</div>
-                            <div class="activity-time">Az önce</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
+    <!-- Messages -->
+    <div id="success-message" class="message success hidden">
+        <i class="fas fa-check-circle"></i>
+        <span id="success-text"></span>
     </div>
 
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
+    <div id="error-message" class="message error hidden">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="error-text"></span>
+    </div>
+
     <script>
-        // Dashboard JavaScript - Basitleştirilmiş versiyon
-        let auth = null;
-        let database = null;
-        let currentUser = null;
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeAPI();
+            initializePayment();
+            initializeSettings();
+            loadUserData();
+        });
 
-        // Hızlı loading için timeout
-        setTimeout(() => {
-            const loadingScreen = document.getElementById('loading-screen');
-            const dashboard = document.getElementById('dashboard');
-            
-            if (loadingScreen) {
-                loadingScreen.classList.add('hidden');
-            }
-            if (dashboard) {
-                dashboard.classList.add('show');
-            }
-        }, 1000); // 1 saniye sonra dashboard'ı göster
+        // API Functions
+        function initializeAPI() {
+            const apiForm = document.getElementById('api-form');
+            const deleteApiBtn = document.getElementById('delete-api-btn');
 
-        // Firebase konfigürasyonu al
-        async function getFirebaseConfig() {
-            try {
-                const response = await fetch('/api/firebase-config');
-                if (response.ok) {
-                    return await response.json();
-                }
-            } catch (error) {
-                console.log('Firebase config yüklenemedi, demo mode');
+            if (apiForm) {
+                apiForm.addEventListener('submit', handleApiSubmit);
             }
-            
-            // Demo config
-            return {
-                apiKey: "demo-api-key",
-                authDomain: "demo.firebaseapp.com",
-                databaseURL: "https://demo-default-rtdb.firebaseio.com/",
-                projectId: "demo-project",
-                storageBucket: "demo-project.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abcdef123456"
-            };
+
+            if (deleteApiBtn) {
+                deleteApiBtn.addEventListener('click', handleDeleteApi);
+            }
         }
 
-        // Firebase başlat
-        async function initializeFirebase() {
+        async function handleApiSubmit(event) {
+            event.preventDefault();
+            
+            const apiKey = document.getElementById('api-key').value.trim();
+            const apiSecret = document.getElementById('api-secret').value.trim();
+            
+            if (!apiKey || !apiSecret) {
+                showError('Lütfen tüm alanları doldurun');
+                return;
+            }
+            
+            if (apiKey.length !== 64 || apiSecret.length !== 64) {
+                showError('API Key ve Secret 64 karakter olmalıdır');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('save-api-btn');
+            const originalText = saveBtn.innerHTML;
+            
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner loading"></i> Kaydediliyor...';
+            
             try {
-                const firebaseConfig = await getFirebaseConfig();
-                firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                database = firebase.database();
+                // Simulated API call
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 
-                // Auth state listener
-                auth.onAuthStateChanged(async (user) => {
-                    if (user) {
-                        currentUser = user;
-                        console.log('Kullanıcı giriş yapmış:', user.email);
-                        // Dashboard içeriği yükle
-                        loadDashboardData();
-                    } else {
-                        // Login sayfasına yönlendir
-                        window.location.href = '/login.html';
-                    }
-                });
+                // Update status
+                updateApiStatus(true);
+                showSuccess('API anahtarları başarıyla kaydedildi!');
+                
+                // Clear form
+                document.getElementById('api-key').value = '';
+                document.getElementById('api-secret').value = '';
                 
             } catch (error) {
-                console.error('Firebase başlatma hatası:', error);
-                // Demo mode olarak devam et
-                loadDashboardData();
+                showError('API anahtarları kaydedilemedi: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
             }
         }
 
-        // Dashboard verilerini yükle
-        function loadDashboardData() {
-            console.log('Dashboard verileri yükleniyor...');
-            
-            // Demo veriler
-            updateStats({
-                totalTrades: 0,
-                winRate: 0,
-                totalPnl: '$0.00',
-                uptime: '0h'
-            });
-            
-            updateBotStatus('offline', 'Çevrimdışı');
-        }
-
-        // İstatistikleri güncelle
-        function updateStats(stats) {
-            const elements = {
-                'total-trades': stats.totalTrades,
-                'win-rate': stats.winRate + '%',
-                'total-pnl': stats.totalPnl,
-                'uptime': stats.uptime
-            };
-            
-            Object.entries(elements).forEach(([id, value]) => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.textContent = value;
-                }
-            });
-        }
-
-        // Bot durumunu güncelle
-        function updateBotStatus(status, text) {
-            const statusDot = document.getElementById('status-dot');
-            const statusText = document.getElementById('status-text');
+        function updateApiStatus(isConnected) {
+            const statusDot = document.getElementById('api-status-dot');
+            const statusText = document.getElementById('api-status-text');
             
             if (statusDot) {
-                statusDot.className = `status-dot ${status === 'active' ? 'active' : ''}`;
+                statusDot.className = `status-dot ${isConnected ? 'active' : ''}`;
             }
             
             if (statusText) {
-                statusText.textContent = text;
-            }
-            
-            // Buton durumları
-            const startBtn = document.getElementById('start-bot-btn');
-            const stopBtn = document.getElementById('stop-bot-btn');
-            
-            if (startBtn) {
-                startBtn.disabled = status === 'active';
-            }
-            
-            if (stopBtn) {
-                stopBtn.disabled = status !== 'active';
+                statusText.textContent = isConnected ? 
+                    'API anahtarları bağlandı' : 
+                    'API anahtarları yapılandırılmadı';
             }
         }
 
-        // Hamburger menu
-        function initializeMenu() {
-            const hamburgerBtn = document.getElementById('hamburger-btn');
-            const hamburgerMenu = document.getElementById('hamburger-menu');
-            const hamburgerOverlay = document.getElementById('hamburger-overlay');
-            const menuClose = document.getElementById('menu-close');
-
-            function openMenu() {
-                hamburgerMenu.classList.add('open');
-                hamburgerOverlay.classList.add('open');
-            }
-
-            function closeMenu() {
-                hamburgerMenu.classList.remove('open');
-                hamburgerOverlay.classList.remove('open');
-            }
-
-            if (hamburgerBtn) {
-                hamburgerBtn.addEventListener('click', openMenu);
-            }
-
-            if (menuClose) {
-                menuClose.addEventListener('click', closeMenu);
-            }
-
-            if (hamburgerOverlay) {
-                hamburgerOverlay.addEventListener('click', closeMenu);
+        async function handleDeleteApi() {
+            if (confirm('API anahtarlarınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+                updateApiStatus(false);
+                showSuccess('API anahtarları silindi');
             }
         }
 
-        // Bot kontrolleri
-        function initializeBotControls() {
-            const startBtn = document.getElementById('start-bot-btn');
-            const stopBtn = document.getElementById('stop-bot-btn');
+        // Payment Functions
+        function initializePayment() {
+            const paymentMethods = document.querySelectorAll('.payment-method');
+            const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
 
-            if (startBtn) {
-                startBtn.addEventListener('click', startBot);
-            }
-
-            if (stopBtn) {
-                stopBtn.addEventListener('click', stopBot);
-            }
-        }
-
-        // Bot başlat
-        async function startBot() {
-            const startBtn = document.getElementById('start-bot-btn');
-            if (!startBtn) return;
-
-            const originalText = startBtn.innerHTML;
-            startBtn.disabled = true;
-            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Başlatılıyor...';
-
-            try {
-                // Bot ayarlarını al
-                const settings = {
-                    symbol: document.getElementById('symbol-select')?.value || 'BTCUSDT',
-                    timeframe: document.getElementById('timeframe-select')?.value || '15m',
-                    leverage: document.getElementById('leverage-select')?.value || 5,
-                    order_size: document.getElementById('order-size')?.value || 35,
-                    stop_loss: document.getElementById('stop-loss')?.value || 2,
-                    take_profit: document.getElementById('take-profit')?.value || 4
-                };
-
-                console.log('Bot başlatılıyor:', settings);
-
-                // Demo için başarılı olduğunu varsay
-                setTimeout(() => {
-                    updateBotStatus('active', 'Çalışıyor');
-                    showStatusMessage('Bot başarıyla başlatıldı!', 'success');
-                }, 1000);
-
-            } catch (error) {
-                console.error('Bot başlatma hatası:', error);
-                showStatusMessage('Bot başlatılamadı: ' + error.message, 'error');
-            } finally {
-                setTimeout(() => {
-                    startBtn.innerHTML = originalText;
-                    startBtn.disabled = false;
-                }, 1000);
-            }
-        }
-
-        // Bot durdur
-        async function stopBot() {
-            const stopBtn = document.getElementById('stop-bot-btn');
-            if (!stopBtn) return;
-
-            const originalText = stopBtn.innerHTML;
-            stopBtn.disabled = true;
-            stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Durduruluyor...';
-
-            try {
-                console.log('Bot durduruluyor...');
-
-                // Demo için başarılı olduğunu varsay
-                setTimeout(() => {
-                    updateBotStatus('offline', 'Çevrimdışı');
-                    showStatusMessage('Bot başarıyla durduruldu!', 'success');
-                }, 1000);
-
-            } catch (error) {
-                console.error('Bot durdurma hatası:', error);
-                showStatusMessage('Bot durdurulamadı: ' + error.message, 'error');
-            } finally {
-                setTimeout(() => {
-                    stopBtn.innerHTML = originalText;
-                    stopBtn.disabled = true;
-                }, 1000);
-            }
-        }
-
-        // Status mesajı göster
-        function showStatusMessage(message, type) {
-            const statusMessages = document.getElementById('status-messages');
-            if (!statusMessages) return;
-
-            const messageElement = document.createElement('div');
-            messageElement.className = `status-message ${type}`;
-            messageElement.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-                <span>${message}</span>
-            `;
-
-            statusMessages.innerHTML = '';
-            statusMessages.appendChild(messageElement);
-
-            // 5 saniye sonra mesajı temizle
-            setTimeout(() => {
-                if (statusMessages.contains(messageElement)) {
-                    statusMessages.removeChild(messageElement);
-                    // Varsayılan mesajı geri koy
-                    statusMessages.innerHTML = `
-                        <div class="status-message info">
-                            <i class="fas fa-info-circle"></i>
-                            <span>Bot hazır. Ayarları yapılandırıp başlatabilirsiniz.</span>
-                        </div>
-                    `;
-                }
-            }, 5000);
-        }
-
-        // Logout
-        async function handleLogout() {
-            if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
-                try {
-                    if (auth) {
-                        await auth.signOut();
-                    } else {
-                        window.location.href = '/login.html';
-                    }
-                } catch (error) {
-                    console.error('Logout hatası:', error);
-                    window.location.href = '/login.html';
-                }
-            }
-        }
-
-        // Menu item listeners
-        function initializeMenuItems() {
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', handleLogout);
-            }
-
-            // Diğer menu itemları için placeholder
-            const apiMenuBtn = document.getElementById('api-menu-btn');
-            if (apiMenuBtn) {
-                apiMenuBtn.addEventListener('click', () => {
-                    alert('API Anahtarları özelliği yakında gelecek!');
-                });
-            }
-
-            const subscriptionMenuBtn = document.getElementById('subscription-menu-btn');
-            if (subscriptionMenuBtn) {
-                subscriptionMenuBtn.addEventListener('click', () => {
-                    alert('Abonelik özelliği yakında gelecek!');
-                });
-            }
-
-            const settingsMenuBtn = document.getElementById('settings-menu-btn');
-            if (settingsMenuBtn) {
-                settingsMenuBtn.addEventListener('click', () => {
-                    alert('Ayarlar özelliği yakında gelecek!');
-                });
-            }
-
-            const supportMenuBtn = document.getElementById('support-menu-btn');
-            if (supportMenuBtn) {
-                supportMenuBtn.addEventListener('click', () => {
-                    alert('Destek: support@ezyagotrading.com');
-                });
-            }
-        }
-
-        // Sayfa yüklendiğinde çalıştır
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Dashboard yükleniyor...');
-            
-            // Hemen UI'ı başlat
-            initializeMenu();
-            initializeBotControls();
-            initializeMenuItems();
-            
-            // Firebase'i arka planda başlat
-            initializeFirebase();
-        });
-    </script>
-</body>
-</html><div class="stat-icon primary">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value" id="total-trades">0</div>
-                        <div class="stat-label">Toplam İşlem</div>
-                    </div>
-                </div>
-
-                <div class="stat-item">
-                    <div class="stat-icon success">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value" id="win-rate">0%</div>
-                        <div class="stat-label">Başarı Oranı</div>
-                    </div>
-                </div>
-
-                <div class="stat-item">
+            paymentMethods.forEach(method => {
+                method.addEventListener('click', () => {
+                    paymentM
