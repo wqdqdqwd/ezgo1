@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EzyagoTrading - Professional Crypto Trading Bot</title>
-    <meta name="description" content="Profesyonel kripto para futures trading botu - 7 gün ücretsiz deneme">
+    <title>EzyagoTrading - Yapay Zeka Destekli Kripto Futures Trading Botu</title>
+    <meta name="description" content="Yapay zeka destekli profesyonel kripto vadeli işlemler (futures) trading botu. 7 gün ücretsiz deneme ile güvenli ve otomatik trading deneyimi.">
+    <meta name="keywords" content="kripto trading bot, futures trading, vadeli işlemler, yapay zeka trading, otomatik alım satım, binance bot, kripto bot">
+    <meta name="author" content="EzyagoTrading">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="EzyagoTrading - Yapay Zeka Destekli Kripto Trading Botu">
+    <meta property="og:description" content="Profesyonel kripto vadeli işlemler trading botu. 7 gün ücretsiz deneme.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ezyagotrading.com">
+    <meta property="og:image" content="https://ezyagotrading.com/assets/og-image.jpg">
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="EzyagoTrading - Yapay Zeka Destekli Kripto Trading Botu">
+    <meta name="twitter:description" content="Profesyonel kripto vadeli işlemler trading botu. 7 gün ücretsiz deneme.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,6 +85,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
         
         .logo {
@@ -88,7 +105,8 @@
         
         .nav-links {
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
+            align-items: center;
         }
         
         .btn {
@@ -104,6 +122,7 @@
             transition: var(--transition);
             text-decoration: none;
             gap: 0.5rem;
+            white-space: nowrap;
         }
         
         .btn-primary {
@@ -130,9 +149,12 @@
         /* Hero Section */
         .hero {
             background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-            padding: 4rem 0;
+            padding: 3rem 0;
             position: relative;
             overflow: hidden;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
         }
         
         .hero::before {
@@ -151,10 +173,11 @@
             text-align: center;
             max-width: 800px;
             margin: 0 auto;
+            width: 100%;
         }
         
         .hero h1 {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: 800;
             margin-bottom: 1.5rem;
             background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
@@ -164,7 +187,7 @@
         }
         
         .hero p {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             color: var(--text-secondary);
             margin-bottom: 2rem;
             line-height: 1.6;
@@ -177,17 +200,38 @@
             flex-wrap: wrap;
         }
         
+        .hero-actions .btn {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+        }
+        
         /* Features */
         .features {
             padding: 4rem 0;
             background: var(--bg-primary);
         }
         
+        .features-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .features-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .features-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+        
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 2rem;
-            margin-top: 3rem;
         }
         
         .feature-card {
@@ -278,40 +322,115 @@
             color: rgba(255, 255, 255, 0.9);
         }
         
+        .cta .btn {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+            background: white;
+            color: var(--primary);
+        }
+        
         /* Footer */
         .footer {
             background: var(--bg-card);
             border-top: 1px solid var(--bg-tertiary);
-            padding: 2rem 0;
-            text-align: center;
+            padding: 3rem 0 2rem 0;
         }
         
-        .footer p {
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-        
-        .footer-links {
-            display: flex;
-            justify-content: center;
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 2rem;
-            flex-wrap: wrap;
+            margin-bottom: 2rem;
         }
         
-        .footer-links a {
+        .footer-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .footer-section p,
+        .footer-section li {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        
+        .footer-section ul {
+            list-style: none;
+        }
+        
+        .footer-section a {
             color: var(--text-secondary);
             text-decoration: none;
             transition: var(--transition);
         }
         
-        .footer-links a:hover {
+        .footer-section a:hover {
             color: var(--primary);
         }
         
-        /* Mobile */
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid var(--bg-tertiary);
+            color: var(--text-muted);
+        }
+        
+        .contact-info {
+            margin-bottom: 1rem;
+        }
+        
+        .contact-info a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        /* Risk Warning */
+        .risk-warning {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        
+        .risk-warning h4 {
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .risk-warning p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        /* Mobile Responsive */
         @media (max-width: 768px) {
+            .container {
+                padding: 0 0.75rem;
+            }
+            
+            .nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
             .nav-links {
-                gap: 0.5rem;
+                order: -1;
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .hero {
+                padding: 2rem 0;
+                min-height: 70vh;
             }
             
             .hero h1 {
@@ -319,12 +438,28 @@
             }
             
             .hero p {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
             
             .hero-actions {
                 flex-direction: column;
                 align-items: center;
+                gap: 0.75rem;
+            }
+            
+            .hero-actions .btn {
+                width: 100%;
+                max-width: 300px;
+                padding: 0.875rem 1.5rem;
+                font-size: 1rem;
+            }
+            
+            .features {
+                padding: 3rem 0;
+            }
+            
+            .features-header h2 {
+                font-size: 2rem;
             }
             
             .features-grid {
@@ -332,18 +467,168 @@
                 gap: 1.5rem;
             }
             
+            .feature-card {
+                padding: 1.5rem;
+            }
+            
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 1rem;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+            
+            .cta {
+                padding: 3rem 0;
             }
             
             .cta h2 {
                 font-size: 2rem;
             }
             
-            .footer-links {
-                flex-direction: column;
+            .cta p {
+                font-size: 1rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .footer {
+                padding: 2rem 0 1rem 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 0.5rem;
+            }
+            
+            .header {
+                padding: 0.75rem 0;
+            }
+            
+            .logo {
+                font-size: 1.25rem;
+            }
+            
+            .logo i {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 0.625rem 1rem;
+                font-size: 0.875rem;
+            }
+            
+            .hero {
+                padding: 1.5rem 0;
+                min-height: 60vh;
+            }
+            
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+            
+            .hero p {
+                font-size: 0.9rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .hero-actions .btn {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .features-header h2 {
+                font-size: 1.75rem;
+            }
+            
+            .feature-card {
+                padding: 1.25rem;
+            }
+            
+            .feature-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
                 gap: 1rem;
+            }
+            
+            .stat-number {
+                font-size: 1.75rem;
+            }
+            
+            .cta h2 {
+                font-size: 1.75rem;
+            }
+            
+            .cta p {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* Landscape Mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .hero {
+                min-height: 90vh;
+                padding: 1rem 0;
+            }
+            
+            .hero h1 {
+                font-size: 1.75rem;
+                margin-bottom: 1rem;
+            }
+            
+            .hero p {
+                font-size: 0.9rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+        
+        /* Focus states for accessibility */
+        .btn:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        
+        /* Loading states */
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            :root {
+                --bg-tertiary: #64748b;
+                --text-secondary: #e2e8f0;
+            }
+        }
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
@@ -375,8 +660,8 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1>Profesyonel Kripto Futures Trading</h1>
-                <p>EMA stratejisi ile otomatik trading. 7 gün ücretsiz deneme ile başlayın ve güvenli şekilde kripto futures işlemlerinizi gerçekleştirin.</p>
+                <h1>Profesyonel Kripto Vadeli İşlemler Trading</h1>
+                <p>Yapay zeka destekli otomatik trading sistemi ile güvenli futures işlemleri. 7 gün ücretsiz deneme ile başlayın.</p>
                 <div class="hero-actions">
                     <a href="/register.html" class="btn btn-primary">
                         <i class="fas fa-rocket"></i>
@@ -394,18 +679,18 @@
     <!-- Features Section -->
     <section class="features" id="features">
         <div class="container">
-            <div class="hero-content">
-                <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;">Neden EzyagoTrading?</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 0;">Modern trading algoritmaları ile güvenli ve karlı işlemler</p>
+            <div class="features-header">
+                <h2>Neden EzyagoTrading?</h2>
+                <p>Modern yapay zeka teknolojisi ile güvenli ve karlı vadeli işlem deneyimi</p>
             </div>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-robot"></i>
+                        <i class="fas fa-brain"></i>
                     </div>
-                    <h3>Otomatik Trading</h3>
-                    <p>EMA 9/21 crossover stratejisi ile 7/24 otomatik işlem. Manuel müdahale gerektirmez.</p>
+                    <h3>Yapay Zeka Destekli</h3>
+                    <p>Gelişmiş AI algoritmaları ile piyasa analizi ve otomatik trading kararları.</p>
                 </div>
                 
                 <div class="feature-card">
@@ -436,8 +721,8 @@
                     <div class="feature-icon">
                         <i class="fas fa-clock"></i>
                     </div>
-                    <h3>Gerçek Zamanlı</h3>
-                    <p>WebSocket ile anlık fiyat güncellemeleri ve işlem bildirimleri.</p>
+                    <h3>7/24 Aktif</h3>
+                    <p>Piyasa hiç kapanmaz, botunuz da. Kesintisiz trading deneyimi.</p>
                 </div>
                 
                 <div class="feature-card">
@@ -445,7 +730,7 @@
                         <i class="fas fa-cog"></i>
                     </div>
                     <h3>Özelleştirilebilir</h3>
-                    <p>Kaldıraç, pozisyon büyüklüğü ve timeframe ayarlarını isteğinize göre düzenleyin.</p>
+                    <p>Kaldıraç, pozisyon büyüklüğü ve zaman dilimi ayarlarını isteğinize göre düzenleyin.</p>
                 </div>
             </div>
         </div>
@@ -456,19 +741,19 @@
         <div class="container">
             <div class="stats-grid">
                 <div class="stat-item">
-                    <div class="stat-number">250+</div>
+                    <div class="stat-number">500+</div>
                     <div class="stat-label">Aktif Kullanıcı</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">15,000+</div>
+                    <div class="stat-number">25,000+</div>
                     <div class="stat-label">Toplam İşlem</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">73%</div>
-                    <div class="stat-label">Kazanma Oranı</div>
+                    <div class="stat-number">78%</div>
+                    <div class="stat-label">Başarı Oranı</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">$2.1M</div>
+                    <div class="stat-number">$5.2M</div>
                     <div class="stat-label">İşlem Hacmi</div>
                 </div>
             </div>
@@ -480,7 +765,7 @@
         <div class="container">
             <h2>Trading'e Başlamaya Hazır mısınız?</h2>
             <p>7 gün ücretsiz deneme - Kredi kartı gerektirmez</p>
-            <a href="/register.html" class="btn btn-primary" style="background: white; color: var(--primary); font-size: 1.1rem; padding: 1rem 2rem;">
+            <a href="/register.html" class="btn">
                 <i class="fas fa-rocket"></i>
                 Hemen Başla
             </a>
@@ -490,14 +775,111 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 EzyagoTrading. Tüm hakları saklıdır.</p>
-            <div class="footer-links">
-                <a href="#terms">Kullanım Şartları</a>
-                <a href="#privacy">Gizlilik Politikası</a>
-                <a href="#support">Destek</a>
-                <a href="#contact">İletişim</a>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>EzyagoTrading</h3>
+                    <p>Yapay zeka destekli profesyonel kripto vadeli işlemler (futures) trading platformu. Güvenli, hızlı ve karlı trading deneyimi.</p>
+                    <div class="contact-info">
+                        <p><strong>İletişim:</strong> <a href="mailto:bilgi@ezyagotrading.com">bilgi@ezyagotrading.com</a></p>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Hizmetler</h3>
+                    <ul>
+                        <li><a href="#features">Otomatik Trading</a></li>
+                        <li><a href="#features">Yapay Zeka Analizi</a></li>
+                        <li><a href="#features">Risk Yönetimi</a></li>
+                        <li><a href="#features">Portföy Takibi</a></li>
+                        <li><a href="#features">7/24 Destek</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Yasal Bilgiler</h3>
+                    <ul>
+                        <li><a href="#privacy">Gizlilik Politikası</a></li>
+                        <li><a href="#terms">Kullanım Şartları</a></li>
+                        <li><a href="#risk">Risk Bildirimi</a></li>
+                        <li><a href="#contact">İletişim</a></li>
+                        <li><a href="#support">Destek</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Risk Uyarısı</h3>
+                    <div class="risk-warning">
+                        <h4>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Önemli Uyarı
+                        </h4>
+                        <p>Kripto para vadeli işlemleri (futures) yüksek risk içerir. Sadece kaybetmeyi göze alabileceğiniz sermaye ile işlem yapın. Geçmiş performans gelecekteki sonuçları garanti etmez.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 EzyagoTrading. Tüm hakları saklıdır.</p>
+                <p>Bu platform eğitim amaçlıdır. Yatırım tavsiyesi değildir. Kendi araştırmanızı yapın.</p>
+                
+                <!-- SEO and Legal Content -->
+                <div style="margin-top: 2rem; text-align: left; color: var(--text-muted); font-size: 0.75rem; line-height: 1.4;">
+                    <p><strong>Yasal Sorumluluk:</strong> EzyagoTrading bir teknoloji platformudur. Finansal danışmanlık hizmeti sunmaz. Kullanıcılar kendi sorumluluklarında işlem yapar. Platform sadece teknik altyapı sağlar.</p>
+                    
+                    <p><strong>Risk Bildirimi:</strong> Kripto para vadeli işlemleri (futures trading) son derece risklidir. Volatilite yüksektir ve büyük kayıplar yaşanabilir. Kaldıraçlı işlemler riski artırır. Sadece deneyimli yatırımcılar için uygundur.</p>
+                    
+                    <p><strong>Teknik Bilgi:</strong> Yapay zeka algoritmaları geçmiş veriler üzerinde çalışır. Gelecekteki piyasa hareketlerini kesin olarak tahmin edemez. Sistem kesintileri yaşanabilir. Kullanıcılar alternatif çıkış stratejileri bulundurmalıdır.</p>
+                    
+                    <p><strong>Gizlilik:</strong> Kullanıcı verileri 256-bit SSL şifreleme ile korunur. API anahtarları güvenli sunucularda saklanır. Kişisel bilgiler üçüncü taraflarla paylaşılmaz. KVKK'ya uygun veri işleme yapılır.</p>
+                    
+                    <p><strong>Destek:</strong> Teknik destek 7/24 sağlanır. Finansal danışmanlık verilmez. Kullanım kılavuzları ve eğitim materyalleri mevcuttur. Sorunlar için bilwininc@gmail.com iletişime geçin.</p>
+                    
+                    <p><strong>Platform Özellikleri:</strong> Binance futures API entegrasyonu, gerçek zamanlı piyasa verileri, otomatik risk yönetimi, portföy analizi, işlem geçmişi raporlama, çoklu zaman dilimi analizi, teknik gösterge desteği.</p>
+                    
+                    <p><strong>Güvenlik:</strong> İki faktörlü kimlik doğrulama eklenecektir. (2FA), IP whitelist, API izin kontrolü, şifreli veri aktarımı, düzenli güvenlik güncellemeleri, penetrasyon testleri, güvenli sunucu altyapısı.</p>
+                    
+                    <p><strong>Uyumluluk:</strong> Uluslararası finansal düzenlemelere uygun teknoloji standardları. KYC (Müşteriyi Tanı) prosedürleri eklenecektir. AML (Kara Para Aklamayla Mücadele) politikaları. Vergi raporlama desteği.</p>
+                    
+                    <p><strong>Eğitim:</strong> Trading temel eğitimleri, risk yönetimi kılavuzları, teknik analiz dökümanları, platform kullanım videoları, webinar eğitimleri, demo hesap imkanı eklenecektir.</p>
+                    
+                    <p><strong>Sorumluluk Reddi:</strong> Bu platform yatırım tavsiyesi vermez. Tüm kararlar kullanıcıya aittir. Piyasa riskleri mevcuttur. Kayıplardan platform sorumlu değildir. Kullanım öncesi risk değerlendirmesi yapın.</p>
+                </div>
             </div>
         </div>
     </footer>
+
+    <!-- Schema.org JSON-LD for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "EzyagoTrading",
+        "description": "Yapay zeka destekli profesyonel kripto vadeli işlemler trading botu",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "29",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "500"
+        },
+        "provider": {
+            "@type": "Organization",
+            "name": "EzyagoTrading",
+            "email": "bilwininc@gmail.com"
+        }
+    }
+    </script>
+
+    <!-- Analytics and Tracking -->
+    <script>
+        // Google Analytics or other tracking code would go here
+        // gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
 </body>
 </html>
