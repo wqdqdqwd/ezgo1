@@ -1,1 +1,154 @@
+/* =================================================================== */
+/* Mobile-first yaklaşımla, 768px'e kadar olan ekranlar için CSS       */
+/* =================================================================== */
 
+/* Ana gövde ve layout ayarları */
+body {
+    padding-bottom: 60px; /* Mobil tab bar için boşluk */
+}
+
+.dashboard {
+    padding-bottom: 0;
+}
+
+.dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+/* Kart stilleri */
+.card {
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+}
+
+.card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Header ve menü stilleri */
+.dashboard-header .container {
+    padding: 0;
+}
+
+.header-content {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.header-info {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-actions {
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.user-info {
+    text-align: center;
+}
+
+.subscription-badge {
+    margin-top: 0.25rem;
+}
+
+/* Trading kontrolleri */
+.trading-settings .setting-row {
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.trading-settings .setting-group {
+    width: 100%;
+}
+
+/* Mobil için özel bileşenler */
+.mobile-header,
+.mobile-tab-bar {
+    display: block;
+}
+
+.dashboard-header,
+.page-header {
+    display: none;
+}
+
+/* Grafik ve göstergeler */
+.chart-header {
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chart-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+}
+
+.chart-tools {
+    width: 100%;
+    justify-content: space-between;
+}
+
+.chart-tool {
+    flex: 1;
+    text-align: center;
+}
+
+.chart-indicators {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+/* Geleneksel Flexbox düzenini Grid'e dönüştürme */
+.flex.flex-col.gap-4 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.flex.items-center.gap-4 {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+/* Ekstra boşluklar ve mobil düzenlemeler */
+.main-content .container {
+    padding: 0 1rem;
+}
+
+/* Düğme stilleri */
+.btn {
+    width: 100%;
+}
+
+.trading-content {
+    padding: 1rem;
+    gap: 1rem;
+}
+
+.balance-info {
+    grid-template-columns: 1fr;
+}
+
+/* Yatay menüler */
+.pair-categories {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.pair-categories::-webkit-scrollbar {
+    display: none;
+}
