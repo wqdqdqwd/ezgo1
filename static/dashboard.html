@@ -11,8 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="/static/dashboards.css">
+    <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
     <!-- Loading Screen -->
@@ -81,7 +80,7 @@
                         
                         <div class="card-content">
                             <!-- API Keys Warning -->
-                            <div id="api-warning" class="warning-box">
+                            <div id="api-warning" class="warning-box" style="display: none;">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <div>
                                     <strong>API Anahtarları Gerekli</strong>
@@ -149,7 +148,7 @@
 
                             <!-- Control Buttons -->
                             <div class="control-buttons">
-                                <button class="btn btn-success" id="start-bot-btn" disabled>
+                                <button class="btn btn-success" id="start-bot-btn">
                                     <i class="fas fa-play"></i>
                                     Bot'u Başlat
                                 </button>
@@ -201,167 +200,3 @@
                                 </div>
 
                                 <div class="stat-item">
-                                    <div class="stat-icon info">
-                                        <i class="fas fa-dollar-sign"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-value" id="total-pnl">$0.00</div>
-                                        <div class="stat-label">Toplam P&L</div>
-                                    </div>
-                                </div>
-
-                                <div class="stat-item">
-                                    <div class="stat-icon warning">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-value" id="uptime">0h</div>
-                                        <div class="stat-label">Çalışma Süresi</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="subscription-info">
-                                <h3>Abonelik Durumu</h3>
-                                <div class="subscription-details">
-                                    <div class="subscription-status">
-                                        <span class="status-badge" id="sub-status-badge">Deneme</span>
-                                        <span id="days-remaining">7 gün kaldı</span>
-                                    </div>
-                                    <p class="subscription-note">
-                                        Deneme süreniz sona ermeden önce aboneliğinizi yenilemeyi unutmayın.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Current Position -->
-                    <div class="card position-card">
-                        <div class="card-header">
-                            <h2>
-                                <i class="fas fa-chart-bar"></i>
-                                Mevcut Pozisyon
-                            </h2>
-                        </div>
-                        
-                        <div class="card-content">
-                            <div id="no-position" class="no-position">
-                                <div class="no-position-icon">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <h3>Açık Pozisyon Yok</h3>
-                                <p>Bot başlatıldığında pozisyonlar burada görünecek</p>
-                            </div>
-
-                            <div id="current-position" class="current-position hidden">
-                                <div class="position-header">
-                                    <div class="position-symbol" id="pos-symbol">BTCUSDT</div>
-                                    <div class="position-side" id="pos-side">LONG</div>
-                                </div>
-                                
-                                <div class="position-stats">
-                                    <div class="position-stat">
-                                        <span class="stat-label">Boyut</span>
-                                        <span class="stat-value" id="pos-size">0.001 BTC</span>
-                                    </div>
-                                    <div class="position-stat">
-                                        <span class="stat-label">Giriş</span>
-                                        <span class="stat-value" id="pos-entry">$45,000</span>
-                                    </div>
-                                    <div class="position-stat">
-                                        <span class="stat-label">Güncel</span>
-                                        <span class="stat-value" id="pos-current">$45,500</span>
-                                    </div>
-                                    <div class="position-stat">
-                                        <span class="stat-label">P&L</span>
-                                        <span class="stat-value profit" id="pos-pnl">+$50.00</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Activity -->
-                    <div class="card activity-card">
-                        <div class="card-header">
-                            <h2>
-                                <i class="fas fa-history"></i>
-                                Son Aktiviteler
-                            </h2>
-                        </div>
-                        
-                        <div class="card-content">
-                            <div class="activity-list" id="activity-list">
-                                <div class="activity-item">
-                                    <div class="activity-icon info">
-                                        <i class="fas fa-user-plus"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">Hesap oluşturuldu</div>
-                                        <div class="activity-time">Az önce</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- API Setup Modal -->
-    <div id="api-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>
-                    <i class="fas fa-key"></i>
-                    Binance API Anahtarları
-                </h3>
-                <button class="modal-close" id="modal-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="modal-body">
-                <div class="api-warning">
-                    <i class="fas fa-shield-alt"></i>
-                    <div>
-                        <strong>Güvenlik Bilgisi</strong>
-                        <p>API anahtarlarınız güvenli şekilde şifrelenerek saklanır. Sadece futures trading izinlerini aktif edin.</p>
-                    </div>
-                </div>
-
-                <form id="api-form">
-                    <div class="form-group">
-                        <label>API Key</label>
-                        <input type="text" id="api-key" class="form-input" placeholder="Binance API Key'inizi girin">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>API Secret</label>
-                        <input type="password" id="api-secret" class="form-input" placeholder="Binance API Secret'ınızı girin">
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-outline" id="cancel-api">
-                            İptal
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="save-api">
-                            <i class="fas fa-save"></i>
-                            Kaydet
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
-    <script src="/static/dashboard.js"></script>
-</body>
-</html>
