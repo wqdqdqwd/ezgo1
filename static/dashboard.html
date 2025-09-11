@@ -122,49 +122,58 @@
             display: none;
         }
 
-        /* Header */
-        .dashboard-header {
+        /* Mobile Header */
+        .mobile-header {
             background: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
-            padding: 1rem 0;
+            padding: 1rem;
             position: sticky;
             top: 0;
             z-index: 100;
-        }
-
-        .header-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: var(--transition);
+        }
+
+        .hamburger-btn:hover {
+            background: var(--bg-secondary);
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            font-size: 1.5rem;
+            gap: 0.5rem;
+            font-size: 1.25rem;
             font-weight: 800;
             color: var(--text-primary);
         }
 
         .logo i {
             color: var(--primary);
-            font-size: 1.75rem;
+            font-size: 1.5rem;
         }
 
-        .header-info {
+        .header-right {
             display: flex;
             align-items: center;
-            gap: 1rem;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.25rem;
+            gap: 0.5rem;
         }
 
         .subscription-badge {
@@ -186,9 +195,241 @@
             color: var(--warning);
         }
 
-        .header-actions {
+        /* Hamburger Menu */
+        .hamburger-menu {
+            position: fixed;
+            top: 0;
+            left: -320px;
+            width: 320px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            z-index: 9998;
+            transition: var(--transition);
+            overflow-y: auto;
             display: flex;
+            flex-direction: column;
+        }
+
+        .hamburger-menu.open {
+            left: 0;
+        }
+
+        .hamburger-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9997;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .hamburger-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: var(--transition);
+        }
+
+        .menu-close:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .menu-nav {
+            flex: 1;
+            padding: 1rem;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            text-align: left;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .menu-item i {
+            margin-right: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .menu-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
+        /* Bot Status Card */
+        .status-card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .status-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-title i {
+            color: var(--primary);
+        }
+
+        .bot-status {
+            display: flex;
+            align-items: center;
             gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* API Warning */
+        .api-warning {
+            background: rgba(234, 88, 12, 0.1);
+            border: 1px solid rgba(234, 88, 12, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .api-warning i {
+            color: var(--warning);
+            font-size: 1.25rem;
+            margin-top: 0.125rem;
+        }
+
+        .api-warning strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .api-warning p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Trading Settings */
+        .trading-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .setting-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
         /* Button Styles */
@@ -196,7 +437,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.75rem 1rem;
+            padding: 0.875rem 1rem;
             border: none;
             border-radius: 0.5rem;
             font-size: 0.875rem;
@@ -205,7 +446,7 @@
             transition: var(--transition);
             text-decoration: none;
             gap: 0.5rem;
-            min-height: 40px;
+            min-height: 48px;
             user-select: none;
         }
 
@@ -265,191 +506,12 @@
             min-height: 32px;
         }
 
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 2rem 0;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            gap: 2rem;
-            grid-template-columns: 1fr;
-        }
-
-        /* Card Styles */
-        .card {
-            background: var(--bg-card);
-            border-radius: var(--border-radius);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .card-header h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .card-header h2 i {
-            color: var(--primary);
-        }
-
-        .card-content {
-            padding: 1.5rem;
-        }
-
-        /* Bot Status */
-        .bot-status {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--danger);
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.active {
-            background: var(--success);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Warning Box */
-        .warning-box {
-            background: rgba(234, 88, 12, 0.1);
-            border: 1px solid rgba(234, 88, 12, 0.2);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-
-        .warning-box i {
-            color: var(--warning);
-            font-size: 1.25rem;
-            margin-top: 0.125rem;
-        }
-
-        .warning-box strong {
-            color: var(--text-primary);
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        .warning-box p {
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-
-        /* Trading Settings */
-        .trading-settings {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .setting-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .setting-group label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-
-        .setting-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 0.875rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-        }
-
-        /* Control Buttons */
-        .control-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        /* Status Messages */
-        .status-messages {
-            margin-top: 1rem;
-        }
-
-        .status-message {
-            padding: 0.875rem 1rem;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .status-message.info {
-            background: rgba(8, 145, 178, 0.1);
-            color: var(--info);
-            border: 1px solid rgba(8, 145, 178, 0.2);
-        }
-
-        .status-message.success {
-            background: var(--profit-bg);
-            color: var(--profit-color);
-            border: 1px solid var(--profit-color);
-        }
-
-        .status-message.error {
-            background: var(--loss-bg);
-            color: var(--loss-color);
-            border: 1px solid var(--loss-color);
-        }
-
         /* Account Stats */
         .account-stats {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .stat-item {
@@ -485,7 +547,7 @@
         }
 
         .stat-value {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1.2;
@@ -498,54 +560,47 @@
             letter-spacing: 0.05em;
         }
 
-        /* Subscription Info */
-        .subscription-info {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--bg-secondary);
+        /* Status Messages */
+        .status-messages {
+            margin-top: 1rem;
+        }
+
+        .status-message {
+            padding: 0.875rem 1rem;
             border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .subscription-info h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: var(--text-primary);
-        }
-
-        .subscription-details {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .subscription-status {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 99px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-badge.trial {
-            background: rgba(234, 88, 12, 0.2);
-            color: var(--warning);
-        }
-
-        .subscription-note {
+            gap: 0.5rem;
             font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin: 0;
+        }
+
+        .status-message.info {
+            background: rgba(8, 145, 178, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(8, 145, 178, 0.2);
+        }
+
+        .status-message.success {
+            background: var(--profit-bg);
+            color: var(--profit-color);
+            border: 1px solid var(--profit-color);
+        }
+
+        .status-message.error {
+            background: var(--loss-bg);
+            color: var(--loss-color);
+            border: 1px solid var(--loss-color);
         }
 
         /* Current Position */
+        .position-card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
         .no-position {
             text-align: center;
             padding: 2rem;
@@ -570,10 +625,6 @@
 
         .no-position p {
             font-size: 0.9rem;
-        }
-
-        .current-position.hidden {
-            display: none;
         }
 
         /* Recent Activity */
@@ -649,6 +700,8 @@
             width: 100%;
             border: 1px solid var(--border-color);
             overflow: hidden;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -688,9 +741,10 @@
             padding: 1.5rem;
         }
 
-        .api-warning {
-            background: rgba(8, 145, 178, 0.1);
-            border: 1px solid rgba(8, 145, 178, 0.2);
+        /* Risk Warning Modal */
+        .risk-warning {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
             border-radius: 0.5rem;
             padding: 1rem;
             margin-bottom: 1.5rem;
@@ -699,23 +753,123 @@
             gap: 0.75rem;
         }
 
-        .api-warning i {
-            color: var(--info);
+        .risk-warning i {
+            color: var(--danger);
             font-size: 1.25rem;
             margin-top: 0.125rem;
         }
 
-        .api-warning strong {
+        .risk-warning strong {
             color: var(--text-primary);
             display: block;
             margin-bottom: 0.5rem;
         }
 
-        .api-warning p {
+        .risk-warning p {
             color: var(--text-secondary);
             margin: 0;
+            font-size: 0.875rem;
+            line-height: 1.5;
         }
 
+        /* Payment Modal */
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .payment-option {
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .payment-option:hover {
+            border-color: var(--primary);
+        }
+
+        .payment-option.selected {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .payment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .payment-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .payment-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .crypto-address {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .address-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .address-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .address-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .payment-confirm {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .payment-confirm p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Form Groups */
         .form-group {
             margin-bottom: 1rem;
         }
@@ -734,42 +888,8 @@
             margin-top: 1.5rem;
         }
 
-        /* Mobile Responsive */
+        /* Mobile Optimizations */
         @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .header-info {
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-
-            .user-info {
-                align-items: center;
-            }
-
-            .header-actions {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .dashboard-grid {
-                gap: 1rem;
-            }
-
-            .card-header {
-                padding: 1rem;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-
-            .card-content {
-                padding: 1rem;
-            }
-
             .setting-row {
                 grid-template-columns: 1fr;
                 gap: 0.75rem;
@@ -785,39 +905,6 @@
                 gap: 0.75rem;
             }
 
-            .subscription-status {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-
-            .form-actions {
-                flex-direction: column;
-            }
-
-            .modal-content {
-                margin: 0.5rem;
-                max-width: none;
-            }
-
-            .modal-header {
-                padding: 1rem;
-            }
-
-            .modal-body {
-                padding: 1rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .main-content {
-                padding: 1rem 0;
-            }
-
-            .card-header h2 {
-                font-size: 1.1rem;
-            }
-
             .stat-item {
                 padding: 0.75rem;
             }
@@ -829,7 +916,7 @@
             }
 
             .stat-value {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
 
             .activity-item {
@@ -841,30 +928,51 @@
                 height: 32px;
                 font-size: 0.875rem;
             }
-        }
 
-        /* Grid Layout for larger screens */
-        @media (min-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 2fr 1fr;
-                gap: 2rem;
+            .modal-content {
+                margin: 0.5rem;
+                max-width: none;
             }
 
-            .trading-card {
-                grid-row: span 2;
-            }
-
-            .account-stats {
-                grid-template-columns: repeat(2, 1fr);
+            .payment-options {
+                gap: 0.75rem;
             }
         }
 
-        /* Focus states for accessibility */
-        button:focus-visible,
-        input:focus-visible,
-        select:focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .status-card, .position-card {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .status-title {
+                font-size: 1.1rem;
+            }
+
+            .hamburger-menu {
+                width: 280px;
+                left: -280px;
+            }
+
+            .menu-header {
+                padding: 1rem;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
         }
 
         /* Loading states */
@@ -875,6 +983,14 @@
 
         .btn.loading i {
             animation: spin 1s linear infinite;
+        }
+
+        /* Focus states for accessibility */
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
         }
     </style>
 </head>
@@ -893,272 +1009,283 @@
 
     <!-- Main Dashboard -->
     <div id="dashboard" class="dashboard hidden">
-        <!-- Header -->
-        <header class="dashboard-header">
-            <div class="container">
-                <div class="header-content">
-                    <div class="logo">
-                        <i class="fas fa-chart-line"></i>
-                        <span>EzyagoTrading</span>
-                    </div>
-                    
-                    <div class="header-info">
-                        <div class="user-info">
-                            <span id="user-name">Kullanıcı</span>
-                            <div class="subscription-badge trial" id="subscription-badge">
-                                <i class="fas fa-crown"></i>
-                                <span id="subscription-text">Deneme</span>
-                            </div>
-                        </div>
-                        
-                        <div class="header-actions">
-                            <button class="btn btn-outline btn-sm" id="settings-btn">
-                                <i class="fas fa-cog"></i>
-                                Ayarlar
-                            </button>
-                            <button class="btn btn-danger btn-sm" id="logout-btn">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Çıkış
-                            </button>
-                        </div>
-                    </div>
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <div class="header-left">
+                <button class="hamburger-btn" id="hamburger-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <span>EzyagoTrading</span>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="subscription-badge trial" id="subscription-badge">
+                    <i class="fas fa-crown"></i>
+                    <span id="subscription-text">Deneme</span>
                 </div>
             </div>
         </header>
 
+        <!-- Hamburger Menu -->
+        <div class="hamburger-overlay" id="hamburger-overlay"></div>
+        <div class="hamburger-menu" id="hamburger-menu">
+            <div class="menu-header">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <span>EzyagoTrading</span>
+                </div>
+                <button class="menu-close" id="menu-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <nav class="menu-nav">
+                <button class="menu-item" id="api-menu-btn">
+                    <i class="fas fa-key"></i>
+                    <span>API Anahtarları</span>
+                </button>
+                <button class="menu-item" id="subscription-menu-btn">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Abonelik & Ödeme</span>
+                </button>
+                <button class="menu-item" id="settings-menu-btn">
+                    <i class="fas fa-cog"></i>
+                    <span>Ayarlar</span>
+                </button>
+                <button class="menu-item" id="support-menu-btn">
+                    <i class="fas fa-headset"></i>
+                    <span>Destek</span>
+                </button>
+            </nav>
+            
+            <div class="menu-footer">
+                <button class="btn btn-danger" id="logout-btn" style="width: 100%;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Çıkış Yap
+                </button>
+            </div>
+        </div>
+
         <!-- Main Content -->
         <main class="main-content">
-            <div class="container">
-                <div class="dashboard-grid">
-                    <!-- Trading Controls -->
-                    <div class="card trading-card">
-                        <div class="card-header">
-                            <h2>
-                                <i class="fas fa-robot"></i>
-                                Trading Bot
-                            </h2>
-                            <div class="bot-status" id="bot-status">
-                                <div class="status-dot" id="status-dot"></div>
-                                <span id="status-text">Çevrimdışı</span>
-                            </div>
+            <!-- Bot Status Card -->
+            <div class="status-card">
+                <div class="status-header">
+                    <h2 class="status-title">
+                        <i class="fas fa-robot"></i>
+                        Trading Bot
+                    </h2>
+                    <div class="bot-status" id="bot-status">
+                        <div class="status-dot" id="status-dot"></div>
+                        <span id="status-text">Çevrimdışı</span>
+                    </div>
+                </div>
+                
+                <!-- API Keys Warning -->
+                <div id="api-warning" class="api-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>API Anahtarları Gerekli</strong>
+                        <p>Bot'u çalıştırmak için Binance API anahtarlarınızı eklemelisiniz.</p>
+                        <button class="btn btn-primary btn-sm" id="setup-api-btn">
+                            API Anahtarlarını Ekle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trading Settings -->
+                <div class="trading-settings">
+                    <div class="setting-group">
+                        <label>Trading Çifti</label>
+                        <select id="symbol-select" class="form-select">
+                            <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
+                            <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
+                            <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
+                            <option value="ADAUSDT">Cardano (ADAUSDT)</option>
+                            <option value="SOLUSDT">Solana (SOLUSDT)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-group">
+                            <label>Zaman Dilimi</label>
+                            <select id="timeframe-select" class="form-select">
+                                <option value="1m">1 Dakika</option>
+                                <option value="5m">5 Dakika</option>
+                                <option value="15m" selected>15 Dakika</option>
+                                <option value="30m">30 Dakika</option>
+                                <option value="1h">1 Saat</option>
+                            </select>
                         </div>
-                        
-                        <div class="card-content">
-                            <!-- API Keys Warning -->
-                            <div id="api-warning" class="warning-box">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <div>
-                                    <strong>API Anahtarları Gerekli</strong>
-                                    <p>Bot'u çalıştırmak için Binance API anahtarlarınızı eklemelisiniz.</p>
-                                    <button class="btn btn-primary btn-sm" id="setup-api-btn">
-                                        API Anahtarlarını Ekle
-                                    </button>
-                                </div>
-                            </div>
 
-                            <!-- Trading Settings -->
-                            <div class="trading-settings">
-                                <div class="setting-group">
-                                    <label>Trading Çifti</label>
-                                    <select id="symbol-select" class="form-input">
-                                        <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
-                                        <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
-                                        <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
-                                        <option value="ADAUSDT">Cardano (ADAUSDT)</option>
-                                        <option value="SOLUSDT">Solana (SOLUSDT)</option>
-                                    </select>
-                                </div>
-
-                                <div class="setting-row">
-                                    <div class="setting-group">
-                                        <label>Zaman Dilimi</label>
-                                        <select id="timeframe-select" class="form-input">
-                                            <option value="1m">1 Dakika</option>
-                                            <option value="5m">5 Dakika</option>
-                                            <option value="15m" selected>15 Dakika</option>
-                                            <option value="30m">30 Dakika</option>
-                                            <option value="1h">1 Saat</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="setting-group">
-                                        <label>Kaldıraç</label>
-                                        <select id="leverage-select" class="form-input">
-                                            <option value="1">1x</option>
-                                            <option value="2">2x</option>
-                                            <option value="5" selected>5x</option>
-                                            <option value="10">10x</option>
-                                            <option value="20">20x</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="setting-row">
-                                    <div class="setting-group">
-                                        <label>Pozisyon Büyüklüğü (USDT)</label>
-                                        <input type="number" id="order-size" class="form-input" value="35" min="10" max="10000">
-                                    </div>
-
-                                    <div class="setting-group">
-                                        <label>Stop Loss (%)</label>
-                                        <input type="number" id="stop-loss" class="form-input" value="2" min="0.1" max="50" step="0.1">
-                                    </div>
-                                </div>
-
-                                <div class="setting-group">
-                                    <label>Take Profit (%)</label>
-                                    <input type="number" id="take-profit" class="form-input" value="4" min="0.1" max="100" step="0.1">
-                                </div>
-                            </div>
-
-                            <!-- Control Buttons -->
-                            <div class="control-buttons">
-                                <button class="btn btn-success" id="start-bot-btn" disabled>
-                                    <i class="fas fa-play"></i>
-                                    Bot'u Başlat
-                                </button>
-                                <button class="btn btn-danger" id="stop-bot-btn" disabled>
-                                    <i class="fas fa-stop"></i>
-                                    Bot'u Durdur
-                                </button>
-                            </div>
-
-                            <!-- Status Messages -->
-                            <div id="status-messages" class="status-messages">
-                                <div class="status-message info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <span>Bot hazır. Ayarları yapılandırıp başlatabilirsiniz.</span>
-                                </div>
-                            </div>
+                        <div class="setting-group">
+                            <label>Kaldıraç</label>
+                            <select id="leverage-select" class="form-select">
+                                <option value="1">1x</option>
+                                <option value="2">2x</option>
+                                <option value="5" selected>5x</option>
+                                <option value="10">10x</option>
+                                <option value="20">20x</option>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Account Info -->
-                    <div class="card account-card">
-                        <div class="card-header">
-                            <h2>
-                                <i class="fas fa-user"></i>
-                                Hesap Bilgileri
-                            </h2>
+                    <div class="setting-row">
+                        <div class="setting-group">
+                            <label>Pozisyon Büyüklüğü (USDT)</label>
+                            <input type="number" id="order-size" class="form-input" value="35" min="10" max="10000">
                         </div>
-                        
-                        <div class="card-content">
-                            <div class="account-stats">
-                                <div class="stat-item">
-                                    <div class="stat-icon primary">
-                                        <i class="fas fa-chart-line"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-value" id="total-trades">0</div>
-                                        <div class="stat-label">Toplam İşlem</div>
-                                    </div>
-                                </div>
 
-                                <div class="stat-item">
-                                    <div class="stat-icon success">
-                                        <i class="fas fa-trophy"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-value" id="win-rate">0%</div>
-                                        <div class="stat-label">Başarı Oranı</div>
-                                    </div>
-                                </div>
-
-                                <div class="stat-item">
-                                    <div class="stat-icon info">
-                                        <i class="fas fa-dollar-sign"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-value" id="total-pnl">$0.00</div>
-                                        <div class="stat-label">Toplam P&L</div>
-                                    </div>
-                                </div>
-
-                                <div class="stat-item">
-                                    <div class="stat-icon warning">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-value" id="uptime">0h</div>
-                                        <div class="stat-label">Çalışma Süresi</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="subscription-info">
-                                <h3>Abonelik Durumu</h3>
-                                <div class="subscription-details">
-                                    <div class="subscription-status">
-                                        <span class="status-badge trial" id="sub-status-badge">Deneme</span>
-                                        <span id="days-remaining">7 gün kaldı</span>
-                                    </div>
-                                    <p class="subscription-note">
-                                        Deneme süreniz sona ermeden önce aboneliğinizi yenilemeyi unutmayın.
-                                    </p>
-                                </div>
-                            </div>
+                        <div class="setting-group">
+                            <label>Stop Loss (%)</label>
+                            <input type="number" id="stop-loss" class="form-input" value="2" min="0.1" max="50" step="0.1">
                         </div>
                     </div>
 
-                    <!-- Current Position -->
-                    <div class="card position-card">
-                        <div class="card-header">
-                            <h2>
-                                <i class="fas fa-chart-bar"></i>
-                                Mevcut Pozisyon
-                            </h2>
-                        </div>
-                        
-                        <div class="card-content">
-                            <div id="no-position" class="no-position">
-                                <div class="no-position-icon">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <h3>Açık Pozisyon Yok</h3>
-                                <p>Bot başlatıldığında pozisyonlar burada görünecek</p>
-                            </div>
-
-                            <div id="current-position" class="current-position hidden">
-                                <div class="position-header">
-                                    <div class="position-stat">
-                                        <span class="stat-label">Güncel</span>
-                                        <span class="stat-value" id="pos-current">$45,500</span>
-                                    </div>
-                                    <div class="position-stat">
-                                        <span class="stat-label">P&L</span>
-                                        <span class="stat-value profit" id="pos-pnl">+$50.00</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="setting-group">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="take-profit" class="form-input" value="4" min="0.1" max="100" step="0.1">
                     </div>
+                </div>
 
-                    <!-- Recent Activity -->
-                    <div class="card activity-card">
-                        <div class="card-header">
-                            <h2>
-                                <i class="fas fa-history"></i>
-                                Son Aktiviteler
-                            </h2>
+                <!-- Control Buttons -->
+                <div class="control-buttons">
+                    <button class="btn btn-success" id="start-bot-btn" disabled>
+                        <i class="fas fa-play"></i>
+                        Bot'u Başlat
+                    </button>
+                    <button class="btn btn-danger" id="stop-bot-btn" disabled>
+                        <i class="fas fa-stop"></i>
+                        Bot'u Durdur
+                    </button>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="status-messages" class="status-messages">
+                    <div class="status-message info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Bot hazır. Ayarları yapılandırıp başlatabilirsiniz.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Stats -->
+            <div class="account-stats">
+                <div class="stat-item">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="total-trades">0</div>
+                        <div class="stat-label">Toplam İşlem</div>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon success">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="win-rate">0%</div>
+                        <div class="stat-label">Başarı Oranı</div>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon info">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="total-pnl">$0.00</div>
+                        <div class="stat-label">Toplam P&L</div>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="uptime">0h</div>
+                        <div class="stat-label">Çalışma Süresi</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Position -->
+            <div class="position-card">
+                <h3 style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-chart-bar" style="color: var(--primary);"></i>
+                    Mevcut Pozisyon
+                </h3>
+                
+                <div id="no-position" class="no-position">
+                    <div class="no-position-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Açık Pozisyon Yok</h3>
+                    <p>Bot başlatıldığında pozisyonlar burada görünecek</p>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="position-card">
+                <h3 style="margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-history" style="color: var(--primary);"></i>
+                    Son Aktiviteler
+                </h3>
+                
+                <div class="activity-list" id="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-icon info">
+                            <i class="fas fa-user-plus"></i>
                         </div>
-                        
-                        <div class="card-content">
-                            <div class="activity-list" id="activity-list">
-                                <div class="activity-item">
-                                    <div class="activity-icon info">
-                                        <i class="fas fa-user-plus"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">Hesap oluşturuldu</div>
-                                        <div class="activity-time">Az önce</div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Hesap oluşturuldu</div>
+                            <div class="activity-time">Az önce</div>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Risk Warning Modal -->
+    <div id="risk-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                    Risk Uyarısı
+                </h3>
+                <button class="modal-close" id="risk-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="risk-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Önemli Risk Bildirimi</strong>
+                        <p>Kripto para futures trading yüksek volatiliteye sahiptir ve kesin kazanç garantisi vermez. Sadece kaybetmeyi göze alabileceğiniz sermaye ile işlem yapın. Geçmiş performans gelecekteki sonuçları garanti etmez.</p>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="risk-cancel">
+                        İptal
+                    </button>
+                    <button type="button" class="btn btn-danger" id="risk-accept">
+                        <i class="fas fa-check"></i>
+                        Anladım, Devam Et
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- API Setup Modal -->
@@ -1169,7 +1296,7 @@
                     <i class="fas fa-key"></i>
                     Binance API Anahtarları
                 </h3>
-                <button class="modal-close" id="modal-close">
+                <button class="modal-close" id="api-modal-close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1204,6 +1331,116 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription & Payment Modal -->
+    <div id="subscription-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-credit-card"></i>
+                    Abonelik & Ödeme
+                </h3>
+                <button class="modal-close" id="subscription-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="payment-options">
+                    <div class="payment-option selected" data-plan="monthly">
+                        <div class="payment-header">
+                            <div class="payment-title">Aylık Abonelik</div>
+                            <div class="payment-price">$15/ay</div>
+                        </div>
+                        <div class="payment-description">
+                            Tam erişim + 7/24 destek
+                        </div>
+                    </div>
+                    
+                    <div class="payment-option" data-plan="yearly">
+                        <div class="payment-header">
+                            <div class="payment-title">Yıllık Abonelik</div>
+                            <div class="payment-price">$199/yıl</div>
+                        </div>
+                        <div class="payment-description">
+                            2 ay ücretsiz + öncelikli destek
+                        </div>
+                    </div>
+                </div>
+
+                <div id="crypto-payment" class="crypto-address">
+                    <div class="address-header">
+                        <span class="address-label">USDT (TRC20) Adresi:</span>
+                        <button class="copy-btn" onclick="copyToClipboard('payment-address')">
+                            <i class="fas fa-copy"></i> Kopyala
+                        </button>
+                    </div>
+                    <div class="address-value" id="payment-address">
+                        TQn9Y2khEsLMWD7uZ7H5L2wBdx3QzMp7hL
+                    </div>
+                </div>
+
+                <div class="payment-confirm">
+                    <p>Ödeme yaptıktan sonra aşağıdaki butona tıklayın. Ödemeniz 24 saat içinde onaylanacaktır.</p>
+                    <button class="btn btn-success" id="payment-confirm-btn" style="width: 100%;">
+                        <i class="fas fa-check"></i>
+                        Ödeme Yaptım
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-cog"></i>
+                    Ayarlar
+                </h3>
+                <button class="modal-close" id="settings-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Dil / Language</label>
+                    <select id="language-select" class="form-select">
+                        <option value="tr">Türkçe</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Bildirimler</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="notifications" checked>
+                        <span>İşlem bildirimlerini al</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Tema</label>
+                    <select id="theme-select" class="form-select">
+                        <option value="dark">Koyu Tema</option>
+                        <option value="light">Açık Tema</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="settings-cancel">
+                        İptal
+                    </button>
+                    <button type="button" class="btn btn-primary" id="settings-save">
+                        <i class="fas fa-save"></i>
+                        Kaydet
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1290,10 +1527,7 @@
 
             try {
                 // Update user name
-                const userName = document.getElementById('user-name');
-                if (userName) {
-                    userName.textContent = currentUser.displayName || currentUser.email || 'Kullanıcı';
-                }
+                const userName = currentUser.displayName || currentUser.email || 'Kullanıcı';
 
                 // Load user profile from database
                 const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
@@ -1312,10 +1546,8 @@
 
         // Update user profile
         function updateUserProfile(userData) {
-            // Update subscription badge
             const subscriptionBadge = document.getElementById('subscription-badge');
             const subscriptionText = document.getElementById('subscription-text');
-            const subStatusBadge = document.getElementById('sub-status-badge');
             
             if (userData.subscription_status) {
                 const status = userData.subscription_status;
@@ -1327,12 +1559,6 @@
                 
                 if (subscriptionBadge) {
                     subscriptionBadge.className = `subscription-badge ${status}`;
-                }
-                
-                if (subStatusBadge) {
-                    subStatusBadge.textContent = status === 'trial' ? 'Deneme' : 
-                                               status === 'active' ? 'Aktif' : 'Süresi Doldu';
-                    subStatusBadge.className = `status-badge ${status}`;
                 }
             }
         }
@@ -1352,36 +1578,70 @@
 
         // Check subscription status
         function checkSubscriptionStatus(userData) {
-            const daysRemaining = document.getElementById('days-remaining');
-            
-            if (userData.subscription_expiry && daysRemaining) {
-                const expiryDate = new Date(userData.subscription_expiry);
-                const now = new Date();
-                const diffTime = expiryDate - now;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                if (diffDays > 0) {
-                    daysRemaining.textContent = `${diffDays} gün kaldı`;
-                } else {
-                    daysRemaining.textContent = 'Süresi doldu';
-                }
-            }
+            // Implementation for subscription status check
         }
 
         // Initialize dashboard components
         function initializeDashboardComponents() {
+            // Hamburger menu
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const hamburgerMenu = document.getElementById('hamburger-menu');
+            const hamburgerOverlay = document.getElementById('hamburger-overlay');
+            const menuClose = document.getElementById('menu-close');
+
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', () => {
+                    hamburgerMenu.classList.add('open');
+                    hamburgerOverlay.classList.add('open');
+                });
+            }
+
+            if (menuClose) {
+                menuClose.addEventListener('click', closeHamburgerMenu);
+            }
+
+            if (hamburgerOverlay) {
+                hamburgerOverlay.addEventListener('click', closeHamburgerMenu);
+            }
+
+            // Menu items
+            const apiMenuBtn = document.getElementById('api-menu-btn');
+            const subscriptionMenuBtn = document.getElementById('subscription-menu-btn');
+            const settingsMenuBtn = document.getElementById('settings-menu-btn');
+            const supportMenuBtn = document.getElementById('support-menu-btn');
+
+            if (apiMenuBtn) {
+                apiMenuBtn.addEventListener('click', () => {
+                    closeHamburgerMenu();
+                    showApiModal();
+                });
+            }
+
+            if (subscriptionMenuBtn) {
+                subscriptionMenuBtn.addEventListener('click', () => {
+                    closeHamburgerMenu();
+                    showSubscriptionModal();
+                });
+            }
+
+            if (settingsMenuBtn) {
+                settingsMenuBtn.addEventListener('click', () => {
+                    closeHamburgerMenu();
+                    showSettingsModal();
+                });
+            }
+
+            if (supportMenuBtn) {
+                supportMenuBtn.addEventListener('click', () => {
+                    closeHamburgerMenu();
+                    showSupportInfo();
+                });
+            }
+
             // Logout button
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', handleLogout);
-            }
-
-            // Settings button
-            const settingsBtn = document.getElementById('settings-btn');
-            if (settingsBtn) {
-                settingsBtn.addEventListener('click', () => {
-                    showMessage('Ayarlar özelliği yakında eklenecek.', 'info');
-                });
             }
 
             // API setup button
@@ -1395,7 +1655,7 @@
             const stopBotBtn = document.getElementById('stop-bot-btn');
             
             if (startBotBtn) {
-                startBotBtn.addEventListener('click', startBot);
+                startBotBtn.addEventListener('click', showRiskWarning);
             }
             
             if (stopBotBtn) {
@@ -1403,39 +1663,102 @@
             }
 
             // Modal controls
-            const modalClose = document.getElementById('modal-close');
-            const cancelApi = document.getElementById('cancel-api');
-            const apiModal = document.getElementById('api-modal');
-            
-            if (modalClose) {
-                modalClose.addEventListener('click', () => hideApiModal());
-            }
-            
-            if (cancelApi) {
-                cancelApi.addEventListener('click', () => hideApiModal());
-            }
-            
-            if (apiModal) {
-                apiModal.addEventListener('click', (e) => {
-                    if (e.target === apiModal) {
-                        hideApiModal();
-                    }
-                });
-            }
-
-            // API form
-            const apiForm = document.getElementById('api-form');
-            if (apiForm) {
-                apiForm.addEventListener('submit', handleApiSubmit);
-            }
+            initializeModals();
 
             // Trading settings
             initializeTradingSettings();
         }
 
+        function closeHamburgerMenu() {
+            document.getElementById('hamburger-menu').classList.remove('open');
+            document.getElementById('hamburger-overlay').classList.remove('open');
+        }
+
+        function initializeModals() {
+            // Risk modal
+            const riskModalClose = document.getElementById('risk-modal-close');
+            const riskCancel = document.getElementById('risk-cancel');
+            const riskAccept = document.getElementById('risk-accept');
+
+            if (riskModalClose) riskModalClose.addEventListener('click', () => hideModal('risk-modal'));
+            if (riskCancel) riskCancel.addEventListener('click', () => hideModal('risk-modal'));
+            if (riskAccept) riskAccept.addEventListener('click', handleRiskAccept);
+
+            // API modal
+            const apiModalClose = document.getElementById('api-modal-close');
+            const cancelApi = document.getElementById('cancel-api');
+            const apiForm = document.getElementById('api-form');
+
+            if (apiModalClose) apiModalClose.addEventListener('click', () => hideModal('api-modal'));
+            if (cancelApi) cancelApi.addEventListener('click', () => hideModal('api-modal'));
+            if (apiForm) apiForm.addEventListener('submit', handleApiSubmit);
+
+            // Subscription modal
+            const subscriptionModalClose = document.getElementById('subscription-modal-close');
+            const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
+
+            if (subscriptionModalClose) subscriptionModalClose.addEventListener('click', () => hideModal('subscription-modal'));
+            if (paymentConfirmBtn) paymentConfirmBtn.addEventListener('click', handlePaymentConfirm);
+
+            // Settings modal
+            const settingsModalClose = document.getElementById('settings-modal-close');
+            const settingsCancel = document.getElementById('settings-cancel');
+            const settingsSave = document.getElementById('settings-save');
+
+            if (settingsModalClose) settingsModalClose.addEventListener('click', () => hideModal('settings-modal'));
+            if (settingsCancel) settingsCancel.addEventListener('click', () => hideModal('settings-modal'));
+            if (settingsSave) settingsSave.addEventListener('click', handleSettingsSave);
+
+            // Payment options
+            document.querySelectorAll('.payment-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                });
+            });
+        }
+
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function showRiskWarning() {
+            showModal('risk-modal');
+        }
+
+        function handleRiskAccept() {
+            hideModal('risk-modal');
+            startBot();
+        }
+
+        function showApiModal() {
+            showModal('api-modal');
+        }
+
+        function showSubscriptionModal() {
+            showModal('subscription-modal');
+        }
+
+        function showSettingsModal() {
+            showModal('settings-modal');
+        }
+
+        function showSupportInfo() {
+            alert('Destek için: support@ezyagotrading.com\nTelegram: @EzyagoSupport');
+        }
+
         // Initialize trading settings
         function initializeTradingSettings() {
-            // Load saved settings or set defaults
             const symbolSelect = document.getElementById('symbol-select');
             const timeframeSelect = document.getElementById('timeframe-select');
             const leverageSelect = document.getElementById('leverage-select');
@@ -1485,28 +1808,6 @@
             }
         }
 
-        // Show API modal
-        function showApiModal() {
-            const modal = document.getElementById('api-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-            }
-        }
-
-        // Hide API modal
-        function hideApiModal() {
-            const modal = document.getElementById('api-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-            
-            // Clear form
-            const form = document.getElementById('api-form');
-            if (form) {
-                form.reset();
-            }
-        }
-
         // Handle API form submission
         async function handleApiSubmit(event) {
             event.preventDefault();
@@ -1526,221 +1827,11 @@
             }
             
             try {
-                // In a real app, you would encrypt these and send to your backend
-                // For demo purposes, we'll just save to Firebase
                 await database.ref(`users/${currentUser.uid}/api_keys`).set({
-                    api_key: apiKey, // In production, encrypt this
-                    api_secret: apiSecret, // In production, encrypt this
+                    api_key: apiKey,
+                    api_secret: apiSecret,
                     created_at: firebase.database.ServerValue.TIMESTAMP
                 });
                 
                 // Update UI
                 const apiWarning = document.getElementById('api-warning');
-                if (apiWarning) {
-                    apiWarning.style.display = 'none';
-                }
-                
-                // Enable bot buttons
-                const startBtn = document.getElementById('start-bot-btn');
-                if (startBtn) {
-                    startBtn.disabled = false;
-                }
-                
-                showMessage('API anahtarları başarıyla kaydedildi!', 'success');
-                hideApiModal();
-                
-            } catch (error) {
-                console.error('Error saving API keys:', error);
-                showMessage('API anahtarları kaydedilirken bir hata oluştu.', 'error');
-            } finally {
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
-                }
-            }
-        }
-
-        // Start bot
-        async function startBot() {
-            const startBtn = document.getElementById('start-bot-btn');
-            if (!startBtn) return;
-            
-            startBtn.disabled = true;
-            startBtn.classList.add('loading');
-            
-            try {
-                // Update bot status in database
-                await database.ref(`users/${currentUser.uid}/bot_status`).set('active');
-                
-                // Update UI
-                updateBotStatus('active');
-                showMessage('Bot başarıyla başlatıldı!', 'success');
-                
-                // Add activity
-                addActivity('Bot başlatıldı', 'Bot trading moduna geçti');
-                
-            } catch (error) {
-                console.error('Error starting bot:', error);
-                showMessage('Bot başlatılırken bir hata oluştu.', 'error');
-            } finally {
-                startBtn.disabled = false;
-                startBtn.classList.remove('loading');
-            }
-        }
-
-        // Stop bot
-        async function stopBot() {
-            const stopBtn = document.getElementById('stop-bot-btn');
-            if (!stopBtn) return;
-            
-            stopBtn.disabled = true;
-            stopBtn.classList.add('loading');
-            
-            try {
-                // Update bot status in database
-                await database.ref(`users/${currentUser.uid}/bot_status`).set('inactive');
-                
-                // Update UI
-                updateBotStatus('inactive');
-                showMessage('Bot başarıyla durduruldu!', 'success');
-                
-                // Add activity
-                addActivity('Bot durduruldu', 'Trading aktivitesi sonlandırıldı');
-                
-            } catch (error) {
-                console.error('Error stopping bot:', error);
-                showMessage('Bot durdurulurken bir hata oluştu.', 'error');
-            } finally {
-                stopBtn.disabled = false;
-                stopBtn.classList.remove('loading');
-            }
-        }
-
-        // Update bot status
-        function updateBotStatus(status) {
-            botStatus = status;
-            
-            const statusDot = document.getElementById('status-dot');
-            const statusText = document.getElementById('status-text');
-            const startBtn = document.getElementById('start-bot-btn');
-            const stopBtn = document.getElementById('stop-bot-btn');
-            
-            if (status === 'active') {
-                if (statusDot) statusDot.classList.add('active');
-                if (statusText) statusText.textContent = 'Aktif';
-                if (startBtn) startBtn.disabled = true;
-                if (stopBtn) stopBtn.disabled = false;
-            } else {
-                if (statusDot) statusDot.classList.remove('active');
-                if (statusText) statusText.textContent = 'Çevrimdışı';
-                if (startBtn) startBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = true;
-            }
-        }
-
-        // Add activity to the list
-        function addActivity(title, description) {
-            const activityList = document.getElementById('activity-list');
-            if (!activityList) return;
-            
-            const activityItem = document.createElement('div');
-            activityItem.className = 'activity-item';
-            activityItem.innerHTML = `
-                <div class="activity-icon info">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="activity-content">
-                    <div class="activity-title">${title}</div>
-                    <div class="activity-time">Az önce</div>
-                </div>
-            `;
-            
-            activityList.insertBefore(activityItem, activityList.firstChild);
-            
-            // Keep only last 5 activities
-            while (activityList.children.length > 5) {
-                activityList.removeChild(activityList.lastChild);
-            }
-        }
-
-        // Show message
-        function showMessage(message, type = 'info') {
-            const statusMessages = document.getElementById('status-messages');
-            if (!statusMessages) return;
-            
-            const iconClass = {
-                'info': 'fas fa-info-circle',
-                'success': 'fas fa-check-circle',
-                'error': 'fas fa-exclamation-circle',
-                'warning': 'fas fa-exclamation-triangle'
-            };
-            
-            statusMessages.innerHTML = `
-                <div class="status-message ${type}">
-                    <i class="${iconClass[type] || iconClass.info}"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            
-            // Auto hide success and info messages
-            if (type === 'success' || type === 'info') {
-                setTimeout(() => {
-                    if (statusMessages.innerHTML.includes(message)) {
-                        statusMessages.innerHTML = `
-                            <div class="status-message info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Bot hazır. Ayarları yapılandırıp başlatabilirsiniz.</span>
-                            </div>
-                        `;
-                    }
-                }, 3000);
-            }
-        }
-
-        // Show error
-        function showError(message) {
-            console.error(message);
-            
-            // Show error page
-            document.body.innerHTML = `
-                <div style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    padding: 2rem;
-                    background: var(--bg-primary);
-                    color: var(--text-primary);
-                    text-align: center;
-                ">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;"></i>
-                    <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">Bir Hata Oluştu</h1>
-                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">${message}</p>
-                    <button onclick="location.reload()" class="btn btn-primary">
-                        <i class="fas fa-redo"></i> Sayfayı Yenile
-                    </button>
-                </div>
-            `;
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeDashboard();
-        });
-    </script>
-</body>
-</html>-symbol" id="pos-symbol">BTCUSDT</div>
-                                    <div class="position-side" id="pos-side">LONG</div>
-                                </div>
-                                
-                                <div class="position-stats">
-                                    <div class="position-stat">
-                                        <span class="stat-label">Boyut</span>
-                                        <span class="stat-value" id="pos-size">0.001 BTC</span>
-                                    </div>
-                                    <div class="position-stat">
-                                        <span class="stat-label">Giriş</span>
-                                        <span class="stat-value" id="pos-entry">$45,000</span>
-                                    </div>
-                                    <div class="position
