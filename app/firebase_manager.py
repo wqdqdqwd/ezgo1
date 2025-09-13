@@ -28,7 +28,7 @@ class FirebaseManager:
             raise e 
 
     @robust_firebase_call(max_attempts=2)
-    def verify_token(self, token: str):
+    async def verify_token(self, token: str):
         """
         Firebase ID Token'ı doğrular ve decoded payload'u döndürür.
         Bu payload kullanıcının UID'si ve custom claims'leri (örn. 'admin': True) içerir.
@@ -107,7 +107,8 @@ class FirebaseManager:
         trades_ref.push(trade_data) # Firebase'de benzersiz anahtar ile ekle
         logger.info("Trade logged", user_id=uid, pnl=trade_data.get('pnl', 0))
 
-    def is_subscription_active(self, uid: str) -> bool:
+    @robust_firebase_call(max_attempts=2)
+    async def is_subscription_active(self, uid: str) -> bool:
         """Kullanıcının aboneliğinin aktif olup olmadığını kontrol eder."""
         user_data = self.get_user_ref(uid).get()
         if not user_data or 'subscription_expiry' not in user_data:
