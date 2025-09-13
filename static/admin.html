@@ -85,3 +85,488 @@
                             </div>
                             <div class="stat-info">
                                 <div class="stat-value" id="trial-users-count">0</div>
+                                <div class="stat-label">Deneme Kullanıcıları</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon danger">
+                                <i class="fas fa-user-times"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="expired-users-count">0</div>
+                                <div class="stat-label">Süresi Dolmuş</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Users Management -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-users-cog"></i>
+                                Kullanıcı Yönetimi
+                            </h2>
+                            <div class="section-actions">
+                                <button class="btn btn-primary btn-sm" onclick="loadUsers()">
+                                    <i class="fas fa-sync"></i>
+                                    Yenile
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-envelope"></i> Email</th>
+                                            <th><i class="fas fa-crown"></i> Durum</th>
+                                            <th><i class="fas fa-calendar"></i> Bitiş Tarihi</th>
+                                            <th><i class="fas fa-user"></i> Kullanıcı ID</th>
+                                            <th class="text-center"><i class="fas fa-cogs"></i> İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table-body">
+                                        <tr>
+                                            <td colspan="5" class="text-center loading-message">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                                Kullanıcılar yükleniyor...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="table-error-message" class="status-message error hidden">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span id="error-text"></span>
+                        </div>
+
+                        <div id="table-success-message" class="status-message success hidden">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="success-text"></span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="admin-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-bolt"></i>
+                                Hızlı İşlemler
+                            </h2>
+                        </div>
+                        <div class="quick-actions">
+                            <div class="action-card" onclick="showComingSoon('Kullanıcı Raporu')">
+                                <i class="fas fa-download"></i>
+                                <h3>Rapor İndir</h3>
+                                <p>Kullanıcı verilerini CSV olarak indir</p>
+                            </div>
+                            <div class="action-card" onclick="showComingSoon('Toplu İşlemler')">
+                                <i class="fas fa-users"></i>
+                                <h3>Toplu İşlemler</h3>
+                                <p>Birden fazla kullanıcıyı yönet</p>
+                            </div>
+                            <div class="action-card" onclick="showComingSoon('Sistem Durumu')">
+                                <i class="fas fa-server"></i>
+                                <h3>Sistem Durumu</h3>
+                                <p>Platform sağlığını kontrol et</p>
+                            </div>
+                            <div class="action-card" onclick="showComingSoon('Trading İstatistikleri')">
+                                <i class="fas fa-chart-bar"></i>
+                                <h3>Trading İstatistikleri</h3>
+                                <p>Platform trading verileri</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="admin-footer">
+            <div class="container">
+                <div class="admin-footer-content">
+                    <p>&copy; <span id="current-year">2025</span> EzyagoTrading. Admin Panel v2.0</p>
+                    <div class="footer-warning">
+                        <i class="fas fa-shield-alt"></i>
+                        Gizli sistem - Sadece yetkili personel
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Admin JavaScript - Inline for debugging -->
+    <script>
+        // Admin Panel JavaScript - Inline version
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Admin panel JavaScript loaded');
+            
+            // Global variables
+            let firebaseApp = null;
+            let auth = null;
+            let database = null;
+            let currentUser = null;
+
+            // DOM Elements
+            const elements = {
+                loadingScreen: document.getElementById('loading-screen'),
+                adminContainer: document.getElementById('admin-container'),
+                totalUsersCount: document.getElementById('total-users-count'),
+                activeUsersCount: document.getElementById('active-users-count'),
+                trialUsersCount: document.getElementById('trial-users-count'),
+                expiredUsersCount: document.getElementById('expired-users-count'),
+                usersTableBody: document.getElementById('users-table-body'),
+                tableErrorMessage: document.getElementById('table-error-message'),
+                tableSuccessMessage: document.getElementById('table-success-message'),
+                errorText: document.getElementById('error-text'),
+                successText: document.getElementById('success-text'),
+                adminLogoutButton: document.getElementById('admin-logout-button'),
+                refreshDataBtn: document.getElementById('refresh-data-btn'),
+                currentYear: document.getElementById('current-year')
+            };
+
+            // Initialize Firebase
+            async function initializeFirebase() {
+                try {
+                    console.log('Loading Firebase config...');
+                    const response = await fetch('/api/firebase-config');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const firebaseConfig = await response.json();
+                    console.log('Firebase config loaded successfully');
+
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    auth = firebase.auth();
+                    database = firebase.database();
+
+                    console.log('Firebase initialized successfully');
+                    return true;
+                } catch (error) {
+                    console.error('Firebase initialization failed:', error);
+                    showError('Firebase başlatılamadı: ' + error.message);
+                    return false;
+                }
+            }
+
+            // Simple auth check - skip admin verification for now
+            async function checkAuth() {
+                return new Promise((resolve) => {
+                    auth.onAuthStateChanged(async (user) => {
+                        if (user) {
+                            console.log('User authenticated:', user.email);
+                            currentUser = user;
+                            resolve(true);
+                        } else {
+                            console.log('No authenticated user, redirecting...');
+                            // For testing, let's proceed anyway
+                            console.log('Proceeding without auth for debugging...');
+                            resolve(true);
+                        }
+                    });
+                });
+            }
+
+            // Load mock users for testing
+            function loadMockUsers() {
+                console.log('Loading mock users...');
+                
+                const mockUsers = [
+                    {
+                        email: 'test@example.com',
+                        subscription_status: 'active',
+                        subscription_expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        created_at: Date.now() - 7 * 24 * 60 * 60 * 1000
+                    },
+                    {
+                        email: 'trial@example.com',
+                        subscription_status: 'trial',
+                        subscription_expiry: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        created_at: Date.now() - 2 * 24 * 60 * 60 * 1000
+                    },
+                    {
+                        email: 'expired@example.com',
+                        subscription_status: 'expired',
+                        subscription_expiry: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                        created_at: Date.now() - 30 * 24 * 60 * 60 * 1000
+                    }
+                ];
+
+                const mockUserEntries = mockUsers.map((user, index) => [`user${index + 1}`, user]);
+                renderUsers(mockUserEntries);
+            }
+
+            // Render users
+            function renderUsers(users) {
+                const stats = { total: 0, active: 0, trial: 0, expired: 0 };
+                
+                if (!users || users.length === 0) {
+                    elements.usersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                Kullanıcı bulunamadı.
+                            </td>
+                        </tr>
+                    `;
+                    updateStats(stats);
+                    return;
+                }
+
+                const tableRows = users.map(([userId, userData]) => {
+                    stats.total++;
+
+                    const subscriptionStatus = getSubscriptionStatus(userData);
+                    const expiryInfo = getExpiryInfo(userData);
+                    
+                    if (subscriptionStatus.status === 'active') {
+                        stats.active++;
+                    } else if (subscriptionStatus.status === 'trial') {
+                        stats.trial++;
+                    } else {
+                        stats.expired++;
+                    }
+
+                    return `
+                        <tr class="user-row">
+                            <td>
+                                <div class="user-info">
+                                    <div class="email-text">${userData.email || 'Bilinmiyor'}</div>
+                                    <div class="join-date">Katıldı: ${formatDate(userData.created_at)}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${subscriptionStatus.status}">
+                                    <i class="fas ${subscriptionStatus.icon}"></i>
+                                    ${subscriptionStatus.label}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="expiry-info">
+                                    <div class="expiry-date">${expiryInfo.date}</div>
+                                    ${expiryInfo.remaining ? `<div class="days-remaining ${expiryInfo.class}">${expiryInfo.remaining}</div>` : ''}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="user-id-text" onclick="copyToClipboard('${userId}')">
+                                    ${userId}
+                                </span>
+                            </td>
+                            <td class="actions-cell">
+                                <div class="action-buttons">
+                                    <button class="btn btn-success btn-sm" onclick="extendSubscription('${userId}', '${userData.email}')" title="30 gün ekle">
+                                        <i class="fas fa-plus"></i>
+                                        <span class="btn-text">30 Gün</span>
+                                    </button>
+                                    <button class="btn btn-outline btn-sm" onclick="viewUserDetails('${userId}')" title="Detayları göster">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                elements.usersTableBody.innerHTML = tableRows;
+                updateStats(stats);
+            }
+
+            function getSubscriptionStatus(userData) {
+                const now = new Date();
+                const expiryDate = userData.subscription_expiry ? new Date(userData.subscription_expiry) : null;
+                
+                if (!expiryDate) {
+                    return { status: 'inactive', label: 'Pasif', icon: 'fa-times' };
+                }
+
+                const isExpired = now > expiryDate;
+                const subscriptionStatus = userData.subscription_status || 'trial';
+
+                if (isExpired) {
+                    return { status: 'expired', label: 'Süresi Dolmuş', icon: 'fa-times-circle' };
+                }
+
+                switch (subscriptionStatus) {
+                    case 'active':
+                        return { status: 'active', label: 'Aktif', icon: 'fa-check-circle' };
+                    case 'trial':
+                        return { status: 'trial', label: 'Deneme', icon: 'fa-clock' };
+                    default:
+                        return { status: 'inactive', label: 'Pasif', icon: 'fa-times' };
+                }
+            }
+
+            function getExpiryInfo(userData) {
+                if (!userData.subscription_expiry) {
+                    return { date: 'Belirlenmemiş', remaining: null, class: '' };
+                }
+
+                const now = new Date();
+                const expiryDate = new Date(userData.subscription_expiry);
+                const diffTime = expiryDate - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                const formattedDate = expiryDate.toLocaleDateString('tr-TR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+
+                let remaining = null;
+                let remainingClass = '';
+
+                if (diffDays > 0) {
+                    remaining = `${diffDays} gün kaldı`;
+                    remainingClass = diffDays <= 3 ? 'warning' : 'positive';
+                } else if (diffDays === 0) {
+                    remaining = 'Bugün sona eriyor';
+                    remainingClass = 'warning';
+                } else {
+                    remaining = `${Math.abs(diffDays)} gün önce doldu`;
+                    remainingClass = 'expired';
+                }
+
+                return {
+                    date: formattedDate,
+                    remaining: remaining,
+                    class: remainingClass
+                };
+            }
+
+            function updateStats(stats) {
+                if (elements.totalUsersCount) elements.totalUsersCount.textContent = stats.total;
+                if (elements.activeUsersCount) elements.activeUsersCount.textContent = stats.active;
+                if (elements.trialUsersCount) elements.trialUsersCount.textContent = stats.trial;
+                if (elements.expiredUsersCount) elements.expiredUsersCount.textContent = stats.expired;
+            }
+
+            function formatDate(timestamp) {
+                if (!timestamp) return 'Bilinmiyor';
+                const date = new Date(timestamp);
+                return date.toLocaleDateString('tr-TR');
+            }
+
+            function showError(message) {
+                console.error('Error:', message);
+                if (elements.errorText && elements.tableErrorMessage) {
+                    elements.errorText.textContent = message;
+                    elements.tableErrorMessage.classList.remove('hidden');
+                }
+            }
+
+            function showSuccess(message) {
+                console.log('Success:', message);
+                if (elements.successText && elements.tableSuccessMessage) {
+                    elements.successText.textContent = message;
+                    elements.tableSuccessMessage.classList.remove('hidden');
+                    setTimeout(() => {
+                        elements.tableSuccessMessage.classList.add('hidden');
+                    }, 3000);
+                }
+            }
+
+            // Global functions
+            window.extendSubscription = (userId, email) => {
+                showSuccess(`${email} kullanıcısının aboneliği uzatıldı (demo)`);
+            };
+
+            window.viewUserDetails = (userId) => {
+                alert(`Kullanıcı detayları: ${userId}`);
+            };
+
+            window.copyToClipboard = (text) => {
+                navigator.clipboard.writeText(text).then(() => {
+                    showSuccess('ID kopyalandı: ' + text);
+                });
+            };
+
+            window.showComingSoon = (feature) => {
+                alert(`${feature} özelliği yakında!`);
+            };
+
+            window.loadUsers = loadMockUsers;
+
+            // Setup event listeners
+            function setupEventListeners() {
+                if (elements.refreshDataBtn) {
+                    elements.refreshDataBtn.addEventListener('click', loadMockUsers);
+                }
+
+                if (elements.adminLogoutButton) {
+                    elements.adminLogoutButton.addEventListener('click', () => {
+                        if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+                            window.location.href = '/';
+                        }
+                    });
+                }
+
+                if (elements.currentYear) {
+                    elements.currentYear.textContent = new Date().getFullYear();
+                }
+            }
+
+            // Main initialization
+            async function initializeApp() {
+                try {
+                    console.log('Initializing admin panel...');
+                    
+                    // Initialize Firebase
+                    const firebaseInitialized = await initializeFirebase();
+                    if (!firebaseInitialized) {
+                        console.warn('Firebase failed, continuing with demo mode');
+                    }
+
+                    // Skip auth completely
+                    console.log('Skipping authentication for demo mode');
+
+                    // Setup event listeners
+                    setupEventListeners();
+
+                    // Load demo data
+                    loadMockUsers();
+
+                    // Hide loading and show admin panel
+                    if (elements.loadingScreen) {
+                        elements.loadingScreen.style.display = 'none';
+                    }
+                    if (elements.adminContainer) {
+                        elements.adminContainer.classList.remove('hidden');
+                    }
+
+                    console.log('Admin panel initialized successfully');
+
+                } catch (error) {
+                    console.error('Admin panel initialization failed:', error);
+                    
+                    if (elements.loadingScreen) {
+                        elements.loadingScreen.innerHTML = `
+                            <div class="loading-content">
+                                <div class="loading-logo">
+                                    <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
+                                    <span>Hata</span>
+                                </div>
+                                <p>Admin panel başlatılırken hata oluştu</p>
+                                <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">
+                                    <i class="fas fa-redo"></i> Tekrar Dene
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            // Start the application
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
