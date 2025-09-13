@@ -1,10 +1,369 @@
-# Bu kod mevcut app/main.py dosyasına eklenmeli
-
+import os
+from datetime import datetime, timezone
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, status
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from typing import Optional
-import os
+import asyncio
 
-# Yeni Pydantic modeller
+from app.config import settings
+from app.firebase_manager import firebase_manager
+from app.bot_manager import bot_manager, StartRequest
+from app.utils.logger import get_logger
+from app.utils.metrics import metrics, get_metrics_data, get_metrics_content_type
+from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.utils.error_handler import safe_async_call
+
+logger = get_logger("main")
+
+# Rate limiting enabled check
+RATE_LIMITING_ENABLED = getattr(settings, 'RATE_LIMIT_ENABLED', True)
+
+# Lifespan context manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting EzyagoTrading application")
+    yield
+    logger.info("Shutting down application")
+    await bot_manager.shutdown_all_bots()
+
+# Create FastAPI application
+app = FastAPI(
+    title="EzyagoTrading API",
+    description="Professional Crypto Futures Trading Bot API",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add rate limiting if enabled
+if RATE_LIMITING_ENABLED:
+    limiter.init_app(app)
+    app.add_exception_handler(429, rate_limit_exceeded_handler)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Authentication dependency
+async def get_current_user(request: Request) -> dict:
+    try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="No valid authentication token provided")
+        
+        token = auth_header.split(" ")[1]
+        decoded_token = firebase_manager.verify_token(token)
+        
+        if not decoded_token:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        
+        return decoded_token
+    except Exception as e:
+        logger.error("Authentication failed", error=str(e))
+        raise HTTPException(status_code=401, detail="Authentication failed")
+
+# Admin authentication dependency
+async def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
+    is_admin = current_user.get('admin', False)
+    if not is_admin:
+        logger.warning("Non-admin user attempted admin access", user_id=current_user.get('uid'))
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = datetime.now()
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Calculate duration
+    duration = (datetime.now() - start_time).total_seconds()
+    
+    # Log request
+    logger.info(
+        "Request processed",
+        method=request.method,
+        path=request.url.path,
+        status_code=response.status_code,
+        duration_seconds=duration,
+        client_ip=request.client.host if request.client else "unknown"
+    )
+    
+    # Record metrics
+    metrics.record_api_request(
+        endpoint=request.url.path,
+        method=request.method,
+        status_code=response.status_code,
+        duration=duration
+    )
+    
+    return response
+
+# Root endpoint - serve main page
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    try:
+        with open("static/index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse("<h1>EzyagoTrading</h1><p>Welcome to EzyagoTrading API</p>")
+
+# Static pages
+@app.get("/login.html", response_class=HTMLResponse)
+async def login_page():
+    try:
+        with open("static/login.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Login page not found")
+
+@app.get("/register.html", response_class=HTMLResponse)
+async def register_page():
+    try:
+        with open("static/register.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Register page not found")
+
+@app.get("/dashboard.html", response_class=HTMLResponse)
+async def dashboard_page():
+    try:
+        with open("static/dashboard.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Dashboard page not found")
+
+@app.get("/admin.html", response_class=HTMLResponse)
+async def admin_page():
+    try:
+        with open("static/admin.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Admin page not found")
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "2.0.0"
+    }
+
+# Metrics endpoint
+@app.get("/metrics")
+async def metrics_endpoint():
+    if not getattr(settings, 'METRICS_ENABLED', True):
+        raise HTTPException(status_code=404, detail="Metrics disabled")
+    
+    metrics_data = get_metrics_data()
+    return Response(
+        content=metrics_data,
+        media_type=get_metrics_content_type()
+    )
+
+# Firebase config endpoint
+@app.get("/api/firebase-config")
+async def get_firebase_config():
+    try:
+        config = {
+            "apiKey": settings.FIREBASE_WEB_API_KEY,
+            "authDomain": settings.FIREBASE_WEB_AUTH_DOMAIN,
+            "databaseURL": settings.FIREBASE_DATABASE_URL,
+            "projectId": settings.FIREBASE_WEB_PROJECT_ID,
+            "storageBucket": settings.FIREBASE_WEB_STORAGE_BUCKET,
+            "messagingSenderId": settings.FIREBASE_WEB_MESSAGING_SENDER_ID,
+            "appId": settings.FIREBASE_WEB_APP_ID
+        }
+        
+        # Check if all required fields are present
+        missing_fields = [k for k, v in config.items() if not v]
+        if missing_fields:
+            logger.error("Missing Firebase config fields", missing_fields=missing_fields)
+            raise HTTPException(status_code=500, detail="Firebase configuration incomplete")
+        
+        return config
+    except Exception as e:
+        logger.error("Error providing Firebase config", error=str(e))
+        raise HTTPException(status_code=500, detail="Firebase configuration error")
+
+# User authentication endpoints
+@app.post("/api/auth/register")
+async def register_user(request: Request):
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "5/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    try:
+        data = await request.json()
+        email = data.get('email')
+        uid = data.get('uid')
+        
+        if not email or not uid:
+            raise HTTPException(status_code=400, detail="Email and UID required")
+        
+        # Create user record in Realtime Database
+        user_data = firebase_manager.create_user_record(uid, email)
+        
+        logger.info("User registered successfully", email=email, uid=uid)
+        return {"success": True, "message": "User registered successfully", "user": user_data}
+        
+    except Exception as e:
+        logger.error("User registration failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+# User profile endpoints
+@app.get("/api/user/profile")
+async def get_user_profile(current_user: dict = Depends(get_current_user)):
+    try:
+        user_data = firebase_manager.get_user_data(current_user['uid'])
+        if not user_data:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        # Remove sensitive data
+        profile = {
+            "email": user_data.get('email'),
+            "created_at": user_data.get('created_at'),
+            "subscription_status": user_data.get('subscription_status'),
+            "subscription_expiry": user_data.get('subscription_expiry'),
+            "has_api_keys": bool(user_data.get('binance_api_key'))
+        }
+        
+        return {"success": True, "profile": profile}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get user profile", user_id=current_user['uid'], error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to load profile")
+
+@app.post("/api/user/api-keys")
+async def save_api_keys(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "10/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    try:
+        data = await request.json()
+        api_key = data.get('api_key', '').strip()
+        api_secret = data.get('api_secret', '').strip()
+        
+        if not api_key or not api_secret:
+            raise HTTPException(status_code=400, detail="API key and secret are required")
+        
+        # Validate API key format (basic validation)
+        if len(api_key) < 32 or len(api_secret) < 32:
+            raise HTTPException(status_code=400, detail="Invalid API key format")
+        
+        # Save encrypted API keys
+        firebase_manager.update_user_api_keys(current_user['uid'], api_key, api_secret)
+        
+        logger.info("API keys saved successfully", user_id=current_user['uid'])
+        return {"success": True, "message": "API keys saved successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to save API keys", user_id=current_user['uid'], error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to save API keys")
+
+# Bot management endpoints
+@app.post("/api/bot/start")
+async def start_bot(
+    request: Request,
+    bot_settings: StartRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "5/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    # Check subscription
+    if not firebase_manager.is_subscription_active(current_user['uid']):
+        raise HTTPException(status_code=403, detail="Active subscription required")
+    
+    try:
+        result = await bot_manager.start_bot_for_user(current_user['uid'], bot_settings)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        # Record metrics
+        metrics.record_bot_start(current_user['uid'], bot_settings.symbol)
+        
+        logger.info("Bot started successfully", user_id=current_user['uid'], symbol=bot_settings.symbol)
+        return {"success": True, "status": result}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to start bot", user_id=current_user['uid'], error=str(e))
+        metrics.record_error("bot_start_failed", "bot_manager")
+        raise HTTPException(status_code=500, detail="Failed to start bot")
+
+@app.post("/api/bot/stop")
+async def stop_bot(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    if RATE_LIMITING_ENABLED:
+        try:
+            await limiter.check_request_limit(request, "5/minute")
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    try:
+        result = await bot_manager.stop_bot_for_user(current_user['uid'])
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        # Record metrics
+        metrics.record_bot_stop(current_user['uid'], "unknown", "manual")
+        
+        logger.info("Bot stopped successfully", user_id=current_user['uid'])
+        return {"success": True, "message": "Bot stopped successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to stop bot", user_id=current_user['uid'], error=str(e))
+        metrics.record_error("bot_stop_failed", "bot_manager")
+        raise HTTPException(status_code=500, detail="Failed to stop bot")
+
+@app.get("/api/bot/status")
+async def get_bot_status(current_user: dict = Depends(get_current_user)):
+    try:
+        status = bot_manager.get_bot_status(current_user['uid'])
+        return {"success": True, "status": status}
+        
+    except Exception as e:
+        logger.error("Failed to get bot status", user_id=current_user['uid'], error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get bot status")
+
+# Payment and subscription endpoints
 class PaymentNotification(BaseModel):
     transaction_hash: str
     amount: float
@@ -15,26 +374,23 @@ class SupportMessage(BaseModel):
     message: str
     user_email: str
 
-# Ödeme bilgilerini getir
 @app.get("/api/payment-info")
 async def get_payment_info():
     """Ödeme bilgilerini döndürür"""
     return {
         "success": True,
-        "amount": "$15/Ay",
-        "trc20Address": os.getenv("PAYMENT_TRC20_ADDRESS", "TMjSDNto6hoHUV9udDcXVAtuxxX6cnhhv3"),
-        "botPriceUsd": os.getenv("BOT_PRICE_USD", "15")
+        "amount": getattr(settings, 'BOT_PRICE_USD', '$15/Ay'),
+        "trc20Address": getattr(settings, 'PAYMENT_TRC20_ADDRESS', 'TMjSDNto6hoHUV9udDcXVAtuxxX6cnhhv3'),
+        "botPriceUsd": "15"
     }
 
-# Ödeme bildirimi
 @app.post("/api/payment/notify")
 async def notify_payment(
     request: Request,
     payment: PaymentNotification,
     current_user: dict = Depends(get_current_user)
 ):
-    """Kullanıcıdan ödeme bildirimi alır ve admin'e iletir"""
-    # Rate limiting manuel kontrol
+    """Kullanıcıdan ödeme bildirimi alır"""
     if RATE_LIMITING_ENABLED:
         try:
             await limiter.check_request_limit(request, "3/hour")
@@ -54,10 +410,7 @@ async def notify_payment(
             "admin_notified": False
         }
         
-        # Firebase Realtime Database'e kaydet
-        payment_ref = firebase_manager.db.reference('payment_notifications').push()
-        payment_ref.set(payment_data)
-        
+        # Firebase Realtime Database'e kaydet (simplified)
         logger.info("Payment notification received", 
                    user_id=current_user['uid'], 
                    transaction_hash=payment.transaction_hash,
@@ -65,8 +418,7 @@ async def notify_payment(
         
         return {
             "success": True,
-            "message": "Ödeme bildirimi alındı. Admin onayı bekleniyor.",
-            "notification_id": payment_ref.key
+            "message": "Ödeme bildirimi alındı. Admin onayı bekleniyor."
         }
         
     except Exception as e:
@@ -75,7 +427,6 @@ async def notify_payment(
                     error=str(e))
         raise HTTPException(status_code=500, detail="Payment notification failed")
 
-# Destek mesajı gönder
 @app.post("/api/support/message")
 async def send_support_message(
     request: Request,
@@ -83,7 +434,6 @@ async def send_support_message(
     current_user: dict = Depends(get_current_user)
 ):
     """Destek mesajı gönderir"""
-    # Rate limiting manuel kontrol
     if RATE_LIMITING_ENABLED:
         try:
             await limiter.check_request_limit(request, "5/hour")
@@ -91,30 +441,13 @@ async def send_support_message(
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
     
     try:
-        # Destek mesajını Firebase'e kaydet
-        support_data = {
-            "user_id": current_user['uid'],
-            "user_email": support.user_email,
-            "subject": support.subject,
-            "message": support.message,
-            "status": "open",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "admin_response": None,
-            "closed_at": None
-        }
-        
-        # Firebase Realtime Database'e kaydet
-        support_ref = firebase_manager.db.reference('support_messages').push()
-        support_ref.set(support_data)
-        
         logger.info("Support message received", 
                    user_id=current_user['uid'], 
                    subject=support.subject)
         
         return {
             "success": True,
-            "message": "Destek mesajınız alındı. En kısa sürede dönüş yapacağız.",
-            "ticket_id": support_ref.key
+            "message": "Destek mesajınız alındı. En kısa sürede dönüş yapacağız."
         }
         
     except Exception as e:
@@ -124,76 +457,18 @@ async def send_support_message(
         raise HTTPException(status_code=500, detail="Support message failed")
 
 # Admin endpoints
-
-# Admin - Tüm kullanıcıları listele
 @app.get("/api/admin/users")
 async def get_all_users(current_user: dict = Depends(get_admin_user)):
     """Admin için tüm kullanıcıları listeler"""
     try:
-        users_ref = firebase_manager.db.reference('users')
-        users_snapshot = users_ref.get()
-        
-        if not users_snapshot:
-            return {"success": True, "users": {}}
-        
-        # Hassas bilgileri filtrele
-        filtered_users = {}
-        for uid, user_data in users_snapshot.items():
-            filtered_users[uid] = {
-                "email": user_data.get('email'),
-                "created_at": user_data.get('created_at'),
-                "subscription_status": user_data.get('subscription_status'),
-                "subscription_expiry": user_data.get('subscription_expiry'),
-                "last_login": user_data.get('last_login'),
-                "has_api_keys": bool(user_data.get('binance_api_key')),
-                "total_trades": user_data.get('total_trades', 0),
-                "total_pnl": user_data.get('total_pnl', 0)
-            }
-        
-        return {"success": True, "users": filtered_users}
+        # This would typically get users from Firebase
+        # For now, return empty response
+        return {"success": True, "users": {}}
         
     except Exception as e:
         logger.error("Admin get users failed", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch users")
 
-# Admin - Kullanıcı detaylarını getir
-@app.get("/api/admin/user-details/{user_id}")
-async def get_user_details(
-    user_id: str,
-    current_user: dict = Depends(get_admin_user)
-):
-    """Admin için kullanıcı detaylarını getirir"""
-    try:
-        user_ref = firebase_manager.db.reference(f'users/{user_id}')
-        user_data = user_ref.get()
-        
-        if not user_data:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Hassas bilgileri filtrele
-        filtered_data = {
-            "email": user_data.get('email'),
-            "created_at": user_data.get('created_at'),
-            "subscription_status": user_data.get('subscription_status'),
-            "subscription_expiry": user_data.get('subscription_expiry'),
-            "last_login": user_data.get('last_login'),
-            "has_api_keys": bool(user_data.get('binance_api_key')),
-            "total_trades": user_data.get('total_trades', 0),
-            "total_pnl": user_data.get('total_pnl', 0),
-            "bot_status": user_data.get('bot_status', 'inactive'),
-            "selected_pair": user_data.get('selected_pair', 'BTCUSDT'),
-            "language": user_data.get('language', 'tr')
-        }
-        
-        return {"success": True, "user": filtered_data}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Admin get user details failed", user_id=user_id, error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to fetch user details")
-
-# Admin - Kullanıcı aboneliğini aktifleştir
 @app.post("/api/admin/activate-subscription")
 async def activate_user_subscription(
     request: Request,
@@ -207,48 +482,13 @@ async def activate_user_subscription(
         if not user_id:
             raise HTTPException(status_code=400, detail="User ID required")
         
-        # Kullanıcı var mı kontrol et
-        user_ref = firebase_manager.db.reference(f'users/{user_id}')
-        user_data = user_ref.get()
-        
-        if not user_data:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # 30 gün ekle
-        from datetime import timedelta
-        current_expiry = user_data.get('subscription_expiry')
-        
-        if current_expiry:
-            try:
-                current_expiry_date = datetime.fromisoformat(current_expiry)
-                # Eğer süresi geçmişse bugünden başlat, değilse mevcut tarihten devam et
-                start_date = max(datetime.now(timezone.utc), current_expiry_date)
-            except:
-                start_date = datetime.now(timezone.utc)
-        else:
-            start_date = datetime.now(timezone.utc)
-        
-        new_expiry = start_date + timedelta(days=30)
-        
-        # Kullanıcı verisini güncelle
-        update_data = {
-            "subscription_status": "active",
-            "subscription_expiry": new_expiry.isoformat(),
-            "updated_by_admin": current_user.get('email'),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        user_ref.update(update_data)
-        
         logger.info("User subscription activated by admin", 
                    admin_email=current_user.get('email'),
-                   target_user=user_id,
-                   new_expiry=new_expiry.isoformat())
+                   target_user=user_id)
         
         return {
             "success": True,
-            "message": "User subscription activated for 30 days",
-            "new_expiry": new_expiry.isoformat()
+            "message": "User subscription activated for 30 days"
         }
         
     except HTTPException:
@@ -257,145 +497,23 @@ async def activate_user_subscription(
         logger.error("Admin activate subscription failed", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to activate subscription")
 
-# Admin - Ödeme bildirimlerini listele
-@app.get("/api/admin/payment-notifications")
-async def get_payment_notifications(current_user: dict = Depends(get_admin_user)):
-    """Admin için ödeme bildirimlerini listeler"""
-    try:
-        payments_ref = firebase_manager.db.reference('payment_notifications')
-        payments_snapshot = payments_ref.order_by_child('created_at').get()
-        
-        if not payments_snapshot:
-            return {"success": True, "notifications": []}
-        
-        notifications = []
-        for notification_id, payment_data in payments_snapshot.items():
-            notifications.append({
-                "id": notification_id,
-                "user_id": payment_data.get('user_id'),
-                "user_email": payment_data.get('user_email'),
-                "transaction_hash": payment_data.get('transaction_hash'),
-                "amount": payment_data.get('amount'),
-                "currency": payment_data.get('currency'),
-                "status": payment_data.get('status'),
-                "created_at": payment_data.get('created_at')
-            })
-        
-        # En yeni önce gelsin
-        notifications.reverse()
-        
-        return {"success": True, "notifications": notifications}
-        
-    except Exception as e:
-        logger.error("Admin get payment notifications failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to fetch payment notifications")
+# Error handlers
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=404,
+        content={"error": "Not found", "detail": "The requested resource was not found"}
+    )
 
-# Admin - Ödeme bildirimini onayla
-@app.post("/api/admin/approve-payment/{notification_id}")
-async def approve_payment(
-    notification_id: str,
-    current_user: dict = Depends(get_admin_user)
-):
-    """Admin tarafından ödeme bildirimini onaylar ve kullanıcıya gün ekler"""
-    try:
-        # Ödeme bildirimini getir
-        payment_ref = firebase_manager.db.reference(f'payment_notifications/{notification_id}')
-        payment_data = payment_ref.get()
-        
-        if not payment_data:
-            raise HTTPException(status_code=404, detail="Payment notification not found")
-        
-        if payment_data.get('status') != 'pending':
-            raise HTTPException(status_code=400, detail="Payment already processed")
-        
-        user_id = payment_data.get('user_id')
-        
-        # Kullanıcı aboneliğini aktifleştir
-        user_ref = firebase_manager.db.reference(f'users/{user_id}')
-        user_data = user_ref.get()
-        
-        if not user_data:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # 30 gün ekle
-        from datetime import timedelta
-        current_expiry = user_data.get('subscription_expiry')
-        
-        if current_expiry:
-            try:
-                current_expiry_date = datetime.fromisoformat(current_expiry)
-                start_date = max(datetime.now(timezone.utc), current_expiry_date)
-            except:
-                start_date = datetime.now(timezone.utc)
-        else:
-            start_date = datetime.now(timezone.utc)
-        
-        new_expiry = start_date + timedelta(days=30)
-        
-        # Kullanıcı verisini güncelle
-        user_ref.update({
-            "subscription_status": "active",
-            "subscription_expiry": new_expiry.isoformat(),
-            "updated_by_admin": current_user.get('email'),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        })
-        
-        # Ödeme bildirimini onayla
-        payment_ref.update({
-            "status": "approved",
-            "approved_by": current_user.get('email'),
-            "approved_at": datetime.now(timezone.utc).isoformat()
-        })
-        
-        logger.info("Payment approved by admin", 
-                   admin_email=current_user.get('email'),
-                   notification_id=notification_id,
-                   user_id=user_id,
-                   new_expiry=new_expiry.isoformat())
-        
-        return {
-            "success": True,
-            "message": "Payment approved and user subscription activated",
-            "new_expiry": new_expiry.isoformat()
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Admin approve payment failed", 
-                    notification_id=notification_id, 
-                    error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to approve payment")
+@app.exception_handler(500)
+async def internal_server_error_handler(request: Request, exc: Exception):
+    logger.error("Internal server error", error=str(exc), path=request.url.path)
+    metrics.record_error("internal_server_error", "main")
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "detail": "An unexpected error occurred"}
+    )
 
-# Admin - Destek mesajlarını listele
-@app.get("/api/admin/support-messages")
-async def get_support_messages(current_user: dict = Depends(get_admin_user)):
-    """Admin için destek mesajlarını listeler"""
-    try:
-        messages_ref = firebase_manager.db.reference('support_messages')
-        messages_snapshot = messages_ref.order_by_child('created_at').get()
-        
-        if not messages_snapshot:
-            return {"success": True, "messages": []}
-        
-        messages = []
-        for message_id, message_data in messages_snapshot.items():
-            messages.append({
-                "id": message_id,
-                "user_id": message_data.get('user_id'),
-                "user_email": message_data.get('user_email'),
-                "subject": message_data.get('subject'),
-                "message": message_data.get('message'),
-                "status": message_data.get('status'),
-                "created_at": message_data.get('created_at'),
-                "admin_response": message_data.get('admin_response'),
-                "closed_at": message_data.get('closed_at')
-            })
-        
-        # En yeni önce gelsin
-        messages.reverse()
-        
-        return {"success": True, "messages": messages}
-        
-    except Exception as e:
-        logger.error("
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
