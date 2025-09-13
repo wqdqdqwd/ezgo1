@@ -1,662 +1,639 @@
+// Admin Panel JavaScript - Dashboard ile uyumlu modern sistem
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Admin panel starting...');
 
-    // DOM elements in a single object
-    const UIElements = {
+    // Global variables
+    let firebaseApp = null;
+    let auth = null;
+    let database = null;
+    let currentUser = null;
+
+    // DOM Elements - Güvenli erişim ile
+    const elements = {
+        // Loading & container
+        loadingScreen: document.getElementById('loading-screen'),
         adminContainer: document.getElementById('admin-container'),
+        
+        // Header elements
+        refreshDataBtn: document.getElementById('refresh-data-btn'),
         adminLogoutButton: document.getElementById('admin-logout-button'),
+        currentYear: document.getElementById('current-year'),
+        
+        // Stats counters
+        totalUsersCount: document.getElementById('total-users-count'),
+        activeUsersCount: document.getElementById('active-users-count'),
+        trialUsersCount: document.getElementById('trial-users-count'),
+        expiredUsersCount: document.getElementById('expired-users-count'),
+        
+        // Table elements
         usersTableBody: document.getElementById('users-table-body'),
-        userCountSpan: document.getElementById('user-count'),
-        activeUsersCountSpan: document.getElementById('active-users-count'),
-        trialUsersCountSpan: document.getElementById('trial-users-count'),
-        expiredUsersCountSpan: document.getElementById('expired-users-count'),
         tableErrorMessage: document.getElementById('table-error-message'),
-        currentYearSpan: document.getElementById('current-year'),
-    };
-
-    const firebaseServices = {
-        auth: null,
-    };
-
-    // Loading state helper function
-    function setLoadingState(isLoading, message = "Please wait...", targetElement = UIElements.usersTableBody) {
-        if (!targetElement) return;
+        tableSuccessMessage: document.getElementById('table-success-message'),
+        errorText: document.getElementById('error-text'),
+        successText: document.getElementById('success-text'),
         
-        if (isLoading) {
-            targetElement.innerHTML = `<tr><td colspan="5" class="text-center text-muted loading-message"><i class="fas fa-spinner fa-spin mr-2"></i> ${message}</td></tr>`;
-            if (UIElements.tableErrorMessage) {
-                UIElements.tableErrorMessage.style.display = 'none';
+        // Helper function to safely get elements
+        get: (id) => {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.warn(`Element not found: ${id}`);
             }
+            return element;
         }
-    }
+    };
 
-    // Error message helper function
-    function showErrorMessage(message) {
-        if (UIElements.tableErrorMessage) {
-            UIElements.tableErrorMessage.textContent = message;
-            UIElements.tableErrorMessage.style.display = 'block';
-            UIElements.tableErrorMessage.className = 'status-message error';
-        }
-        if (UIElements.usersTableBody) {
-            UIElements.usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${message}</td></tr>`;
-        }
-    }
-
-    // Success message helper function
-    function showSuccessMessage(message) {
-        if (UIElements.tableErrorMessage) {
-            UIElements.tableErrorMessage.textContent = message;
-            UIElements.tableErrorMessage.style.display = 'block';
-            UIElements.tableErrorMessage.className = 'status-message success';
-            
-            setTimeout(() => {
-                UIElements.tableErrorMessage.style.display = 'none';
-            }, 3000);
-        }
-    }
-
-    /**
-     * Secure backend communication with Firebase auth token
-     */
-    async function fetchAdminApi(endpoint, options = {}) {
-        const user = firebaseServices.auth?.currentUser;
-        if (!user) {
-            alert("Your session has expired or you don't have permission. Please login again.");
-            window.location.href = '/';
-            return null;
-        }
-        
+    // Initialize Firebase
+    async function initializeFirebase() {
         try {
-            const idToken = await user.getIdToken(true); 
-            
-            const headers = {
-                'Authorization': `Bearer ${idToken}`,
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
-            
-            const response = await fetch(endpoint, { ...options, headers });
+            console.log('Initializing Firebase...');
+            const response = await fetch('/api/firebase-config');
             
             if (!response.ok) {
-                let errorData;
-                try {
-                    errorData = await response.json();
-                } catch {
-                    errorData = { detail: response.statusText };
-                }
-                
-                console.error(`Admin API Error (${response.status}) - ${endpoint}:`, errorData);
-                
-                if (response.status === 401 || response.status === 403) {
-                    alert("You don't have permission to access this resource.");
-                    window.location.href = '/';
-                    return null;
-                }
-                
-                throw new Error(errorData.detail || `Server error: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const firebaseConfig = await response.json();
             
-            return response.json();
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                throw new Error('Invalid Firebase configuration received');
+            }
+
+            firebaseApp = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            database = firebase.database();
+
+            console.log('Firebase initialized successfully');
+            return true;
         } catch (error) {
-            console.error("Admin API request error:", error);
-            showErrorMessage(`API request failed: ${error.message}`);
-            return null;
+            console.error('Firebase initialization failed:', error);
+            showError('Firebase başlatılamadı: ' + error.message);
+            return false;
         }
     }
 
-    /**
-     * Load users from backend and update the table
-     */
+    // Authentication check with admin role verification
+    async function checkAuth() {
+        return new Promise((resolve) => {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    try {
+                        console.log('User authenticated:', user.email);
+                        
+                        // Get ID token to verify admin role
+                        const idTokenResult = await user.getIdTokenResult(true);
+                        
+                        // Check if user has admin claims
+                        const isAdmin = idTokenResult.claims.admin === true;
+                        
+                        if (isAdmin) {
+                            currentUser = user;
+                            console.log('Admin authenticated successfully:', user.email);
+                            resolve(true);
+                        } else {
+                            console.warn('User is not admin:', user.email);
+                            showError('Bu sayfaya erişim yetkiniz yok.');
+                            setTimeout(() => {
+                                window.location.href = '/login.html';
+                            }, 2000);
+                            resolve(false);
+                        }
+                    } catch (error) {
+                        console.error('Admin verification failed:', error);
+                        showError('Yetki kontrolü başarısız: ' + error.message);
+                        resolve(false);
+                    }
+                } else {
+                    console.log('No authenticated user, redirecting...');
+                    window.location.href = '/login.html';
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    // Load users from Firebase Realtime Database
     async function loadUsers() {
-        setLoadingState(true, "Loading users...");
-        
-        // Reset counters
-        const counters = {
-            total: 0,
-            active: 0,
-            trial: 0,
-            expired: 0
-        };
-
         try {
-            const response = await fetchAdminApi('/api/admin/users');
-            if (!response) {
-                throw new Error("Failed to fetch users.");
-            }
-            
-            if (!response.users) {
-                throw new Error("No user data received.");
-            }
-            
-            const users = response.users;
-            
-            if (!UIElements.usersTableBody) {
-                throw new Error("Users table not found.");
-            }
-            
-            UIElements.usersTableBody.innerHTML = '';
+            console.log('Loading users...');
+            setLoadingState(true);
+            hideMessages();
 
-            if (Object.keys(users).length === 0) {
-                UIElements.usersTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No users found.</td></tr>';
-                updateCounters(counters);
+            const usersRef = database.ref('users');
+            const snapshot = await usersRef.once('value');
+            const usersData = snapshot.val();
+
+            if (!usersData) {
+                console.log('No users found');
+                elements.usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            Henüz kullanıcı kaydı yok.
+                        </td>
+                    </tr>
+                `;
+                updateStats({ total: 0, active: 0, trial: 0, expired: 0 });
                 return;
             }
 
-            for (const uid in users) {
-                const user = users[uid];
-                counters.total++;
-                
-                // Count by status
-                switch (user.subscription_status) {
-                    case 'active':
-                        counters.active++;
-                        break;
-                    case 'trial':
-                        counters.trial++;
-                        break;
-                    case 'expired':
-                    case 'inactive':
-                        counters.expired++;
-                        break;
-                }
-                
-                const expiryDate = user.subscription_expiry 
-                    ? new Date(user.subscription_expiry).toLocaleString('tr-TR', { 
-                        year: 'numeric',
-                        month: '2-digit', 
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })
-                    : 'N/A';
-                
-                let statusBadgeClass = 'inactive';
-                let statusDisplayText = 'Unknown';
-                
-                switch (user.subscription_status) {
-                    case 'active':
-                        statusBadgeClass = 'active';
-                        statusDisplayText = 'Active';
-                        break;
-                    case 'trial':
-                        statusBadgeClass = 'trial';
-                        statusDisplayText = 'Trial';
-                        break;
-                    case 'expired':
-                        statusBadgeClass = 'inactive';
-                        statusDisplayText = 'Expired';
-                        break;
-                    case 'inactive':
-                        statusBadgeClass = 'inactive';
-                        statusDisplayText = 'Inactive';
-                        break;
-                }
+            const users = Object.entries(usersData);
+            console.log(`Found ${users.length} users`);
+            
+            renderUsers(users);
+            
+        } catch (error) {
+            console.error('Error loading users:', error);
+            showError('Kullanıcılar yüklenirken hata oluştu: ' + error.message);
+        } finally {
+            setLoadingState(false);
+        }
+    }
 
-                const row = document.createElement('tr');
-                row.className = 'user-row';
-                row.innerHTML = `
-                    <td class="user-email" title="${user.email || 'N/A'}">
+    // Render users in table with improved styling
+    function renderUsers(users) {
+        const stats = { total: 0, active: 0, trial: 0, expired: 0 };
+        
+        if (!users || users.length === 0) {
+            elements.usersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        Kullanıcı bulunamadı.
+                    </td>
+                </tr>
+            `;
+            updateStats(stats);
+            return;
+        }
+
+        const tableRows = users.map(([userId, userData]) => {
+            stats.total++;
+
+            // Calculate subscription status
+            const subscriptionStatus = getSubscriptionStatus(userData);
+            const expiryInfo = getExpiryInfo(userData);
+            
+            // Update stats based on status
+            if (subscriptionStatus.status === 'active') {
+                stats.active++;
+            } else if (subscriptionStatus.status === 'trial') {
+                stats.trial++;
+            } else {
+                stats.expired++;
+            }
+
+            return `
+                <tr class="user-row fade-in">
+                    <td>
                         <div class="user-info">
-                            <span class="email-text">${(user.email || 'N/A').length > 30 ? (user.email || 'N/A').substring(0, 30) + '...' : (user.email || 'N/A')}</span>
-                            ${user.registration_date ? `<span class="join-date">Joined: ${new Date(user.registration_date).toLocaleDateString('tr-TR')}</span>` : ''}
-                            ${user.language ? `<span class="user-language">Lang: ${user.language.toUpperCase()}</span>` : ''}
+                            <div class="email-text" title="${userData.email || 'Bilinmiyor'}">${truncateText(userData.email || 'Bilinmiyor', 30)}</div>
+                            ${userData.created_at ? `<div class="join-date">Katıldı: ${formatDate(userData.created_at)}</div>` : ''}
+                            ${userData.full_name ? `<div class="user-language">${truncateText(userData.full_name, 20)}</div>` : ''}
                         </div>
                     </td>
                     <td>
-                        <span class="status-badge ${statusBadgeClass}">${statusDisplayText}</span>
+                        <span class="status-badge ${subscriptionStatus.status}">
+                            <i class="fas ${subscriptionStatus.icon}"></i>
+                            ${subscriptionStatus.label}
+                        </span>
                     </td>
-                    <td class="expiry-cell">
+                    <td>
                         <div class="expiry-info">
-                            <span class="expiry-date">${expiryDate}</span>
-                            ${user.subscription_expiry ? `<span class="days-remaining" data-expiry="${user.subscription_expiry}"></span>` : ''}
+                            <div class="expiry-date">${expiryInfo.date}</div>
+                            ${expiryInfo.remaining ? `<div class="days-remaining ${expiryInfo.class}">${expiryInfo.remaining}</div>` : ''}
                         </div>
                     </td>
                     <td>
-                        <span class="user-id-text" title="Click to copy ${uid}">
-                            ${uid.length > 12 ? uid.substring(0, 12) + '...' : uid}
+                        <span class="user-id-text" title="Kopyalamak için tıklayın: ${userId}" onclick="copyToClipboard('${userId}')">
+                            ${truncateText(userId, 12)}...
                         </span>
                     </td>
                     <td class="actions-cell">
                         <div class="action-buttons">
-                            <button class="btn btn-success btn-sm activate-btn" data-uid="${uid}" data-email="${user.email || 'Unknown'}" title="Add 30 days">
-                                <i class="fas fa-plus"></i> 
-                                <span class="btn-text">30 Days</span>
+                            <button class="btn btn-success btn-sm" onclick="extendSubscription('${userId}', '${escapeHtml(userData.email || 'Bilinmiyor')}')" title="30 gün ekle">
+                                <i class="fas fa-plus"></i>
+                                <span class="btn-text">30 Gün</span>
                             </button>
-                            <button class="btn btn-outline btn-sm user-details-btn" data-uid="${uid}" title="View details">
+                            <button class="btn btn-outline btn-sm" onclick="viewUserDetails('${userId}')" title="Detayları göster">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
                     </td>
-                `;
-                UIElements.usersTableBody.appendChild(row);
-            }
-            
-            updateCounters(counters);
+                </tr>
+            `;
+        }).join('');
 
-            // Add event listeners to new buttons
-            document.querySelectorAll('.activate-btn').forEach(button => {
-                button.addEventListener('click', handleActivateSubscription);
-            });
+        elements.usersTableBody.innerHTML = tableRows;
+        updateStats(stats);
+    }
 
-            document.querySelectorAll('.user-details-btn').forEach(button => {
-                button.addEventListener('click', handleViewUserDetails);
-            });
+    // Get subscription status with improved logic
+    function getSubscriptionStatus(userData) {
+        const now = new Date();
+        const expiryDate = userData.subscription_expiry ? new Date(userData.subscription_expiry) : null;
+        
+        if (!expiryDate) {
+            return { status: 'inactive', label: 'Pasif', icon: 'fa-times' };
+        }
 
-            // Add copy functionality to user IDs
-            document.querySelectorAll('.user-id-text').forEach(element => {
-                element.addEventListener('click', (e) => {
-                    const fullId = e.target.getAttribute('title').replace('Click to copy ', '');
-                    copyToClipboard(fullId);
-                    showCopyFeedback(e.target);
-                });
-                element.style.cursor = 'pointer';
-            });
+        const isExpired = now > expiryDate;
+        const subscriptionStatus = userData.subscription_status || 'trial';
 
-            // Calculate days remaining
-            updateDaysRemaining();
+        if (isExpired) {
+            return { status: 'expired', label: 'Süresi Dolmuş', icon: 'fa-times-circle' };
+        }
 
-            if (UIElements.tableErrorMessage) {
-                UIElements.tableErrorMessage.style.display = 'none';
-            }
-
-        } catch (error) {
-            console.error("Error loading users:", error);
-            showErrorMessage(`Failed to load users: ${error.message}`);
-            updateCounters(counters);
+        switch (subscriptionStatus) {
+            case 'active':
+                return { status: 'active', label: 'Aktif', icon: 'fa-check-circle' };
+            case 'trial':
+                return { status: 'trial', label: 'Deneme', icon: 'fa-clock' };
+            default:
+                return { status: 'inactive', label: 'Pasif', icon: 'fa-times' };
         }
     }
 
-    function updateCounters(counters) {
-        if (UIElements.userCountSpan) {
-            UIElements.userCountSpan.textContent = counters.total;
+    // Get expiry info with better formatting
+    function getExpiryInfo(userData) {
+        if (!userData.subscription_expiry) {
+            return { date: 'Belirlenmemiş', remaining: null, class: '' };
         }
-        if (UIElements.activeUsersCountSpan) {
-            UIElements.activeUsersCountSpan.textContent = counters.active;
-        }
-        if (UIElements.trialUsersCountSpan) {
-            UIElements.trialUsersCountSpan.textContent = counters.trial;
-        }
-        if (UIElements.expiredUsersCountSpan) {
-            UIElements.expiredUsersCountSpan.textContent = counters.expired;
-        }
-    }
 
-    function updateDaysRemaining() {
-        document.querySelectorAll('.days-remaining').forEach(element => {
-            const expiryDate = element.dataset.expiry;
-            if (!expiryDate) return;
+        const now = new Date();
+        const expiryDate = new Date(userData.subscription_expiry);
+        const diffTime = expiryDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            const now = new Date();
-            const expiry = new Date(expiryDate);
-            const diffTime = expiry - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays > 0) {
-                element.textContent = `(${diffDays} days left)`;
-                element.className = 'days-remaining positive';
-            } else if (diffDays === 0) {
-                element.textContent = '(expires today)';
-                element.className = 'days-remaining warning';
-            } else {
-                element.textContent = `(expired ${Math.abs(diffDays)} days ago)`;
-                element.className = 'days-remaining expired';
-            }
+        const formattedDate = expiryDate.toLocaleDateString('tr-TR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
         });
-    }
 
-    /**
-     * Handle subscription activation
-     */
-    async function handleActivateSubscription(event) {
-        const button = event.target.closest('.activate-btn');
-        if (!button) return;
+        let remaining = null;
+        let remainingClass = '';
 
-        const userIdToActivate = button.dataset.uid;
-        const userEmail = button.dataset.email || 'Unknown user';
-        
-        if (!userIdToActivate) {
-            alert('User ID not found.');
-            return;
-        }
-
-        if (!confirm(`Extend subscription for ${userEmail} (${userIdToActivate.substring(0, 10)}...) by 30 days?`)) {
-            return;
-        }
-
-        const originalButtonHtml = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-        try {
-            const result = await fetchAdminApi('/api/admin/activate-subscription', {
-                method: 'POST',
-                body: JSON.stringify({ user_id: userIdToActivate })
-            });
-
-            if (result && result.success) {
-                showSuccessMessage(`Successfully extended subscription for ${userEmail}!`);
-                await loadUsers(); // Refresh table
-            } else {
-                alert(`Failed to extend subscription: ${result?.detail || 'Unknown error.'}`);
-            }
-        } catch (error) {
-            alert(`Error extending subscription: ${error.message}`);
-        } finally {
-            button.innerHTML = originalButtonHtml;
-            button.disabled = false;
-        }
-    }
-
-    /**
-     * Handle view user details
-     */
-    async function handleViewUserDetails(event) {
-        const button = event.target.closest('.user-details-btn');
-        if (!button) return;
-
-        const userId = button.dataset.uid;
-        if (!userId) return;
-
-        try {
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            const result = await fetchAdminApi(`/api/admin/user-details/${userId}`);
-            
-            if (result && result.user) {
-                showUserDetailsModal(result.user, userId);
-            } else {
-                alert('Failed to load user details');
-            }
-        } catch (error) {
-            alert(`Error loading user details: ${error.message}`);
-        } finally {
-            button.innerHTML = '<i class="fas fa-eye"></i>';
-            button.disabled = false;
-        }
-    }
-
-    function showUserDetailsModal(user, userId) {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content user-details-modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-user"></i> User Details</h3>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="user-details-content">
-                    <div class="detail-group">
-                        <label>User ID:</label>
-                        <code class="user-id-full">${userId}</code>
-                    </div>
-                    <div class="detail-group">
-                        <label>Email:</label>
-                        <span>${user.email || 'N/A'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Language:</label>
-                        <span>${user.language ? user.language.toUpperCase() : 'N/A'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Registration Date:</label>
-                        <span>${user.registration_date ? new Date(user.registration_date).toLocaleDateString('tr-TR') : 'N/A'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Subscription Status:</label>
-                        <span class="status-badge ${user.subscription_status || 'inactive'}">${user.subscription_status || 'inactive'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Subscription Expiry:</label>
-                        <span>${user.subscription_expiry ? new Date(user.subscription_expiry).toLocaleString('tr-TR') : 'N/A'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Has API Keys:</label>
-                        <span class="status-badge ${user.has_api_keys ? 'active' : 'inactive'}">${user.has_api_keys ? 'Yes' : 'No'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Selected Pair:</label>
-                        <span>${user.selected_pair || 'BTCUSDT'}</span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Bot Status:</label>
-                        <span class="status-badge ${user.bot_status === 'active' ? 'active' : 'inactive'}">${user.bot_status || 'inactive'}</span>
-                    </div>
-                    ${user.last_login ? `
-                        <div class="detail-group">
-                            <label>Last Login:</label>
-                            <span>${new Date(user.last_login).toLocaleString('tr-TR')}</span>
-                        </div>
-                    ` : ''}
-                    ${user.total_trades ? `
-                        <div class="detail-group">
-                            <label>Total Trades:</label>
-                            <span>${user.total_trades}</span>
-                        </div>
-                    ` : ''}
-                    ${user.total_pnl ? `
-                        <div class="detail-group">
-                            <label>Total P&L:</label>
-                            <span class="${user.total_pnl >= 0 ? 'text-success' : 'text-danger'}">${user.total_pnl >= 0 ? '+' : ''}${user.total_pnl}%</span>
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="modal-actions">
-                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">
-                        <i class="fas fa-check"></i> Close
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.style.display = 'flex';
-        
-        // Close on outside click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    }
-
-    /**
-     * Handle logout
-     */
-    async function handleLogout() {
-        if (confirm("Are you sure you want to logout from admin panel?")) {
-            try {
-                await firebaseServices.auth.signOut();
-            } catch (error) {
-                console.error("Logout error:", error);
-                alert("Error during logout.");
-            }
-        }
-    }
-
-    /**
-     * Copy to clipboard functionality
-     */
-    function copyToClipboard(text) {
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                console.log('Text copied to clipboard');
-            }).catch(err => {
-                console.error('Could not copy text: ', err);
-                fallbackCopy(text);
-            });
+        if (diffDays > 0) {
+            remaining = `${diffDays} gün kaldı`;
+            remainingClass = diffDays <= 3 ? 'warning' : 'positive';
+        } else if (diffDays === 0) {
+            remaining = 'Bugün sona eriyor';
+            remainingClass = 'warning';
         } else {
-            fallbackCopy(text);
+            remaining = `${Math.abs(diffDays)} gün önce doldu`;
+            remainingClass = 'expired';
         }
+
+        return {
+            date: formattedDate,
+            remaining: remaining,
+            class: remainingClass
+        };
     }
 
-    function fallbackCopy(text) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
-        document.body.appendChild(textArea);
-        textArea.select();
-        
-        try {
-            document.execCommand('copy');
-        } catch (err) {
-            console.error('Fallback copy failed: ', err);
-        } finally {
-            document.body.removeChild(textArea);
-        }
+    // Update statistics with animation
+    function updateStats(stats) {
+        const counters = [
+            { element: elements.totalUsersCount, value: stats.total },
+            { element: elements.activeUsersCount, value: stats.active },
+            { element: elements.trialUsersCount, value: stats.trial },
+            { element: elements.expiredUsersCount, value: stats.expired }
+        ];
+
+        counters.forEach(({ element, value }) => {
+            if (element) {
+                // Animate counter
+                animateCounter(element, value);
+            }
+        });
     }
 
-    function showCopyFeedback(element) {
-        const originalText = element.textContent;
-        const originalBg = element.style.backgroundColor;
+    // Extend user subscription
+    async function extendSubscription(userId, userEmail) {
+        const confirmMessage = `${userEmail} kullanıcısının aboneliğini 30 gün uzatmak istediğinizden emin misiniz?\n\nKullanıcı ID: ${userId.substring(0, 10)}...`;
         
-        element.textContent = 'Copied!';
-        element.style.backgroundColor = 'var(--success-color)';
-        element.style.color = 'white';
-        
-        setTimeout(() => {
-            element.textContent = originalText;
-            element.style.backgroundColor = originalBg;
-            element.style.color = '';
-        }, 1000);
-    }
-
-    /**
-     * Page cleanup before unload
-     */
-    window.addEventListener('beforeunload', () => {
-        const activeButtons = document.querySelectorAll('button:disabled');
-        if (activeButtons.length > 0) {
-            return "There are active operations. Are you sure you want to close?";
-        }
-    });
-
-    /**
-     * Main app initialization function
-     */
-    async function initializeApp() {
-        // Set current year
-        if (UIElements.currentYearSpan) {
-            UIElements.currentYearSpan.textContent = new Date().getFullYear();
+        if (!confirm(confirmMessage)) {
+            return;
         }
 
         try {
-            // Get Firebase configuration from backend
-            const response = await fetch('/api/firebase-config');
-            if (!response.ok) {
-                throw new Error(`Could not fetch Firebase config: ${response.status} ${response.statusText}`);
-            }
-            
-            const firebaseConfig = await response.json();
+            showLoadingMessage(`${userEmail} aboneliği uzatılıyor...`);
 
-            if (!firebaseConfig || !firebaseConfig.apiKey) {
-                throw new Error('Invalid Firebase configuration received from server.');
+            const userRef = database.ref(`users/${userId}`);
+            const snapshot = await userRef.once('value');
+            const userData = snapshot.val();
+
+            if (!userData) {
+                throw new Error('Kullanıcı bulunamadı');
             }
 
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
-            firebaseServices.auth = firebase.auth();
+            // Calculate new expiry date
+            const now = new Date();
+            const currentExpiry = userData.subscription_expiry ? new Date(userData.subscription_expiry) : now;
+            const baseDate = currentExpiry > now ? currentExpiry : now;
+            const newExpiryDate = new Date(baseDate.getTime() + (30 * 24 * 60 * 60 * 1000));
 
-            // Listen to user auth state changes
-            firebaseServices.auth.onAuthStateChanged(async (user) => {
-                if (user) {
-                    // Admin permission check is done on backend
-                    if (UIElements.adminContainer) {
-                        UIElements.adminContainer.style.display = 'flex';
-                    }
-                    await loadUsers();
-                } else {
-                    // Not logged in - redirect to main page
-                    window.location.href = '/';
-                }
+            // Update user data
+            await userRef.update({
+                subscription_expiry: newExpiryDate.toISOString(),
+                subscription_status: 'active',
+                last_updated: firebase.database.ServerValue.TIMESTAMP,
+                updated_by: currentUser.email
             });
 
-            // Setup event listeners
-            if (UIElements.adminLogoutButton) {
-                UIElements.adminLogoutButton.addEventListener('click', handleLogout);
-            }
+            showSuccess(`${userEmail} kullanıcısının aboneliği 30 gün uzatıldı!`);
+            console.log('Subscription extended for user:', userId);
+
+            // Reload users to show updated data
+            setTimeout(() => {
+                loadUsers();
+            }, 1500);
 
         } catch (error) {
-            console.error("Failed to initialize admin panel:", error);
+            console.error('Error extending subscription:', error);
+            showError('Abonelik uzatılırken hata oluştu: ' + error.message);
+        }
+    }
+
+    // View user details
+    function viewUserDetails(userId) {
+        showComingSoon(`Kullanıcı detayları: ${userId.substring(0, 10)}...`);
+    }
+
+    // Copy to clipboard with visual feedback
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            showSuccess(`Kullanıcı ID kopyalandı: ${text.substring(0, 10)}...`);
             
-            // User-friendly error page
-            document.body.innerHTML = `
-                <div style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    padding: 2rem;
-                    background: var(--background-color);
-                    font-family: var(--font-family);
-                    color: var(--text-primary);
-                ">
-                    <div style="
-                        background: var(--card-background);
-                        padding: 2.5rem;
-                        border-radius: 1rem;
-                        box-shadow: var(--box-shadow-lg);
-                        max-width: 600px;
-                        width: 100%;
-                        text-align: center;
-                        border: 1px solid var(--border-color);
-                    ">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger-color); margin-bottom: 1rem; animation: pulse 2s infinite;"></i>
-                        <h1 style="font-size: 1.75rem; margin-bottom: 1rem; color: var(--text-primary);">
-                            Admin Panel Initialization Failed
-                        </h1>
-                        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
-                            An error occurred while starting the system. Please refresh the page or contact the system administrator.
-                        </p>
-                        <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem;">
-                            <button onclick="location.reload()" style="
-                                background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-                                color: white;
-                                border: none;
-                                padding: 0.875rem 1.5rem;
-                                border-radius: 0.5rem;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: var(--transition);
-                                box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.4);
-                            " onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
-                                <i class="fas fa-redo"></i> Refresh Page
-                            </button>
-                            <button onclick="window.location.href='/'" style="
-                                background: var(--background-secondary);
-                                color: var(--text-primary);
-                                border: 1px solid var(--border-color);
-                                padding: 0.875rem 1.5rem;
-                                border-radius: 0.5rem;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: var(--transition);
-                            " onmouseover="this.style.background='var(--card-background-secondary)'" onmouseout="this.style.background='var(--background-secondary)'">
-                                <i class="fas fa-home"></i> Home Page
-                            </button>
-                        </div>
-                        <details style="margin-top: 1.5rem; text-align: left;">
-                            <summary style="cursor: pointer; color: var(--primary-color); font-weight: 600; text-align: center; margin-bottom: 0.75rem;">Technical Details</summary>
-                            <pre style="
-                                background: var(--background-color);
-                                padding: 1rem;
-                                border-radius: 0.5rem;
-                                font-size: 0.8rem;
-                                color: var(--text-secondary);
-                                white-space: pre-wrap;
-                                word-break: break-word;
-                                border: 1px solid var(--border-color);
-                            ">${error.message}</pre>
-                        </details>
-                    </div>
-                </div>
+            // Visual feedback
+            const elements = document.querySelectorAll(`[onclick*="${text}"]`);
+            elements.forEach(el => {
+                const originalBg = el.style.backgroundColor;
+                el.style.backgroundColor = 'var(--success-color)';
+                el.style.color = 'white';
+                
+                setTimeout(() => {
+                    el.style.backgroundColor = originalBg;
+                    el.style.color = '';
+                }, 1000);
+            });
+            
+        } catch (err) {
+            console.error('Copy failed:', err);
+            showError('Kopyalama başarısız');
+        }
+    }
+
+    // Utility functions
+    function truncateText(text, maxLength) {
+        if (!text) return '';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+
+    function formatDate(timestamp) {
+        if (!timestamp) return 'Bilinmiyor';
+        
+        let date;
+        if (typeof timestamp === 'number') {
+            date = new Date(timestamp);
+        } else if (typeof timestamp === 'string') {
+            date = new Date(timestamp);
+        } else {
+            return 'Geçersiz tarih';
+        }
+
+        return date.toLocaleDateString('tr-TR', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function setLoadingState(loading) {
+        if (loading) {
+            elements.usersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Kullanıcılar yükleniyor...
+                    </td>
+                </tr>
             `;
         }
     }
 
+    function showError(message) {
+        hideMessages();
+        if (elements.errorText && elements.tableErrorMessage) {
+            elements.errorText.textContent = message;
+            elements.tableErrorMessage.classList.remove('hidden');
+            
+            // Auto hide after 5 seconds
+            setTimeout(hideMessages, 5000);
+        }
+    }
+
+    function showSuccess(message) {
+        hideMessages();
+        if (elements.successText && elements.tableSuccessMessage) {
+            elements.successText.textContent = message;
+            elements.tableSuccessMessage.classList.remove('hidden');
+            
+            // Auto hide after 3 seconds
+            setTimeout(hideMessages, 3000);
+        }
+    }
+
+    function showLoadingMessage(message) {
+        hideMessages();
+        if (elements.errorText && elements.tableErrorMessage) {
+            elements.errorText.textContent = message;
+            elements.tableErrorMessage.classList.remove('hidden');
+            elements.tableErrorMessage.className = 'status-message info';
+            elements.tableErrorMessage.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${message}`;
+        }
+    }
+
+    function hideMessages() {
+        if (elements.tableErrorMessage) {
+            elements.tableErrorMessage.classList.add('hidden');
+        }
+        if (elements.tableSuccessMessage) {
+            elements.tableSuccessMessage.classList.add('hidden');
+        }
+        if (elements.tableErrorMessage) {
+            elements.tableErrorMessage.className = 'status-message error hidden';
+        }
+    }
+
+    function showComingSoon(feature) {
+        alert(`${feature} özelliği yakında eklenecek!`);
+    }
+
+    function animateCounter(element, targetValue) {
+        const startValue = parseInt(element.textContent) || 0;
+        const duration = 1000; // 1 second
+        const startTime = performance.now();
+        
+        function updateCounter(currentTime) {
+            const elapsedTime = currentTime - startTime;
+            const progress = Math.min(elapsedTime / duration, 1);
+            
+            // Easing function for smooth animation
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            const currentValue = Math.round(startValue + (targetValue - startValue) * easedProgress);
+            
+            element.textContent = currentValue;
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            }
+        }
+        
+        requestAnimationFrame(updateCounter);
+    }
+
+    // Logout function
+    async function handleLogout() {
+        if (confirm('Admin panelinden çıkış yapmak istediğinizden emin misiniz?')) {
+            try {
+                await auth.signOut();
+                console.log('Admin logged out');
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                showError('Çıkış yapılırken hata oluştu.');
+            }
+        }
+    }
+
+    // Event listeners
+    function setupEventListeners() {
+        // Logout button
+        if (elements.adminLogoutButton) {
+            elements.adminLogoutButton.addEventListener('click', handleLogout);
+        }
+
+        // Refresh button
+        if (elements.refreshDataBtn) {
+            elements.refreshDataBtn.addEventListener('click', loadUsers);
+        }
+
+        // Set current year
+        if (elements.currentYear) {
+            elements.currentYear.textContent = new Date().getFullYear();
+        }
+
+        console.log('Event listeners setup complete');
+    }
+
+    // Main initialization function
+    async function initializeApp() {
+        try {
+            console.log('Initializing admin panel...');
+            
+            // Show loading screen
+            if (elements.loadingScreen) {
+                elements.loadingScreen.style.display = 'flex';
+            }
+
+            // Initialize Firebase
+            const firebaseInitialized = await initializeFirebase();
+            if (!firebaseInitialized) {
+                throw new Error('Firebase initialization failed');
+            }
+
+            // Check authentication and admin role
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) {
+                return;
+            }
+
+            // Setup event listeners
+            setupEventListeners();
+
+            // Load initial data
+            await loadUsers();
+
+            // Hide loading screen and show admin panel
+            if (elements.loadingScreen) {
+                elements.loadingScreen.style.display = 'none';
+            }
+            if (elements.adminContainer) {
+                elements.adminContainer.classList.remove('hidden');
+                elements.adminContainer.classList.add('fade-in');
+            }
+
+            console.log('Admin panel initialized successfully');
+
+        } catch (error) {
+            console.error('Admin panel initialization failed:', error);
+            
+            // Show error screen
+            if (elements.loadingScreen) {
+                elements.loadingScreen.innerHTML = `
+                    <div class="loading-content">
+                        <div class="loading-logo">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
+                            <span>Hata</span>
+                        </div>
+                        <p>Admin panel başlatılırken hata oluştu</p>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">
+                            <i class="fas fa-redo"></i> Tekrar Dene
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // Global functions for HTML onclick events
+    window.loadUsers = loadUsers;
+    window.extendSubscription = extendSubscription;
+    window.viewUserDetails = viewUserDetails;
+    window.copyToClipboard = copyToClipboard;
+    window.showComingSoon = showComingSoon;
+
     // Start the application
     initializeApp();
+
+    // Handle page visibility changes for auto refresh
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && currentUser) {
+            console.log('Page became visible, refreshing data...');
+            loadUsers();
+        }
+    });
+
+    // Handle online/offline status
+    window.addEventListener('online', () => {
+        showSuccess('İnternet bağlantısı yeniden kuruldu');
+        if (currentUser) {
+            loadUsers();
+        }
+    });
+
+    window.addEventListener('offline', () => {
+        showError('İnternet bağlantısı kesildi');
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (database && currentUser) {
+            // Clean up Firebase listeners if any
+            console.log('Cleaning up Firebase listeners...');
+        }
+    });
 });
