@@ -63,7 +63,7 @@ async def get_current_user(request: Request) -> dict:
             raise HTTPException(status_code=401, detail="No valid authentication token provided")
         
         token = auth_header.split(" ")[1]
-        decoded_token = firebase_manager.verify_token(token)
+        decoded_token = await firebase_manager.verify_token(token)  # DÜZELTME: await eklendi
         
         if not decoded_token:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -300,8 +300,8 @@ async def start_bot(
         except Exception:
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
     
-    # Check subscription
-    if not firebase_manager.is_subscription_active(current_user['uid']):
+    # DÜZELTME: await anahtar kelimesi eklendi
+    if not await firebase_manager.is_subscription_active(current_user['uid']):
         raise HTTPException(status_code=403, detail="Active subscription required")
     
     try:
