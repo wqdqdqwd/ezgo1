@@ -67,7 +67,8 @@ class BotCore:
 
         logger.info("Bot starting", user_id=self.user_id, symbol=self.settings['symbol'])
 
-        if not firebase_manager.is_subscription_active(self.user_id):
+        # DÜZELTME: await eklendi
+        if not await firebase_manager.is_subscription_active(self.user_id):
             self.status["status_message"] = "Bot başlatılamadı: Aboneliğiniz aktif değil veya süresi dolmuş."
             logger.warning("Bot start failed - inactive subscription", user_id=self.user_id)
             await self.stop(); return
@@ -123,7 +124,8 @@ class BotCore:
 
                             current_time = datetime.now(timezone.utc)
                             if (current_time - last_subscription_check).total_seconds() >= self.subscription_check_interval:
-                                if not firebase_manager.is_subscription_active(self.user_id):
+                                # DÜZELTME: await eklendi
+                                if not await firebase_manager.is_subscription_active(self.user_id):
                                     self.status["status_message"] = "Aboneliğiniz sona erdi, bot durduruluyor."
                                     logger.warning("Subscription expired, stopping bot", user_id=self.user_id)
                                     await self.stop()
@@ -215,7 +217,8 @@ class BotCore:
     async def _flip_position(self, new_signal: str):
         symbol = self.settings["symbol"]
 
-        if not firebase_manager.is_subscription_active(self.user_id):
+        # DÜZELTME: await eklendi
+        if not await firebase_manager.is_subscription_active(self.user_id):
             self.status["status_message"] = "Aboneliğiniz sona erdi, yeni pozisyon açılamıyor."
             logger.warning("Cannot open position - subscription expired", user_id=self.user_id)
             await self.stop()
