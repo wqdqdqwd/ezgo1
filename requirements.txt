@@ -15,7 +15,9 @@ pyjwt==2.8.0
 python-binance==1.0.19
 websockets==12.0
 
-# Data Processing - Pydantic V2
+# Data Processing - EKLENEN PANDAS!
+pandas==2.1.4
+numpy==1.25.2
 pydantic>=2.5.1
 python-multipart==0.0.9
 
