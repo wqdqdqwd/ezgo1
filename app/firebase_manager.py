@@ -43,7 +43,7 @@ class FirebaseManager:
         if not self.initialized:
             raise RuntimeError("Firebase Manager not properly initialized")
 
-    @robust_firebase_call(max_attempts=2)
+    
     def verify_token(self, token: str) -> Optional[Dict]:
         """
         Firebase ID Token'ı doğrular ve decoded payload'u döndürür.
