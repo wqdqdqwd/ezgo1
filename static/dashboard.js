@@ -4,11 +4,13 @@ let auth = null;
 let database = null;
 let currentUser = null;
 let refreshInterval = null;
-let authToken = null; // Token'ı burada saklayacağız
+let authToken = null;
+
+// API Base URL - Ana sorun burada idi!
+const API_BASE_URL = 'https://www.ezyago.com/api';
 
 // DOM Elements - Güvenli erişim ile
 const elements = {
-    // Temel elementler - önce bu fonksiyon ile kontrol et
     get: (id) => {
         const element = document.getElementById(id);
         if (!element) {
@@ -17,7 +19,7 @@ const elements = {
         return element;
     },
     
-    // Sık kullanılan elementler için cache
+    // Cache variables
     loadingScreen: null,
     dashboard: null,
     hamburgerMenu: null,
@@ -100,7 +102,7 @@ const elements = {
     toastMessage: null,
     toastClose: null,
     
-    // Tüm elementleri başlat
+    // Initialize all elements
     init: function() {
         this.loadingScreen = this.get('loading-screen');
         this.dashboard = this.get('dashboard');
@@ -186,7 +188,105 @@ const elements = {
     }
 };
 
-// Debug function - Token kontrolü için
+// TOKEN YÖNETİMİ - TAMAMEN DÜZELTILDI
+async function getValidToken() {
+    try {
+        if (!currentUser) {
+            throw new Error('User not authenticated');
+        }
+        
+        // Mevcut token'ı kontrol et
+        if (authToken) {
+            try {
+                const tokenParts = authToken.split('.');
+                if (tokenParts.length === 3) {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    const now = Math.floor(Date.now() / 1000);
+                    
+                    // Token 5 dakikadan fazla süresi varsa kullan
+                    if (payload.exp && (payload.exp - now) > 300) {
+                        return authToken;
+                    }
+                }
+            } catch (e) {
+                console.warn('Token parse error, getting new token:', e);
+            }
+        }
+        
+        // Yeni token al
+        console.log('Getting fresh token...');
+        authToken = await currentUser.getIdToken(true);
+        localStorage.setItem('authToken', authToken);
+        console.log('Fresh token obtained, length:', authToken.length);
+        return authToken;
+        
+    } catch (error) {
+        console.error('Token error:', error);
+        throw new Error('Authentication failed - please login again');
+    }
+}
+
+// API İSTEK FONKSİYONU - YENİ EKLENDI
+async function makeAuthenticatedRequest(endpoint, options = {}) {
+    try {
+        const token = await getValidToken();
+        
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        
+        const finalOptions = {
+            ...defaultOptions,
+            ...options,
+            headers: {
+                ...defaultOptions.headers,
+                ...(options.headers || {})
+            }
+        };
+        
+        const fullUrl = `${API_BASE_URL}${endpoint}`;
+        console.log('Making request to:', fullUrl);
+        console.log('Request options:', finalOptions);
+        
+        const response = await fetch(fullUrl, finalOptions);
+        
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
+        if (!response.ok) {
+            let errorData;
+            try {
+                const errorText = await response.text();
+                console.log('Error response text:', errorText);
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+            }
+            
+            if (response.status === 401) {
+                console.log('401 error - clearing token and requiring re-auth');
+                authToken = null;
+                localStorage.removeItem('authToken');
+                throw new Error('Session expired, please try again');
+            }
+            
+            throw new Error(errorData.detail || errorData.message || `Request failed with status ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        console.log('Success response:', responseData);
+        return responseData;
+        
+    } catch (error) {
+        console.error('API Request failed:', error);
+        throw error;
+    }
+}
+
+// DEBUG FONKSİYONU
 function debugToken() {
     console.log('=== TOKEN DEBUG ===');
     console.log('Auth token exists:', !!authToken);
@@ -197,28 +297,21 @@ function debugToken() {
     return authToken;
 }
 
-// Test auth endpoint
+// TEST AUTH ENDPOINT
 async function testAuth() {
     try {
-        const token = debugToken();
-        if (!token) {
-            throw new Error('No token found');
-        }
+        console.log('=== AUTH TEST START ===');
         
-        const response = await fetch('/api/test-auth', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        const result = await makeAuthenticatedRequest('/test-auth', {
+            method: 'GET'
         });
         
-        const result = await response.json();
         console.log('Auth test result:', result);
         
-        if (response.ok) {
+        if (result.success) {
             showToast(`Auth test successful! User: ${result.user.email}`, 'success');
         } else {
-            showToast(`Auth test failed: ${result.detail}`, 'error');
+            showToast('Auth test failed', 'error');
         }
         
     } catch (error) {
@@ -227,14 +320,13 @@ async function testAuth() {
     }
 }
 
-// Utility Functions
+// UTILITY FUNCTIONS
 function showToast(message, type = 'info', duration = 5000) {
     if (!elements.toast || !elements.toastMessage) return;
     
     const toast = elements.toast;
     const toastIcon = toast.querySelector('.toast-icon');
     
-    // Set icon and color based on type
     const iconClasses = {
         success: 'fas fa-check-circle',
         error: 'fas fa-exclamation-circle',
@@ -255,7 +347,6 @@ function showToast(message, type = 'info', duration = 5000) {
     }
     
     elements.toastMessage.textContent = message;
-    
     toast.classList.add('show');
     
     setTimeout(() => {
@@ -272,10 +363,10 @@ function formatPercentage(value) {
     return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
 }
 
-// Firebase initialization
+// FIREBASE INITIALIZATION
 async function initializeFirebase() {
     try {
-        const response = await fetch('/api/firebase-config');
+        const response = await fetch(`${API_BASE_URL}/firebase-config`);
         const firebaseConfig = await response.json();
         
         firebaseApp = firebase.initializeApp(firebaseConfig);
@@ -289,7 +380,7 @@ async function initializeFirebase() {
     }
 }
 
-// Authentication - DÜZELTILMIŞ VERSIYON
+// AUTHENTICATION
 async function checkAuth() {
     return new Promise((resolve) => {
         auth.onAuthStateChanged(async (user) => {
@@ -298,11 +389,8 @@ async function checkAuth() {
                 console.log('User authenticated:', user.uid);
                 
                 try {
-                    // Token'ı al ve sakla
-                    authToken = await user.getIdToken(true); // Force refresh
+                    authToken = await user.getIdToken(true);
                     console.log('Token obtained successfully, length:', authToken.length);
-                    
-                    // Token'ı localStorage'a da kaydet (opsiyonel)
                     localStorage.setItem('authToken', authToken);
                     
                     await loadUserData();
@@ -322,7 +410,7 @@ async function checkAuth() {
     });
 }
 
-// Token refresh function
+// TOKEN REFRESH
 async function refreshToken() {
     try {
         if (currentUser) {
@@ -336,7 +424,7 @@ async function refreshToken() {
     }
 }
 
-// Load user data from Firebase
+// USER DATA LOADING
 async function loadUserData() {
     try {
         if (!currentUser) return;
@@ -358,13 +446,12 @@ async function loadUserData() {
     }
 }
 
-// Update user info in UI
+// UPDATE USER INFO
 function updateUserInfo(userData) {
     if (elements.userName) {
         elements.userName.textContent = userData.email || 'Kullanıcı';
     }
     
-    // Update subscription info
     const subscriptionStatus = userData.subscription_status || 'trial';
     const subscriptionExpiry = userData.subscription_expiry;
     
@@ -392,11 +479,9 @@ function updateUserInfo(userData) {
     }
 }
 
-// Load account statistics
+// LOAD ACCOUNT STATS
 async function loadAccountStats() {
     try {
-        // This would typically come from your backend API
-        // For now, we'll use sample data
         const stats = {
             totalBalance: '1,250.75',
             totalTrades: '127',
@@ -415,18 +500,15 @@ async function loadAccountStats() {
         }
         if (elements.totalPnl) {
             elements.totalPnl.textContent = formatCurrency(stats.totalPnl);
-            
-            // Color P&L based on positive/negative
             const pnlValue = parseFloat(stats.totalPnl);
             elements.totalPnl.style.color = pnlValue >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
         }
-        
     } catch (error) {
         console.error('Error loading account stats:', error);
     }
 }
 
-// Check API status
+// API STATUS CHECK
 async function checkApiStatus() {
     try {
         if (!currentUser) return;
@@ -505,36 +587,28 @@ function showApiError(message) {
     }
 }
 
-// Get bot status - DÜZELTILMIŞ VERSIYON
+// BOT STATUS - DÜZELTILDI
 async function getBotStatus() {
     try {
-        if (!authToken) {
-            console.warn('No auth token available for bot status check');
-            updateBotStatus(false);
-            return;
-        }
+        console.log('=== BOT STATUS DEBUG ===');
         
-        const response = await fetch('/api/bot/status', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
+        const result = await makeAuthenticatedRequest('/bot/status', {
+            method: 'GET'
         });
         
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.status) {
-                updateBotStatus(result.status.is_running || false, result.status);
-            } else {
-                updateBotStatus(false);
-            }
+        if (result.success && result.status) {
+            updateBotStatus(result.status.is_running || false, result.status);
         } else {
-            console.warn('Bot status check failed:', response.status);
             updateBotStatus(false);
         }
+        
     } catch (error) {
-        console.error('Error getting bot status:', error);
+        console.error('Bot status error:', error);
         updateBotStatus(false);
+        
+        if (!error.message.includes('Session expired')) {
+            console.warn('Bot durumu kontrol edilemedi:', error.message);
+        }
     }
 }
 
@@ -558,11 +632,12 @@ function updateBotStatus(isRunning, statusData = null) {
     }
 }
 
-// Load payment information
+// PAYMENT INFO
 async function loadPaymentInfo() {
     try {
-        const response = await fetch('/api/payment-info');
-        const paymentInfo = await response.json();
+        const paymentInfo = await makeAuthenticatedRequest('/payment-info', {
+            method: 'GET'
+        });
         
         if (elements.paymentAmount) {
             elements.paymentAmount.textContent = paymentInfo.amount || '$15/Ay';
@@ -578,20 +653,13 @@ async function loadPaymentInfo() {
     }
 }
 
-// Bot control functions - DÜZELTILMIŞ VERSIYON
+// BOT CONTROL FUNCTIONS - DÜZELTILDI
 async function startBot() {
     try {
         console.log('=== START BOT DEBUG ===');
         
         if (!elements.startBotBtn) return;
         
-        // Token debug
-        const token = debugToken();
-        if (!token) {
-            throw new Error('Authentication token not found - please login again');
-        }
-        
-        // Form verilerini al ve validate et
         const botConfig = {
             symbol: elements.symbolSelect ? elements.symbolSelect.value : 'BTCUSDT',
             timeframe: elements.timeframeSelect ? elements.timeframeSelect.value : '15m',
@@ -599,47 +667,22 @@ async function startBot() {
             order_size: elements.orderSize ? parseFloat(elements.orderSize.value) : 35,
             stop_loss: elements.stopLoss ? parseFloat(elements.stopLoss.value) : 2,
             take_profit: elements.takeProfit ? parseFloat(elements.takeProfit.value) : 4,
-            strategy: 'EMA_CROSS' // Default strategy
+            strategy: 'EMA_CROSS'
         };
         
         console.log('Bot config:', botConfig);
         
-        // Validate inputs
         if (!botConfig.symbol || botConfig.leverage < 1 || botConfig.order_size < 10) {
             throw new Error('Invalid bot configuration');
         }
         
-        // UI state
         elements.startBotBtn.disabled = true;
         elements.startBotBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Başlatılıyor...';
         
-        // API call
-        console.log('Making API request to /api/bot/start...');
-        
-        const response = await fetch('/api/bot/start', {
+        const result = await makeAuthenticatedRequest('/bot/start', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(botConfig)
         });
-        
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-        
-        const result = await response.json();
-        console.log('Response data:', result);
-        
-        if (!response.ok) {
-            // Token expired durumunu kontrol et
-            if (response.status === 401) {
-                console.log('Token expired, trying to refresh...');
-                await refreshToken();
-                throw new Error('Session expired, please try again');
-            }
-            throw new Error(result.detail || result.message || `HTTP ${response.status}`);
-        }
         
         if (result.success) {
             updateBotStatus(true, result.status);
@@ -650,11 +693,8 @@ async function startBot() {
         }
         
     } catch (error) {
-        console.error('=== START BOT ERROR ===');
-        console.error('Error object:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        showToast(`Bot start error: ${error.message}`, 'error');
+        console.error('Start bot error:', error);
+        showToast(`Bot başlatma hatası: ${error.message}`, 'error');
     } finally {
         if (elements.startBotBtn) {
             elements.startBotBtn.disabled = false;
@@ -667,30 +707,12 @@ async function stopBot() {
     try {
         if (!elements.stopBotBtn) return;
         
-        const token = authToken;
-        if (!token) {
-            throw new Error('Authentication token not found');
-        }
-        
         elements.stopBotBtn.disabled = true;
         elements.stopBotBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Durduruluyor...';
         
-        const response = await fetch('/api/bot/stop', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        const result = await makeAuthenticatedRequest('/bot/stop', {
+            method: 'POST'
         });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                await refreshToken();
-                throw new Error('Session expired, please try again');
-            }
-            throw new Error(result.detail || result.message || 'Bot durdurulamadı');
-        }
         
         if (result.success) {
             updateBotStatus(false);
@@ -701,7 +723,7 @@ async function stopBot() {
         }
         
     } catch (error) {
-        console.error('Bot stop error:', error);
+        console.error('Stop bot error:', error);
         showToast(`Bot durdurma hatası: ${error.message}`, 'error');
     } finally {
         if (elements.stopBotBtn) {
@@ -711,14 +733,14 @@ async function stopBot() {
     }
 }
 
-// Real-time updates
+// REAL-TIME UPDATES
 function startRealTimeUpdates() {
     if (refreshInterval) clearInterval(refreshInterval);
     
     refreshInterval = setInterval(async () => {
         await loadAccountStats();
         await getBotStatus();
-    }, 30000); // Update every 30 seconds
+    }, 30000);
 }
 
 function stopRealTimeUpdates() {
@@ -728,7 +750,7 @@ function stopRealTimeUpdates() {
     }
 }
 
-// API Keys management - DÜZELTILMIŞ VERSIYON
+// API KEYS MANAGEMENT - DÜZELTILDI
 async function saveApiKeys() {
     try {
         if (!elements.apiKey || !elements.apiSecret) return;
@@ -742,9 +764,9 @@ async function saveApiKeys() {
             return;
         }
         
-        const token = authToken;
-        if (!token) {
-            throw new Error('Authentication token not found');
+        if (apiKey.length < 20 || apiSecret.length < 20) {
+            showToast('API Key ve Secret çok kısa görünüyor', 'error');
+            return;
         }
         
         if (elements.saveApiBtn) {
@@ -752,12 +774,8 @@ async function saveApiKeys() {
             elements.saveApiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
         }
         
-        const response = await fetch('/api/user/api-keys', {
+        const result = await makeAuthenticatedRequest('/user/api-keys', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify({
                 api_key: apiKey,
                 api_secret: apiSecret,
@@ -765,23 +783,13 @@ async function saveApiKeys() {
             })
         });
         
-        const result = await response.json();
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                await refreshToken();
-                throw new Error('Session expired, please try again');
-            }
-            throw new Error(result.detail || result.message || 'API anahtarları kaydedilemedi');
-        }
-        
         if (result.success) {
             if (elements.apiTestResult) {
                 elements.apiTestResult.style.display = 'block';
                 elements.apiTestResult.className = 'status-message success';
                 elements.apiTestResult.innerHTML = `
                     <i class="fas fa-check-circle"></i>
-                    <span>API anahtarları başarıyla kaydedildi ve test edildi!</span>
+                    <span>API anahtarları başarıyla kaydedildi!</span>
                 `;
             }
             
@@ -814,7 +822,7 @@ async function saveApiKeys() {
     }
 }
 
-// Payment functions - DÜZELTILMIŞ VERSIYON
+// PAYMENT FUNCTIONS - DÜZELTILDI
 async function copyAddress() {
     try {
         if (elements.paymentAddress) {
@@ -843,9 +851,9 @@ async function confirmPayment() {
             return;
         }
         
-        const token = authToken;
-        if (!token) {
-            throw new Error('Authentication token not found');
+        if (transactionHash.length < 10) {
+            showToast('İşlem hash\'i çok kısa görünüyor', 'error');
+            return;
         }
         
         if (elements.confirmPaymentBtn) {
@@ -853,28 +861,14 @@ async function confirmPayment() {
             elements.confirmPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Bildiriliyor...';
         }
         
-        const response = await fetch('/api/payment/notify', {
+        const result = await makeAuthenticatedRequest('/payment/notify', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify({
                 transaction_hash: transactionHash,
                 amount: 15,
                 currency: 'USDT'
             })
         });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                await refreshToken();
-                throw new Error('Session expired, please try again');
-            }
-            throw new Error(result.detail || result.message || 'Ödeme bildirimi gönderilemedi');
-        }
         
         if (result.success) {
             showToast('Ödeme bildirimi gönderildi. Admin onayı bekleniyor.', 'success');
@@ -897,22 +891,35 @@ async function confirmPayment() {
     }
 }
 
-// Support functions - DÜZELTILMIŞ VERSIYON
+// SUPPORT FUNCTIONS - DÜZELTILDI
 async function sendSupportMessage() {
     try {
-        if (!elements.supportSubject || !elements.supportMessage) return;
+        console.log('=== SUPPORT MESSAGE DEBUG ===');
         
-        const subject = elements.supportSubject.value;
+        if (!elements.supportSubject || !elements.supportMessage) {
+            console.error('Support form elements not found');
+            return;
+        }
+        
+        const subject = elements.supportSubject.value.trim();
         const message = elements.supportMessage.value.trim();
+        
+        console.log('Subject:', subject);
+        console.log('Message length:', message.length);
         
         if (!subject || !message) {
             showToast('Konu ve mesaj alanları gerekli', 'error');
             return;
         }
         
-        const token = authToken;
-        if (!token) {
-            throw new Error('Authentication token not found');
+        if (subject.length < 3) {
+            showToast('Konu en az 3 karakter olmalı', 'error');
+            return;
+        }
+        
+        if (message.length < 10) {
+            showToast('Mesaj en az 10 karakter olmalı', 'error');
+            return;
         }
         
         if (elements.sendSupportBtn) {
@@ -920,28 +927,18 @@ async function sendSupportMessage() {
             elements.sendSupportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
         }
         
-        const response = await fetch('/api/support/message', {
+        const requestData = {
+            subject: subject,
+            message: message,
+            user_email: currentUser?.email || 'unknown@example.com'
+        };
+        
+        console.log('Request data:', requestData);
+        
+        const result = await makeAuthenticatedRequest('/support/message', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                subject,
-                message,
-                user_email: currentUser.email
-            })
+            body: JSON.stringify(requestData)
         });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                await refreshToken();
-                throw new Error('Session expired, please try again');
-            }
-            throw new Error(result.detail || result.message || 'Mesaj gönderilemedi');
-        }
         
         if (result.success) {
             showToast('Destek mesajınız gönderildi. En kısa sürede dönüş yapacağız.', 'success');
@@ -963,7 +960,7 @@ async function sendSupportMessage() {
     }
 }
 
-// Modal functions
+// MODAL FUNCTIONS
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -980,7 +977,7 @@ function closeModal(modalId) {
     }
 }
 
-// Logout function
+// LOGOUT FUNCTION
 async function logout() {
     try {
         await auth.signOut();
@@ -996,7 +993,7 @@ async function logout() {
     }
 }
 
-// Event Listeners
+// EVENT LISTENERS
 function setupEventListeners() {
     // Mobile menu
     if (elements.hamburgerMenu && elements.mobileMenu) {
@@ -1156,28 +1153,25 @@ function setupEventListeners() {
         }
     }
     
-    // Test button ekleme (geçici - debug için)
+    // Test button (geçici debug için)
     const testButton = document.createElement('button');
     testButton.textContent = 'Test Auth';
     testButton.onclick = testAuth;
-    testButton.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 9999; background: red; color: white; padding: 5px 10px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;';
+    testButton.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 9999; background: #007bff; color: white; padding: 8px 12px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
     document.body.appendChild(testButton);
 }
 
-// Initialize application
+// INITIALIZE APPLICATION
 async function initializeApp() {
     try {
-        // Initialize DOM elements first
         elements.init();
         
         console.log('=== APP INITIALIZATION DEBUG ===');
         
-        // Show loading screen
         if (elements.loadingScreen) {
             elements.loadingScreen.style.display = 'flex';
         }
 
-        // Initialize Firebase
         console.log('Initializing Firebase...');
         const firebaseInitialized = await initializeFirebase();
         if (!firebaseInitialized) {
@@ -1185,7 +1179,6 @@ async function initializeApp() {
         }
         console.log('Firebase initialized successfully');
 
-        // Check authentication
         console.log('Checking authentication...');
         const authenticated = await checkAuth();
         if (!authenticated) {
@@ -1193,11 +1186,9 @@ async function initializeApp() {
         }
         console.log('Authentication successful');
 
-        // Setup event listeners
         console.log('Setting up event listeners...');
         setupEventListeners();
 
-        // Hide loading screen and show dashboard
         if (elements.loadingScreen) {
             elements.loadingScreen.style.display = 'none';
         }
@@ -1208,7 +1199,7 @@ async function initializeApp() {
         console.log('Dashboard loaded successfully');
         showToast('Dashboard başarıyla yüklendi!', 'success');
 
-        // Set up real-time Firebase listeners
+        // Real-time Firebase listeners
         if (currentUser) {
             const userRef = database.ref(`users/${currentUser.uid}`);
             userRef.on('value', (snapshot) => {
@@ -1219,7 +1210,7 @@ async function initializeApp() {
             });
         }
 
-        // Token refresh interval (her 50 dakikada bir)
+        // Auto token refresh (her 50 dakikada bir)
         setInterval(async () => {
             try {
                 await refreshToken();
@@ -1227,7 +1218,7 @@ async function initializeApp() {
             } catch (error) {
                 console.error('Auto token refresh failed:', error);
             }
-        }, 50 * 60 * 1000); // 50 minutes
+        }, 50 * 60 * 1000);
 
     } catch (error) {
         console.error('App initialization failed:', error);
@@ -1248,13 +1239,13 @@ async function initializeApp() {
     }
 }
 
-// Start the application
+// START APPLICATION
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Starting app initialization');
     initializeApp();
 });
 
-// Handle page visibility changes
+// PAGE VISIBILITY CHANGES
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         stopRealTimeUpdates();
@@ -1264,7 +1255,7 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// Handle online/offline status
+// ONLINE/OFFLINE STATUS
 window.addEventListener('online', () => {
     showToast('İnternet bağlantısı yeniden kuruldu', 'success');
     if (currentUser && authToken) {
@@ -1277,7 +1268,7 @@ window.addEventListener('offline', () => {
     stopRealTimeUpdates();
 });
 
-// Cleanup on page unload
+// CLEANUP ON PAGE UNLOAD
 window.addEventListener('beforeunload', () => {
     stopRealTimeUpdates();
     if (database && currentUser) {
