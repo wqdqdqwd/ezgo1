@@ -55,28 +55,54 @@ if RATE_LIMITING_ENABLED:
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Authentication dependency
+# Authentication dependency - DÜZELTILMIŞ VERSIYON
 async def get_current_user(request: Request) -> dict:
     try:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
+            logger.warning("No valid authorization header provided")
             raise HTTPException(status_code=401, detail="No valid authentication token provided")
         
         token = auth_header.split(" ")[1]
-        # firebase_manager.verify_token artık sync - await kaldırıldı
+        if not token or token.strip() == "":
+            logger.warning("Empty token provided")
+            raise HTTPException(status_code=401, detail="Empty authentication token")
+        
+        logger.debug(f"Attempting to verify token: {token[:10]}...")
+        
+        # firebase_manager.verify_token SYNC - await KULLANMA
         decoded_token = firebase_manager.verify_token(token)
         
         if not decoded_token:
+            logger.warning("Token verification failed - invalid or expired token")
             raise HTTPException(status_code=401, detail="Invalid or expired token")
         
-        # Kullanıcının son giriş zamanını güncelle
-        firebase_manager.update_user_login(decoded_token['uid'])
+        if not isinstance(decoded_token, dict):
+            logger.error(f"Invalid token response type: {type(decoded_token)}")
+            raise HTTPException(status_code=401, detail="Invalid token format")
+        
+        # UID kontrolü
+        uid = decoded_token.get('uid')
+        if not uid:
+            logger.error("No UID found in decoded token")
+            raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
+        
+        logger.debug(f"Token verified successfully for user: {uid}")
+        
+        # Kullanıcının son giriş zamanını güncelle (opsiyonel)
+        try:
+            firebase_manager.update_user_login(uid)
+        except Exception as e:
+            # Bu hata authentication'ı engellemez, sadece logla
+            logger.warning(f"Failed to update login time for user {uid}: {e}")
         
         return decoded_token
+        
     except HTTPException:
+        # HTTPException'ları olduğu gibi re-raise et
         raise
     except Exception as e:
-        logger.error("Authentication failed", error=str(e))
+        logger.error(f"Unexpected authentication error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=401, detail="Authentication failed")
 
 # Admin authentication dependency
@@ -226,6 +252,24 @@ async def get_firebase_config():
         logger.error("Error providing Firebase config", error=str(e))
         raise HTTPException(status_code=500, detail="Firebase configuration error")
 
+# Test authentication endpoint - YENİ EKLENEN
+@app.get("/api/test-auth")
+async def test_auth(current_user: dict = Depends(get_current_user)):
+    """Authentication test endpoint"""
+    try:
+        return {
+            "success": True,
+            "message": "Authentication successful",
+            "user": {
+                "uid": current_user.get('uid'),
+                "email": current_user.get('email'),
+                "admin": current_user.get('admin', False)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Test auth error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # User authentication endpoints
 @app.post("/api/auth/register")
 async def register_user(request: Request):
@@ -322,7 +366,7 @@ async def save_api_keys(
         logger.error("Failed to save API keys", user_id=current_user['uid'], error=str(e))
         raise HTTPException(status_code=500, detail="Failed to save API keys")
 
-# Bot management endpoints
+# Bot management endpoints - DÜZELTILMIŞ
 @app.post("/api/bot/start")
 async def start_bot(
     request: Request,
@@ -336,7 +380,7 @@ async def start_bot(
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
     
     try:
-        # Abonelik kontrolü - firebase_manager.is_subscription_active artık sync
+        # Abonelik kontrolü - firebase_manager.is_subscription_active SYNC
         subscription_active = firebase_manager.is_subscription_active(current_user['uid'])
         
         if not subscription_active:
@@ -463,10 +507,6 @@ async def notify_payment(
             "admin_notified": False
         }
         
-        # TODO: Firebase Realtime Database'e kaydet
-        # payment_ref = db.reference(f'payments/{current_user["uid"]}')
-        # payment_ref.push(payment_data)
-        
         logger.info("Payment notification received", 
                    user_id=current_user['uid'], 
                    transaction_hash=payment.transaction_hash,
@@ -497,7 +537,6 @@ async def send_support_message(
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
     
     try:
-        # TODO: Support messages'ları Firebase'e kaydet
         support_data = {
             "user_id": current_user['uid'],
             "user_email": current_user.get('email', support.user_email),
