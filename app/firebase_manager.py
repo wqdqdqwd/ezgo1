@@ -44,7 +44,7 @@ class FirebaseManager:
             raise RuntimeError("Firebase Manager not properly initialized")
 
     
-    def verify_token(self, token: str) -> Optional[Dict]:
+    
         """
         Firebase ID Token'ı doğrular ve decoded payload'u döndürür.
         Bu payload kullanıcının UID'si ve custom claims'leri (örn. 'admin': True) içerir.
@@ -125,7 +125,7 @@ class FirebaseManager:
             raise
 
     @robust_firebase_call(max_attempts=2)
-    def get_user_data(self, uid: str) -> Optional[Dict]:
+    
         """
         Belirli bir kullanıcının Realtime Database'deki verilerini çeker
         ve API anahtarlarını çözer (decrypt eder).
