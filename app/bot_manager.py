@@ -57,7 +57,14 @@ class BotManager:
         # Botun başlangıç durumunu alması için kısa bir bekleme
         await asyncio.sleep(2) 
         
-        return bot.status
+        # Bot durumunu dictionary olarak döndür
+        return {
+            "is_running": bot.status.get("is_running", False),
+            "symbol": bot.status.get("symbol", None),
+            "position_side": bot.status.get("position_side", None),
+            "status_message": bot.status.get("status_message", "Bot başlatıldı."),
+            "last_check_time": bot.status.get("last_check_time", None)
+        }
 
     async def stop_bot_for_user(self, uid: str) -> Dict:
         """
@@ -78,7 +85,15 @@ class BotManager:
         Kullanıcının botunun anlık durumunu döndürür.
         """
         if uid in self.active_bots:
-            return self.active_bots[uid].status
+            bot = self.active_bots[uid]
+            # Bot status'unu dictionary olarak döndür
+            return {
+                "is_running": bot.status.get("is_running", False),
+                "symbol": bot.status.get("symbol", None),
+                "position_side": bot.status.get("position_side", None),
+                "status_message": bot.status.get("status_message", "Bot durumu bilinmiyor."),
+                "last_check_time": bot.status.get("last_check_time", None)
+            }
         # Eğer kullanıcı için çalışan bir bot yoksa, varsayılan durumu döndür
         return {"is_running": False, "symbol": None, "position_side": None, "status_message": "Bot başlatılmadı."}
 
@@ -89,9 +104,9 @@ class BotManager:
         print("Tüm aktif botlar durduruluyor...")
         tasks = [
             bot.stop() for bot in self.active_bots.values() 
-            if bot.status["is_running"]
+            if bot.status.get("is_running", False)
         ]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks, return_exceptions=True)
         self.active_bots.clear() # Tüm botları temizle
         print("Tüm botlar başarıyla durduruldu.")
 
