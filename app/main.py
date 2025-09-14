@@ -20,26 +20,31 @@ from app.utils.error_handler import safe_async_call
 
 logger = get_logger("main")
 
-# Rate limiting enabled check
-RATE_LIMITING_ENABLED = getattr(settings, 'RATE_LIMIT_ENABLED', True)
-
 # Lifespan context manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting EzyagoTrading application")
+    """Uygulama başlangıç ve kapanış işlemleri"""
+    logger.info("EzyagoTrading başlatılıyor...")
+    
+    # Ayarları doğrula
+    if not settings.validate_settings():
+        logger.error("Kritik ayarlar eksik - uygulama kapanıyor")
+        raise Exception("Kritik ayarlar eksik")
+    
     yield
-    logger.info("Shutting down application")
+    
+    logger.info("Uygulama kapatılıyor...")
     await bot_manager.shutdown_all_bots()
 
-# Create FastAPI application
+# FastAPI uygulaması oluştur
 app = FastAPI(
     title="EzyagoTrading API",
-    description="Professional Crypto Futures Trading Bot API",
+    description="Profesyonel Kripto Futures Trading Bot API",
     version="2.0.0",
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# CORS middleware ekle
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,86 +53,77 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add rate limiting if enabled
-if RATE_LIMITING_ENABLED:
+# Rate limiting ekle
+if settings.RATE_LIMIT_ENABLED:
     limiter.init_app(app)
     app.add_exception_handler(429, rate_limit_exceeded_handler)
 
-# Mount static files
+# Static dosyalar
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Authentication dependency - DÜZELTILMIŞ VERSIYON
+# Authentication dependency
 async def get_current_user(request: Request) -> dict:
+    """Firebase ID token'ını doğrular"""
     try:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            logger.warning("No valid authorization header provided")
-            raise HTTPException(status_code=401, detail="No valid authentication token provided")
+            logger.warning("Geçersiz authorization header")
+            raise HTTPException(status_code=401, detail="Geçersiz authentication token")
         
         token = auth_header.split(" ")[1]
         if not token or token.strip() == "":
-            logger.warning("Empty token provided")
-            raise HTTPException(status_code=401, detail="Empty authentication token")
+            logger.warning("Boş token")
+            raise HTTPException(status_code=401, detail="Boş authentication token")
         
-        logger.debug(f"Attempting to verify token: {token[:10]}...")
-        
-        # firebase_manager.verify_token SYNC - await KULLANMA
+        # Token'ı doğrula (sync method)
         decoded_token = firebase_manager.verify_token(token)
         
         if not decoded_token:
-            logger.warning("Token verification failed - invalid or expired token")
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
+            logger.warning("Token doğrulama başarısız")
+            raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş token")
         
-        if not isinstance(decoded_token, dict):
-            logger.error(f"Invalid token response type: {type(decoded_token)}")
-            raise HTTPException(status_code=401, detail="Invalid token format")
-        
-        # UID kontrolü
         uid = decoded_token.get('uid')
         if not uid:
-            logger.error("No UID found in decoded token")
-            raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
+            logger.error("Token'da UID bulunamadı")
+            raise HTTPException(status_code=401, detail="Geçersiz token: kullanıcı ID'si eksik")
         
-        logger.debug(f"Token verified successfully for user: {uid}")
+        logger.debug(f"Token başarıyla doğrulandı: {uid}")
         
-        # Kullanıcının son giriş zamanını güncelle (opsiyonel)
+        # Son giriş zamanını güncelle
         try:
             firebase_manager.update_user_login(uid)
         except Exception as e:
-            # Bu hata authentication'ı engellemez, sadece logla
-            logger.warning(f"Failed to update login time for user {uid}: {e}")
+            logger.warning(f"Son giriş zamanı güncellenemedi: {e}")
         
         return decoded_token
         
     except HTTPException:
-        # HTTPException'ları olduğu gibi re-raise et
         raise
     except Exception as e:
-        logger.error(f"Unexpected authentication error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=401, detail="Authentication failed")
+        logger.error(f"Authentication hatası: {e}")
+        raise HTTPException(status_code=401, detail="Authentication başarısız")
 
-# Admin authentication dependency
+# Admin authentication
 async def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
+    """Admin yetkilerini kontrol eder"""
     is_admin = current_user.get('admin', False)
     if not is_admin:
-        logger.warning("Non-admin user attempted admin access", user_id=current_user.get('uid'))
-        raise HTTPException(status_code=403, detail="Admin access required")
+        logger.warning(f"Admin olmayan kullanıcı admin erişimi denedi: {current_user.get('uid')}")
+        raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
     return current_user
 
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    """İstekleri loglar ve metrics toplar"""
     start_time = datetime.now()
     
-    # Process request
     response = await call_next(request)
     
-    # Calculate duration
     duration = (datetime.now() - start_time).total_seconds()
     
-    # Log request
     logger.info(
-        "Request processed",
+        "İstek işlendi",
         method=request.method,
         path=request.url.path,
         status_code=response.status_code,
@@ -135,7 +131,6 @@ async def log_requests(request: Request, call_next):
         client_ip=request.client.host if request.client else "unknown"
     )
     
-    # Record metrics
     metrics.record_api_request(
         endpoint=request.url.path,
         method=request.method,
@@ -145,23 +140,24 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-# Root endpoint - serve main page
+# Ana sayfa
 @app.get("/", response_class=HTMLResponse)
 async def root():
+    """Ana sayfa"""
     try:
         with open("static/index.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        return HTMLResponse("<h1>EzyagoTrading</h1><p>Welcome to EzyagoTrading API</p>")
+        return HTMLResponse("<h1>EzyagoTrading</h1><p>EzyagoTrading API'ye hoş geldiniz</p>")
 
-# Static pages
+# Static sayfalar
 @app.get("/login.html", response_class=HTMLResponse)
 async def login_page():
     try:
         with open("static/login.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Login page not found")
+        raise HTTPException(status_code=404, detail="Login sayfası bulunamadı")
 
 @app.get("/register.html", response_class=HTMLResponse)
 async def register_page():
@@ -169,7 +165,7 @@ async def register_page():
         with open("static/register.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Register page not found")
+        raise HTTPException(status_code=404, detail="Register sayfası bulunamadı")
 
 @app.get("/dashboard.html", response_class=HTMLResponse)
 async def dashboard_page():
@@ -177,24 +173,14 @@ async def dashboard_page():
         with open("static/dashboard.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Dashboard page not found")
+        raise HTTPException(status_code=404, detail="Dashboard sayfası bulunamadı")
 
-@app.get("/admin.html", response_class=HTMLResponse)
-async def admin_page():
-    try:
-        with open("static/admin.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Admin page not found")
-
-# Health check
+# Sağlık kontrolü
 @app.get("/health")
 async def health_check():
+    """Sistem sağlığını kontrol eder"""
     try:
-        # Firebase bağlantısını kontrol et
         firebase_status = "connected" if firebase_manager.initialized else "disconnected"
-        
-        # Bot manager durumunu kontrol et
         active_bots = bot_manager.get_active_bot_count()
         
         return {
@@ -202,10 +188,11 @@ async def health_check():
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "version": "2.0.0",
             "firebase_status": firebase_status,
-            "active_bots": active_bots
+            "active_bots": active_bots,
+            "environment": settings.ENVIRONMENT
         }
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
+        logger.error(f"Sağlık kontrolü başarısız: {e}")
         return {
             "status": "unhealthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -215,8 +202,9 @@ async def health_check():
 # Metrics endpoint
 @app.get("/metrics")
 async def metrics_endpoint():
-    if not getattr(settings, 'METRICS_ENABLED', True):
-        raise HTTPException(status_code=404, detail="Metrics disabled")
+    """Prometheus formatında metrics"""
+    if not settings.METRICS_ENABLED:
+        raise HTTPException(status_code=404, detail="Metrics devre dışı")
     
     try:
         metrics_data = get_metrics_data()
@@ -225,12 +213,13 @@ async def metrics_endpoint():
             media_type=get_metrics_content_type()
         )
     except Exception as e:
-        logger.error(f"Metrics endpoint error: {e}")
-        raise HTTPException(status_code=500, detail="Metrics unavailable")
+        logger.error(f"Metrics endpoint hatası: {e}")
+        raise HTTPException(status_code=500, detail="Metrics kullanılamıyor")
 
 # Firebase config endpoint
 @app.get("/api/firebase-config")
 async def get_firebase_config():
+    """Frontend için Firebase konfigürasyonu"""
     try:
         config = {
             "apiKey": settings.FIREBASE_WEB_API_KEY,
@@ -242,25 +231,24 @@ async def get_firebase_config():
             "appId": settings.FIREBASE_WEB_APP_ID
         }
         
-        # Check if all required fields are present
         missing_fields = [k for k, v in config.items() if not v]
         if missing_fields:
-            logger.error("Missing Firebase config fields", missing_fields=missing_fields)
-            raise HTTPException(status_code=500, detail="Firebase configuration incomplete")
+            logger.error(f"Firebase config eksik alanlar: {missing_fields}")
+            raise HTTPException(status_code=500, detail="Firebase konfigürasyonu eksik")
         
         return config
     except Exception as e:
-        logger.error("Error providing Firebase config", error=str(e))
-        raise HTTPException(status_code=500, detail="Firebase configuration error")
+        logger.error(f"Firebase config hatası: {e}")
+        raise HTTPException(status_code=500, detail="Firebase konfigürasyon hatası")
 
-# Test authentication endpoint - YENİ EKLENEN
+# Authentication test endpoint
 @app.get("/api/test-auth")
 async def test_auth(current_user: dict = Depends(get_current_user)):
-    """Authentication test endpoint"""
+    """Authentication test"""
     try:
         return {
             "success": True,
-            "message": "Authentication successful",
+            "message": "Authentication başarılı",
             "user": {
                 "uid": current_user.get('uid'),
                 "email": current_user.get('email'),
@@ -268,17 +256,15 @@ async def test_auth(current_user: dict = Depends(get_current_user)):
             }
         }
     except Exception as e:
-        logger.error(f"Test auth error: {e}")
+        logger.error(f"Test auth hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# User authentication endpoints
+# Kullanıcı kayıt endpoint'i
 @app.post("/api/auth/register")
 async def register_user(request: Request):
-    if RATE_LIMITING_ENABLED:
-        try:
-            await limiter.check_request_limit(request, "5/minute")
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    """Yeni kullanıcı kaydı"""
+    if settings.RATE_LIMIT_ENABLED:
+        await limiter.check_request_limit(request, "5/minute")
     
     try:
         data = await request.json()
@@ -286,29 +272,28 @@ async def register_user(request: Request):
         uid = data.get('uid')
         
         if not email or not uid:
-            raise HTTPException(status_code=400, detail="Email and UID required")
+            raise HTTPException(status_code=400, detail="Email ve UID gerekli")
         
-        # Create user record in Realtime Database
         user_data = firebase_manager.create_user_record(uid, email)
         
-        logger.info("User registered successfully", email=email, uid=uid)
-        return {"success": True, "message": "User registered successfully", "user": user_data}
+        logger.info(f"Kullanıcı kaydedildi: {email}")
+        return {"success": True, "message": "Kullanıcı başarıyla kaydedildi", "user": user_data}
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("User registration failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Registration failed")
+        logger.error(f"Kullanıcı kaydı başarısız: {e}")
+        raise HTTPException(status_code=500, detail="Kayıt başarısız")
 
-# User profile endpoints
+# Kullanıcı profil endpoint'leri
 @app.get("/api/user/profile")
 async def get_user_profile(current_user: dict = Depends(get_current_user)):
+    """Kullanıcı profilini getirir"""
     try:
         user_data = firebase_manager.get_user_data(current_user['uid'])
         if not user_data:
-            raise HTTPException(status_code=404, detail="User profile not found")
+            raise HTTPException(status_code=404, detail="Kullanıcı profili bulunamadı")
         
-        # Remove sensitive data
         profile = {
             "uid": current_user['uid'],
             "email": user_data.get('email'),
@@ -326,19 +311,17 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to get user profile", user_id=current_user['uid'], error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to load profile")
+        logger.error(f"Profil getirme başarısız: {e}")
+        raise HTTPException(status_code=500, detail="Profil yüklenemedi")
 
 @app.post("/api/user/api-keys")
 async def save_api_keys(
     request: Request,
     current_user: dict = Depends(get_current_user)
 ):
-    if RATE_LIMITING_ENABLED:
-        try:
-            await limiter.check_request_limit(request, "10/minute")
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    """API anahtarlarını kaydeder"""
+    if settings.RATE_LIMIT_ENABLED:
+        await limiter.check_request_limit(request, "10/minute")
     
     try:
         data = await request.json()
@@ -346,118 +329,119 @@ async def save_api_keys(
         api_secret = data.get('api_secret', '').strip()
         
         if not api_key or not api_secret:
-            raise HTTPException(status_code=400, detail="API key and secret are required")
+            raise HTTPException(status_code=400, detail="API key ve secret gerekli")
         
-        # Validate API key format (basic validation)
         if len(api_key) < 32 or len(api_secret) < 32:
-            raise HTTPException(status_code=400, detail="Invalid API key format")
+            raise HTTPException(status_code=400, detail="Geçersiz API key formatı")
         
-        # Save encrypted API keys
         success = firebase_manager.update_user_api_keys(current_user['uid'], api_key, api_secret)
         
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to save API keys")
+            raise HTTPException(status_code=500, detail="API anahtarları kaydedilemedi")
         
-        logger.info("API keys saved successfully", user_id=current_user['uid'])
-        return {"success": True, "message": "API keys saved successfully"}
+        logger.info(f"API anahtarları kaydedildi: {current_user['uid']}")
+        return {"success": True, "message": "API anahtarları başarıyla kaydedildi"}
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to save API keys", user_id=current_user['uid'], error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to save API keys")
+        logger.error(f"API anahtarları kaydetme başarısız: {e}")
+        raise HTTPException(status_code=500, detail="API anahtarları kaydedilemedi")
 
-# Bot management endpoints - DÜZELTILMIŞ
+# Bot yönetim endpoint'leri
 @app.post("/api/bot/start")
 async def start_bot(
     request: Request,
     bot_settings: StartRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    if RATE_LIMITING_ENABLED:
-        try:
-            await limiter.check_request_limit(request, "5/minute")
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    """Bot başlatır"""
+    if settings.RATE_LIMIT_ENABLED:
+        await limiter.check_request_limit(request, "5/minute")
     
     try:
-        # Abonelik kontrolü - firebase_manager.is_subscription_active SYNC
-        subscription_active = firebase_manager.is_subscription_active(current_user['uid'])
+        # Abonelik kontrolü
+        if not firebase_manager.is_subscription_active(current_user['uid']):
+            logger.warning(f"Aktif abonelik olmayan kullanıcı: {current_user['uid']}")
+            raise HTTPException(status_code=403, detail="Aktif abonelik gerekli")
         
-        if not subscription_active:
-            logger.warning(f"Inactive subscription attempt by user: {current_user['uid']}")
-            raise HTTPException(status_code=403, detail="Active subscription required")
+        logger.info(f"Bot başlatılıyor: {current_user['uid']}")
         
-        logger.info(f"Starting bot for user: {current_user['uid']}")
-        
-        # Bot'u başlat
         result = await bot_manager.start_bot_for_user(current_user['uid'], bot_settings)
         
         if "error" in result:
-            logger.error(f"Bot start failed for user {current_user['uid']}: {result['error']}")
+            logger.error(f"Bot başlatma başarısız: {result['error']}")
             raise HTTPException(status_code=400, detail=result["error"])
         
-        # Record metrics
         metrics.record_bot_start(current_user['uid'], bot_settings.symbol)
         
-        logger.info(f"Bot started successfully for user: {current_user['uid']}")
+        logger.info(f"Bot başarıyla başlatıldı: {current_user['uid']}")
         return {"success": True, "status": result}
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to start bot for user {current_user['uid']}: {str(e)}")
+        logger.error(f"Bot başlatma hatası: {e}")
         metrics.record_error("bot_start_failed", "bot_manager")
-        raise HTTPException(status_code=500, detail=f"Failed to start bot: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Bot başlatılamadı: {str(e)}")
 
 @app.post("/api/bot/stop")
 async def stop_bot(
     request: Request,
     current_user: dict = Depends(get_current_user)
 ):
-    if RATE_LIMITING_ENABLED:
-        try:
-            await limiter.check_request_limit(request, "5/minute")
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    """Bot'u durdurur"""
+    if settings.RATE_LIMIT_ENABLED:
+        await limiter.check_request_limit(request, "5/minute")
     
     try:
-        logger.info(f"Stopping bot for user: {current_user['uid']}")
+        logger.info(f"Bot durduruluyor: {current_user['uid']}")
         
         result = await bot_manager.stop_bot_for_user(current_user['uid'])
         
         if "error" in result:
-            logger.error(f"Bot stop failed for user {current_user['uid']}: {result['error']}")
+            logger.error(f"Bot durdurma başarısız: {result['error']}")
             raise HTTPException(status_code=400, detail=result["error"])
         
-        # Record metrics
         metrics.record_bot_stop(current_user['uid'], "unknown", "manual")
         
-        logger.info(f"Bot stopped successfully for user: {current_user['uid']}")
-        return {"success": True, "message": "Bot stopped successfully"}
+        logger.info(f"Bot başarıyla durduruldu: {current_user['uid']}")
+        return {"success": True, "message": "Bot başarıyla durduruldu"}
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to stop bot for user {current_user['uid']}: {str(e)}")
+        logger.error(f"Bot durdurma hatası: {e}")
         metrics.record_error("bot_stop_failed", "bot_manager")
-        raise HTTPException(status_code=500, detail=f"Failed to stop bot: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Bot durdurulamadı: {str(e)}")
 
 @app.get("/api/bot/status")
 async def get_bot_status(current_user: dict = Depends(get_current_user)):
+    """Bot durumunu getirir"""
     try:
-        logger.debug(f"Getting bot status for user: {current_user['uid']}")
+        logger.debug(f"Bot durumu alınıyor: {current_user['uid']}")
         
         status = bot_manager.get_bot_status(current_user['uid'])
         
-        logger.debug(f"Bot status retrieved for user {current_user['uid']}: {status.get('is_running', False)}")
+        logger.debug(f"Bot durumu: {status.get('is_running', False)}")
         return {"success": True, "status": status}
         
     except Exception as e:
-        logger.error(f"Failed to get bot status for user {current_user['uid']}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get bot status: {str(e)}")
+        logger.error(f"Bot durum getirme hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Bot durumu alınamadı: {str(e)}")
 
-# Payment and subscription endpoints
+@app.get("/api/user/trades")
+async def get_user_trades(current_user: dict = Depends(get_current_user)):
+    """Kullanıcının işlem geçmişini getirir"""
+    try:
+        trades = firebase_manager.get_user_trades(current_user['uid'], limit=100)
+        return {"success": True, "trades": trades}
+        
+    except Exception as e:
+        logger.error(f"İşlem geçmişi getirme hatası: {e}")
+        raise HTTPException(status_code=500, detail="İşlem geçmişi alınamadı")
+
+# Ödeme ve abonelik endpoint'leri
 class PaymentNotification(BaseModel):
     transaction_hash: str
     amount: float
@@ -474,13 +458,13 @@ async def get_payment_info():
     try:
         return {
             "success": True,
-            "amount": getattr(settings, 'BOT_PRICE_USD', '$15/Ay'),
-            "trc20Address": getattr(settings, 'PAYMENT_TRC20_ADDRESS', 'TMjSDNto6hoHUV9udDcXVAtuxxX6cnhhv3'),
+            "amount": settings.BOT_PRICE_USD,
+            "trc20Address": settings.PAYMENT_TRC20_ADDRESS,
             "botPriceUsd": "15"
         }
     except Exception as e:
-        logger.error(f"Error getting payment info: {e}")
-        raise HTTPException(status_code=500, detail="Payment info unavailable")
+        logger.error(f"Ödeme bilgisi hatası: {e}")
+        raise HTTPException(status_code=500, detail="Ödeme bilgisi alınamadı")
 
 @app.post("/api/payment/notify")
 async def notify_payment(
@@ -488,15 +472,11 @@ async def notify_payment(
     payment: PaymentNotification,
     current_user: dict = Depends(get_current_user)
 ):
-    """Kullanıcıdan ödeme bildirimi alır"""
-    if RATE_LIMITING_ENABLED:
-        try:
-            await limiter.check_request_limit(request, "3/hour")
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    """Ödeme bildirimi alır"""
+    if settings.RATE_LIMIT_ENABLED:
+        await limiter.check_request_limit(request, "3/hour")
     
     try:
-        # Ödeme bildirimini Firebase'e kaydet
         payment_data = {
             "user_id": current_user['uid'],
             "user_email": current_user.get('email', ''),
@@ -508,10 +488,7 @@ async def notify_payment(
             "admin_notified": False
         }
         
-        logger.info("Payment notification received", 
-                   user_id=current_user['uid'], 
-                   transaction_hash=payment.transaction_hash,
-                   amount=payment.amount)
+        logger.info(f"Ödeme bildirimi alındı: {current_user['uid']}")
         
         return {
             "success": True,
@@ -519,10 +496,8 @@ async def notify_payment(
         }
         
     except Exception as e:
-        logger.error("Payment notification failed", 
-                    user_id=current_user['uid'], 
-                    error=str(e))
-        raise HTTPException(status_code=500, detail="Payment notification failed")
+        logger.error(f"Ödeme bildirimi hatası: {e}")
+        raise HTTPException(status_code=500, detail="Ödeme bildirimi başarısız")
 
 @app.post("/api/support/message")
 async def send_support_message(
@@ -531,11 +506,8 @@ async def send_support_message(
     current_user: dict = Depends(get_current_user)
 ):
     """Destek mesajı gönderir"""
-    if RATE_LIMITING_ENABLED:
-        try:
-            await limiter.check_request_limit(request, "5/hour")
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    if settings.RATE_LIMIT_ENABLED:
+        await limiter.check_request_limit(request, "5/hour")
     
     try:
         support_data = {
@@ -547,9 +519,7 @@ async def send_support_message(
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
-        logger.info("Support message received", 
-                   user_id=current_user['uid'], 
-                   subject=support.subject)
+        logger.info(f"Destek mesajı alındı: {current_user['uid']}")
         
         return {
             "success": True,
@@ -557,29 +527,26 @@ async def send_support_message(
         }
         
     except Exception as e:
-        logger.error("Support message failed", 
-                    user_id=current_user['uid'], 
-                    error=str(e))
-        raise HTTPException(status_code=500, detail="Support message failed")
+        logger.error(f"Destek mesajı hatası: {e}")
+        raise HTTPException(status_code=500, detail="Destek mesajı gönderilemedi")
 
-# Admin endpoints
+# Admin endpoint'leri
 @app.get("/api/admin/users")
 async def get_all_users(current_user: dict = Depends(get_admin_user)):
     """Admin için tüm kullanıcıları listeler"""
     try:
         users_data = firebase_manager.get_all_users()
         
-        # Her kullanıcı için abonelik durumunu kontrol et
         for uid, user_data in users_data.items():
             if isinstance(user_data, dict):
                 user_data['subscription_active'] = firebase_manager.is_subscription_active_by_data(user_data)
         
-        logger.info(f"Admin retrieved {len(users_data)} users", admin_id=current_user['uid'])
+        logger.info(f"Admin {len(users_data)} kullanıcı listeledi")
         return {"success": True, "users": users_data}
         
     except Exception as e:
-        logger.error("Admin get users failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to fetch users")
+        logger.error(f"Admin kullanıcı listesi hatası: {e}")
+        raise HTTPException(status_code=500, detail="Kullanıcılar getirilemedi")
 
 @app.post("/api/admin/activate-subscription")
 async def activate_user_subscription(
@@ -590,37 +557,32 @@ async def activate_user_subscription(
     try:
         data = await request.json()
         user_id = data.get('user_id')
-        days = data.get('days', 30)  # Varsayılan 30 gün
+        days = data.get('days', 30)
         
         if not user_id:
-            raise HTTPException(status_code=400, detail="User ID required")
+            raise HTTPException(status_code=400, detail="User ID gerekli")
         
-        # Aboneliği uzat
         success = firebase_manager.extend_subscription(user_id, days)
         
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to activate subscription")
+            raise HTTPException(status_code=500, detail="Abonelik aktifleştirilemedi")
         
-        logger.info("User subscription activated by admin", 
-                   admin_email=current_user.get('email'),
-                   admin_id=current_user['uid'],
-                   target_user=user_id,
-                   days=days)
+        logger.info(f"Admin tarafından abonelik aktifleştirildi: {user_id}")
         
         return {
             "success": True,
-            "message": f"User subscription activated for {days} days"
+            "message": f"Kullanıcı aboneliği {days} gün için aktifleştirildi"
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Admin activate subscription failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to activate subscription")
+        logger.error(f"Admin abonelik aktifleştirme hatası: {e}")
+        raise HTTPException(status_code=500, detail="Abonelik aktifleştirilemedi")
 
 @app.get("/api/admin/bot-stats")
 async def get_bot_stats(current_user: dict = Depends(get_admin_user)):
-    """Admin için bot istatistiklerini döndürür"""
+    """Admin için bot istatistikleri"""
     try:
         active_count = bot_manager.get_active_bot_count()
         active_users = bot_manager.get_all_active_users()
@@ -635,96 +597,37 @@ async def get_bot_stats(current_user: dict = Depends(get_admin_user)):
         }
         
     except Exception as e:
-        logger.error(f"Failed to get bot stats: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to get bot statistics")
+        logger.error(f"Bot istatistikleri hatası: {e}")
+        raise HTTPException(status_code=500, detail="Bot istatistikleri alınamadı")
 
-# Error handlers
+# Error handler'lar
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: HTTPException):
-    logger.warning(f"404 error for path: {request.url.path}")
+    logger.warning(f"404 hatası: {request.url.path}")
     return JSONResponse(
         status_code=404,
-        content={"error": "Not found", "detail": "The requested resource was not found"}
+        content={"error": "Bulunamadı", "detail": "İstenen kaynak bulunamadı"}
     )
 
 @app.exception_handler(500)
 async def internal_server_error_handler(request: Request, exc: Exception):
-    logger.error("Internal server error", error=str(exc), path=request.url.path)
+    logger.error(f"Internal server error: {exc}")
     metrics.record_error("internal_server_error", "main")
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal server error", "detail": "An unexpected error occurred"}
+        content={"error": "Sunucu hatası", "detail": "Beklenmeyen bir hata oluştu"}
     )
 
-# Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error("Unhandled exception", error=str(exc), path=request.url.path)
+    logger.error(f"Beklenmeyen hata: {exc}")
     metrics.record_error("unhandled_exception", "main")
     return JSONResponse(
         status_code=500,
-        content={"error": "Unexpected error", "detail": "An unexpected error occurred"}
+        content={"error": "Beklenmeyen hata", "detail": "Beklenmeyen bir hata oluştu"}
     )
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-    # main.py'nin sonuna bu endpoint'i ekleyin (debug için)
-
-@app.get("/api/debug/firebase-test")
-async def debug_firebase_test():
-    """Firebase Manager durumunu test eder"""
-    try:
-        return {
-            "firebase_manager_initialized": firebase_manager.initialized,
-            "firebase_apps_count": len(firebase_admin._apps),
-            "firebase_credentials_length": len(settings.FIREBASE_CREDENTIALS_JSON) if settings.FIREBASE_CREDENTIALS_JSON else 0,
-            "firebase_database_url": settings.FIREBASE_DATABASE_URL[:50] + "..." if settings.FIREBASE_DATABASE_URL else None,
-            "test_timestamp": datetime.now(timezone.utc).isoformat()
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "firebase_manager_initialized": False
-        }
-
-@app.post("/api/debug/token-test")
-async def debug_token_test(request: Request):
-    """Token verification'ı manuel test eder"""
-    try:
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return {"error": "No Authorization header"}
-        
-        token = auth_header.split(" ")[1]
-        
-        # Firebase Manager ile test
-        result = firebase_manager.verify_token(token)
-        
-        # Token info
-        token_parts = token.split('.')
-        token_info = {
-            "token_length": len(token),
-            "token_parts": len(token_parts),
-            "token_start": token[:20] + "...",
-            "firebase_manager_initialized": firebase_manager.initialized,
-            "verification_result": bool(result),
-            "result_type": type(result).__name__ if result else None
-        }
-        
-        if result:
-            token_info.update({
-                "decoded_uid": result.get('uid'),
-                "decoded_email": result.get('email'),
-                "decoded_iss": result.get('iss'),
-                "decoded_aud": result.get('aud')
-            })
-        
-        return token_info
-        
-    except Exception as e:
-        return {
-            "error": str(e),
-            "error_type": type(e).__name__
-        }
