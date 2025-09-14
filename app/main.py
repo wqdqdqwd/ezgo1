@@ -1,4 +1,5 @@
 import os
+import firebase_admin
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Depends, Request, Response, status
 from fastapi.staticfiles import StaticFiles
