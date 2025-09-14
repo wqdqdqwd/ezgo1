@@ -669,3 +669,61 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+    # main.py'nin sonuna bu endpoint'i ekleyin (debug için)
+
+@app.get("/api/debug/firebase-test")
+async def debug_firebase_test():
+    """Firebase Manager durumunu test eder"""
+    try:
+        return {
+            "firebase_manager_initialized": firebase_manager.initialized,
+            "firebase_apps_count": len(firebase_admin._apps),
+            "firebase_credentials_length": len(settings.FIREBASE_CREDENTIALS_JSON) if settings.FIREBASE_CREDENTIALS_JSON else 0,
+            "firebase_database_url": settings.FIREBASE_DATABASE_URL[:50] + "..." if settings.FIREBASE_DATABASE_URL else None,
+            "test_timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "firebase_manager_initialized": False
+        }
+
+@app.post("/api/debug/token-test")
+async def debug_token_test(request: Request):
+    """Token verification'ı manuel test eder"""
+    try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return {"error": "No Authorization header"}
+        
+        token = auth_header.split(" ")[1]
+        
+        # Firebase Manager ile test
+        result = firebase_manager.verify_token(token)
+        
+        # Token info
+        token_parts = token.split('.')
+        token_info = {
+            "token_length": len(token),
+            "token_parts": len(token_parts),
+            "token_start": token[:20] + "...",
+            "firebase_manager_initialized": firebase_manager.initialized,
+            "verification_result": bool(result),
+            "result_type": type(result).__name__ if result else None
+        }
+        
+        if result:
+            token_info.update({
+                "decoded_uid": result.get('uid'),
+                "decoded_email": result.get('email'),
+                "decoded_iss": result.get('iss'),
+                "decoded_aud": result.get('aud')
+            })
+        
+        return token_info
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
