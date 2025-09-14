@@ -284,4 +284,75 @@ class BotCore:
             if signal != "HOLD" and signal != self.status.get("position_side"):
                 await self._flip_position(signal)
 
-        except Exception a
+        except Exception as e:
+            logger.error(f"WebSocket mesaj işleme hatası - Kullanıcı: {self.user_id}, Hata: {e}")
+
+    async def _flip_position(self, new_signal: str):
+        """Pozisyon değişikliği yapar"""
+        symbol = self.settings["symbol"]
+
+        # Abonelik kontrolü
+        if not firebase_manager.is_subscription_active(self.user_id):
+            self.status["status_message"] = "Aboneliğiniz sona erdi, yeni pozisyon açılamıyor."
+            logger.warning(f"Abonelik süresi doldu, pozisyon açılamıyor - Kullanıcı: {self.user_id}")
+            await self.stop()
+            return
+
+        try:
+            # Mevcut pozisyonu kapat
+            open_positions = await self.binance_client.get_open_positions(symbol)
+            if open_positions:
+                logger.info(f"Mevcut pozisyon kapatılıyor - Kullanıcı: {self.user_id}, Yön: {self.status['position_side']}")
+                await self.binance_client.close_open_position_and_orders(symbol)
+                pnl = await self.binance_client.get_last_trade_pnl(symbol)
+                firebase_manager.log_trade(self.user_id, {
+                    "symbol": symbol, 
+                    "pnl": pnl, 
+                    "status": "CLOSED_BY_FLIP", 
+                    "timestamp": datetime.now(timezone.utc)
+                })
+                metrics.record_trade(self.user_id, symbol, "CLOSE", pnl, "flip")
+                await asyncio.sleep(1)
+
+            # Yeni pozisyon aç
+            logger.info(f"Yeni pozisyon açılıyor - Kullanıcı: {self.user_id}, Sinyal: {new_signal}")
+            side = "BUY" if new_signal == "LONG" else "SELL"
+            price = await self.binance_client.get_market_price(symbol)
+            
+            if not price:
+                self.status["status_message"] = "Yeni pozisyon için fiyat alınamadı."
+                logger.error(f"Market fiyatı alınamadı - Kullanıcı: {self.user_id}")
+                return
+
+            # Miktar hesapla
+            quantity = self._format_quantity(self.settings['order_size'] / price, self.step_size)
+            
+            if quantity <= 0:
+                self.status["status_message"] = f"Hesaplanan miktar çok düşük: {quantity}"
+                logger.error(f"Miktar çok düşük - Kullanıcı: {self.user_id}, Miktar: {quantity}")
+                return
+
+            # TP/SL ile emir oluştur
+            order = await self.binance_client.create_order_with_tp_sl(
+                symbol=symbol,
+                side=side,
+                quantity=quantity,
+                entry_price=price,
+                price_precision=self.price_precision,
+                stop_loss_percent=self.settings['stop_loss'],
+                take_profit_percent=self.settings['take_profit']
+            )
+            
+            if order:
+                self.status["position_side"] = new_signal
+                self.status["status_message"] = f"Yeni {new_signal} pozisyonu {price:.{self.price_precision}f} fiyattan açıldı."
+                metrics.record_trade(self.user_id, symbol, side, 0.0, "opened")
+                logger.info(f"Pozisyon başarıyla açıldı - Kullanıcı: {self.user_id}, Sinyal: {new_signal}, Fiyat: {price}")
+            else:
+                self.status["position_side"] = None
+                self.status["status_message"] = "Yeni pozisyon açılamadı."
+                logger.error(f"Pozisyon açılamadı - Kullanıcı: {self.user_id}")
+
+        except Exception as e:
+            logger.error(f"Pozisyon değiştirme hatası - Kullanıcı: {self.user_id}, Hata: {e}")
+            self.status["status_message"] = f"Pozisyon değiştirme hatası: {str(e)}"
