@@ -1,30 +1,8 @@
-# Web Framework
-fastapi==0.109.2
-uvicorn[standard]==0.27.1
-
-# Database & Authentication
-firebase-admin==6.4.0
-
-# Security & Encryption
-cryptography==42.0.8
-pyjwt==2.8.0
-
-# Trading & WebSocket
-python-binance==1.0.19
-websockets==12.0
-
-# Data Processing - NO PANDAS
-pydantic>=2.5.1
-python-multipart==0.0.9
-
-# Utilities
-python-dotenv==1.0.1
-structlog==24.3.0
-tenacity==9.1.2
-
-# Performance
-gunicorn==21.2.0
-
-# Additional dependencies
-typing_extensions>=4.12.2
-annotated-types==0.6.0
+fastapi
+uvicorn[standard]
+python-binance
+websockets
+numpy
+pandas
+python-dotenv
+firebase-admin
