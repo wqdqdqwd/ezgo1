@@ -4,37 +4,22 @@ uvicorn[standard]==0.27.1
 
 # Database & Authentication
 firebase-admin==6.4.0
-google-cloud-firestore==2.14.0
 
 # Security & Encryption
 cryptography==42.0.8
-bcrypt==4.1.3
 pyjwt==2.8.0
 
 # Trading & WebSocket
 python-binance==1.0.19
 websockets==12.0
 
-# Data Processing - EKLENEN PANDAS!
-pandas==2.1.4
-numpy==1.25.2
+# Data Processing - NO PANDAS
 pydantic>=2.5.1
 python-multipart==0.0.9
 
 # Utilities
 python-dotenv==1.0.1
-asyncio-mqtt==0.16.1
 structlog==24.3.0
-tenacity==9.1.2
-
-# Development
-pytest==8.1.1
-pytest-asyncio==0.23.6
-
-# Monitoring (Optional - Render için hafif versiyonlar)
-slowapi==0.1.9
-redis==5.0.3
-prometheus_client
 
 # Performance
 gunicorn==21.2.0
