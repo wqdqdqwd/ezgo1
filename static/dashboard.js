@@ -820,4 +820,296 @@ async function confirmPayment() {
             return;
         }
         
-        if (
+        if (transactionHash.length < 20) {
+            showToast('Geçersiz işlem hash\'i', 'error');
+            return;
+        }
+        
+        if (elements.confirmPaymentBtn) {
+            elements.confirmPaymentBtn.disabled = true;
+            elements.confirmPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kontrol ediliyor...';
+        }
+        
+        const result = await makeAuthenticatedRequest('/payment/confirm', {
+            method: 'POST',
+            body: JSON.stringify({
+                transaction_hash: transactionHash
+            })
+        });
+        
+        if (result.success) {
+            showToast('Ödeme başarıyla doğrulandı!', 'success');
+            closeModal('purchase-modal');
+            await loadUserData(); // Kullanıcı bilgilerini yeniden yükle
+        } else {
+            throw new Error(result.message || 'Ödeme doğrulanamadı');
+        }
+        
+    } catch (error) {
+        console.error('Payment confirmation error:', error);
+        showToast(`Ödeme doğrulama hatası: ${error.message}`, 'error');
+    } finally {
+        if (elements.confirmPaymentBtn) {
+            elements.confirmPaymentBtn.disabled = false;
+            elements.confirmPaymentBtn.innerHTML = '<i class="fas fa-check"></i> Ödememi Doğrula';
+        }
+    }
+}
+
+// SUPPORT FUNCTIONS
+async function sendSupportMessage() {
+    try {
+        if (!elements.supportSubject || !elements.supportMessage) return;
+        
+        const subject = elements.supportSubject.value.trim();
+        const message = elements.supportMessage.value.trim();
+        
+        if (!subject || !message) {
+            showToast('Lütfen konu ve mesaj alanlarını doldurun', 'error');
+            return;
+        }
+        
+        if (elements.sendSupportBtn) {
+            elements.sendSupportBtn.disabled = true;
+            elements.sendSupportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+        }
+        
+        const result = await makeAuthenticatedRequest('/support/message', {
+            method: 'POST',
+            body: JSON.stringify({
+                subject: subject,
+                message: message
+            })
+        });
+        
+        if (result.success) {
+            showToast('Destek mesajınız gönderildi!', 'success');
+            closeModal('support-modal');
+            
+            // Form alanlarını temizle
+            elements.supportSubject.value = '';
+            elements.supportMessage.value = '';
+        } else {
+            throw new Error(result.message || 'Mesaj gönderilemedi');
+        }
+        
+    } catch (error) {
+        console.error('Support message error:', error);
+        showToast(`Mesaj gönderme hatası: ${error.message}`, 'error');
+    } finally {
+        if (elements.sendSupportBtn) {
+            elements.sendSupportBtn.disabled = false;
+            elements.sendSupportBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Mesajı Gönder';
+        }
+    }
+}
+
+// MODAL FUNCTIONS
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+}
+
+// LOGOUT FUNCTION
+function logout() {
+    try {
+        if (auth && currentUser) {
+            auth.signOut();
+        }
+        
+        // Token ve kullanıcı bilgilerini temizle
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem('authToken');
+        
+        // Real-time güncellemeleri durdur
+        stopRealTimeUpdates();
+        
+        // Login sayfasına yönlendir
+        window.location.href = '/login.html';
+        
+    } catch (error) {
+        console.error('Logout error:', error);
+        // Hata olsa bile login sayfasına yönlendir
+        window.location.href = '/login.html';
+    }
+}
+
+// MOBILE MENU FUNCTIONS
+function toggleMobileMenu() {
+    if (elements.mobileMenu) {
+        elements.mobileMenu.classList.toggle('show');
+    }
+}
+
+function closeMobileMenu() {
+    if (elements.mobileMenu) {
+        elements.mobileMenu.classList.remove('show');
+    }
+}
+
+// EVENT LISTENERS SETUP
+function setupEventListeners() {
+    // Mobile menu
+    if (elements.hamburgerMenu) {
+        elements.hamburgerMenu.addEventListener('click', toggleMobileMenu);
+    }
+    if (elements.mobileMenuClose) {
+        elements.mobileMenuClose.addEventListener('click', closeMobileMenu);
+    }
+    
+    // API modal
+    if (elements.manageApiBtn) {
+        elements.manageApiBtn.addEventListener('click', () => openModal('api-modal'));
+    }
+    if (elements.mobileApiBtn) {
+        elements.mobileApiBtn.addEventListener('click', () => {
+            openModal('api-modal');
+            closeMobileMenu();
+        });
+    }
+    if (elements.apiModalClose) {
+        elements.apiModalClose.addEventListener('click', () => closeModal('api-modal'));
+    }
+    if (elements.cancelApiBtn) {
+        elements.cancelApiBtn.addEventListener('click', () => closeModal('api-modal'));
+    }
+    if (elements.saveApiBtn) {
+        elements.saveApiBtn.addEventListener('click', saveApiKeys);
+    }
+    
+    // Bot control
+    if (elements.startBotBtn) {
+        elements.startBotBtn.addEventListener('click', startBot);
+    }
+    if (elements.stopBotBtn) {
+        elements.stopBotBtn.addEventListener('click', stopBot);
+    }
+    
+    // Purchase modal
+    if (elements.mobilePurchaseBtn) {
+        elements.mobilePurchaseBtn.addEventListener('click', () => {
+            openModal('purchase-modal');
+            closeMobileMenu();
+        });
+    }
+    if (elements.purchaseModalClose) {
+        elements.purchaseModalClose.addEventListener('click', () => closeModal('purchase-modal'));
+    }
+    if (elements.cancelPurchaseBtn) {
+        elements.cancelPurchaseBtn.addEventListener('click', () => closeModal('purchase-modal'));
+    }
+    if (elements.copyAddressBtn) {
+        elements.copyAddressBtn.addEventListener('click', copyAddress);
+    }
+    if (elements.confirmPaymentBtn) {
+        elements.confirmPaymentBtn.addEventListener('click', confirmPayment);
+    }
+    
+    // Support modal
+    if (elements.mobileSupportBtn) {
+        elements.mobileSupportBtn.addEventListener('click', () => {
+            openModal('support-modal');
+            closeMobileMenu();
+        });
+    }
+    if (elements.supportModalClose) {
+        elements.supportModalClose.addEventListener('click', () => closeModal('support-modal'));
+    }
+    if (elements.cancelSupportBtn) {
+        elements.cancelSupportBtn.addEventListener('click', () => closeModal('support-modal'));
+    }
+    if (elements.sendSupportBtn) {
+        elements.sendSupportBtn.addEventListener('click', sendSupportMessage);
+    }
+    
+    // Logout
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener('click', logout);
+    }
+    if (elements.mobileLogoutBtn) {
+        elements.mobileLogoutBtn.addEventListener('click', () => {
+            logout();
+            closeMobileMenu();
+        });
+    }
+    
+    // Toast close
+    if (elements.toastClose) {
+        elements.toastClose.addEventListener('click', () => {
+            if (elements.toast) {
+                elements.toast.classList.remove('show');
+            }
+        });
+    }
+    
+    // Modal background click to close
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
+        });
+    });
+}
+
+// INITIALIZATION
+async function initApp() {
+    try {
+        console.log('Initializing app...');
+        
+        // DOM elementlerini başlat
+        elements.init();
+        
+        // Event listener'ları kur
+        setupEventListeners();
+        
+        // Firebase'i başlat
+        const firebaseInitialized = await initializeFirebase();
+        if (!firebaseInitialized) {
+            showToast('Firebase başlatılamadı', 'error');
+            return;
+        }
+        
+        // Auth kontrolü
+        const isAuthenticated = await checkAuth();
+        if (isAuthenticated) {
+            // Loading screen'i gizle, dashboard'u göster
+            if (elements.loadingScreen) elements.loadingScreen.style.display = 'none';
+            if (elements.dashboard) elements.dashboard.style.display = 'block';
+            
+            console.log('App initialized successfully');
+        }
+        
+    } catch (error) {
+        console.error('App initialization failed:', error);
+        showToast('Uygulama başlatılamadı', 'error');
+    }
+}
+
+// DOM ready event
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Window error handler
+window.addEventListener('error', (error) => {
+    console.error('Global error:', error);
+    showToast('Beklenmeyen bir hata oluştu', 'error');
+});
+
+// Unhandled promise rejection handler
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    showToast('Beklenmeyen bir hata oluştu', 'error');
+});
