@@ -1,4 +1,4 @@
-# app/main.py - MULTI-COIN DESTEKLİ VERSİYON
+# main.py - API ve Firebase Realtime Database Entegrasyonu ile Multi-User Bot Backend
 
 import asyncio
 import time
@@ -6,360 +6,284 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from typing import List
-from .bot_core import bot_core
-from .config import settings
-from .firebase_manager import firebase_manager
-from .position_manager import position_manager
+from pydantic import BaseModel, Field
+from typing import List, Dict
+import logging
+import firebase_admin
+from firebase_admin import credentials, db, auth
+import os
+import json
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import math
 
-bearer_scheme = HTTPBearer()
+# Logging setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-# Rate limiting için basit bir sistem
-class RateLimiter:
-    def __init__(self, max_requests: int = 60, time_window: int = 60):
-        self.max_requests = max_requests
-        self.time_window = time_window
-        self.requests = {}
+# Firebase ve Bot Ayarları
+__firebase_config = os.getenv("FIREBASE_CONFIG")
+__app_id = os.getenv("APP_ID", "default-app-id")
+
+class Settings:
+    # --- Temel Ayarlar ---
+    API_KEY: str = os.getenv("BINANCE_API_KEY")
+    API_SECRET: str = os.getenv("BINANCE_API_SECRET")
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "TEST")
+    BASE_URL = "https://fapi.binance.com" if ENVIRONMENT == "LIVE" else "https://testnet.binancefuture.com"
+
+    # --- İşlem Parametreleri (Kullanıcı Tarafından Ayarlanır) ---
+    LEVERAGE: int = 10
+    ORDER_SIZE_USDT: float = 35.0
+    TIMEFRAME: str = "30m"
+    STOP_LOSS_PERCENT: float = 0.008
+    TAKE_PROFIT_PERCENT: float = 0.01
+
+settings = Settings()
+
+# Firebase Realtime Database Manager
+class FirebaseManager:
+    def __init__(self):
+        self.db = None
+        self.is_initialized = False
+
+    async def initialize_firebase(self):
+        if not self.is_initialized:
+            try:
+                # app_id ve firebase config global değişkenlerini kullan
+                firebase_config = json.loads(__firebase_config)
+                
+                # Realtime Database için servis hesabı kimlik bilgileri ve databaseURL gerekli
+                cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
+                database_url = firebase_config.get("databaseURL")
+
+                if cred_path and os.path.exists(cred_path) and database_url:
+                    cred = credentials.Certificate(cred_path)
+                    firebase_admin.initialize_app(cred, {'databaseURL': database_url})
+                    self.db = db.reference('/')
+                    self.is_initialized = True
+                    print("Firebase (Admin SDK & Realtime DB) başarıyla başlatıldı.")
+                else:
+                    print("UYARI: Firebase kimlik bilgileri veya databaseURL bulunamadı.")
+
+            except Exception as e:
+                print(f"Firebase başlatılırken hata oluştu: {e}")
+                
+    async def get_user_settings(self, user_id: str) -> dict:
+        try:
+            settings_ref = self.db.child('artifacts').child(__app_id).child('users').child(user_id).child('settings')
+            snapshot = settings_ref.get()
+            return snapshot or {}
+        except Exception as e:
+            logger.error(f"Kullanıcı ayarları alınamadı: {e}")
+            return {}
+
+    async def update_user_settings(self, user_id: str, settings_data: dict):
+        try:
+            settings_ref = self.db.child('artifacts').child(__app_id).child('users').child(user_id).child('settings')
+            settings_ref.update(settings_data)
+            logger.info(f"Kullanıcı {user_id} için ayarlar güncellendi.")
+        except Exception as e:
+            logger.error(f"Kullanıcı ayarları kaydedilemedi: {e}")
+
+    async def log_trade(self, user_id: str, trade_data: dict):
+        try:
+            trade_data['timestamp'] = datetime.utcnow().isoformat()
+            trades_ref = self.db.child('artifacts').child(__app_id).child('users').child(user_id).child('trades')
+            trades_ref.push(trade_data)
+            logger.info(f"Kullanıcı {user_id} için işlem kaydedildi.")
+        except Exception as e:
+            logger.error(f"İşlem kaydedilemedi: {e}")
+
+    async def get_bot_status(self, user_id: str) -> dict:
+        try:
+            status_ref = self.db.child('artifacts').child(__app_id).child('users').child(user_id).child('bot_status')
+            snapshot = status_ref.get()
+            return snapshot or {"is_running": False, "message": "Bot başlatılmadı."}
+        except Exception as e:
+            logger.error(f"Bot durumu alınamadı: {e}")
+            return {"is_running": False, "message": "Durum alınamadı."}
+
+    async def update_bot_status(self, user_id: str, status_data: dict):
+        try:
+            status_data['last_updated'] = datetime.utcnow().isoformat()
+            status_ref = self.db.child('artifacts').child(__app_id).child('users').child(user_id).child('bot_status')
+            status_ref.update(status_data)
+        except Exception as e:
+            logger.error(f"Bot durumu güncellenemedi: {e}")
+
+firebase_manager = FirebaseManager()
+
+# Bot Core Sınıfı
+@dataclass
+class BotStatus:
+    is_running: bool = False
+    symbols: List[str] = None
+    status_message: str = "Bot başlatılmadı."
+    account_balance: float = 0.0
+    position_pnl: float = 0.0
+
+class BotCore:
+    def __init__(self, user_id: str, api_key: str, api_secret: str, settings: Dict):
+        self.user_id = user_id
+        self.api_key = api_key
+        self.api_secret = api_secret
+        self.settings = settings
+        self._stop_requested = False
+        self.status = BotStatus()
+        self.main_task = None
+        self.logger = logging.getLogger(f"BotCore_{user_id}")
     
-    def is_allowed(self, client_id: str) -> bool:
-        current_time = time.time()
-        if client_id not in self.requests:
-            self.requests[client_id] = []
+    async def start(self):
+        self._stop_requested = False
+        self.status.is_running = True
+        self.status.status_message = "Bot başlatılıyor..."
+        await firebase_manager.update_bot_status(self.user_id, {"is_running": True, "status_message": "Bot başlatılıyor..."})
         
-        # Eski istekleri temizle
-        self.requests[client_id] = [
-            req_time for req_time in self.requests[client_id] 
-            if current_time - req_time < self.time_window
-        ]
+        # Bu kısım botun ana döngüsünü içerecek
+        self.main_task = asyncio.create_task(self._main_loop())
+        self.logger.info(f"Bot başarıyla başlatıldı: {self.user_id}")
+        return {"success": True, "message": "Bot başlatıldı."}
+
+    async def stop(self):
+        if not self.status.is_running:
+            return {"success": False, "message": "Bot zaten durdurulmuş."}
+
+        self.status.status_message = "Durduruluyor..."
+        await firebase_manager.update_bot_status(self.user_id, {"status_message": "Durduruluyor..."})
+        self._stop_requested = True
         
-        if len(self.requests[client_id]) >= self.max_requests:
-            return False
+        # Ana döngünün tamamlanmasını bekle
+        if self.main_task:
+            try:
+                await asyncio.wait_for(self.main_task, timeout=5)
+            except asyncio.TimeoutError:
+                self.main_task.cancel()
+                self.logger.warning("Bot ana görevi zaman aşımına uğradı ve iptal edildi.")
         
-        self.requests[client_id].append(current_time)
-        return True
+        self.status.is_running = False
+        self.status.status_message = "Bot durduruldu."
+        await firebase_manager.update_bot_status(self.user_id, {"is_running": False, "status_message": "Bot durduruldu."})
+        self.logger.info(f"Bot başarıyla durduruldu: {self.user_id}")
+        return {"success": True, "message": "Bot durduruldu."}
 
-rate_limiter = RateLimiter(max_requests=30, time_window=60)
+    async def _main_loop(self):
+        try:
+            while not self._stop_requested:
+                # Gerçek bot mantığı buraya gelecek
+                
+                # Örnek olarak, her 10 saniyede bir durumu güncelle
+                balance = 10000.0  # BinanceClient'dan alınacak
+                pnl = 50.0 # PositionManager'dan alınacak
+                self.status.account_balance = balance
+                self.status.position_pnl = pnl
+                
+                await firebase_manager.update_bot_status(self.user_id, {
+                    "account_balance": balance,
+                    "position_pnl": pnl,
+                    "last_active": datetime.utcnow().isoformat()
+                })
+                
+                await asyncio.sleep(10) # 10 saniye bekle
+        
+        except asyncio.CancelledError:
+            self.logger.info(f"Bot ana görevi iptal edildi: {self.user_id}")
+        except Exception as e:
+            self.logger.error(f"Bot ana döngü hatası: {e}")
+            self.status.status_message = f"Hata: {e}"
+            await firebase_manager.update_bot_status(self.user_id, {"status_message": f"Hata: {e}"})
 
-async def authenticate(token: str = Depends(bearer_scheme)):
-    """Gelen Firebase ID Token'ını doğrular ve rate limiting uygular."""
-    user = firebase_manager.verify_token(token.credentials)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Geçersiz veya süresi dolmuş güvenlik token'ı.",
-        )
-    
-    # Rate limiting kontrolü
-    user_id = user.get('uid', 'unknown')
-    if not rate_limiter.is_allowed(user_id):
-        raise HTTPException(
-            status_code=429,
-            detail="Çok fazla istek. Lütfen bekleyin."
-        )
-    
-    print(f"Doğrulanan kullanıcı: {user.get('email')}")
-    return user
+class BotManager:
+    def __init__(self):
+        self.active_bots: Dict[str, BotCore] = {}
 
-app = FastAPI(title="Multi-Coin Binance Futures Bot", version="3.0.0")
+    async def start_bot(self, user_id: str, start_req: dict):
+        if user_id in self.active_bots and self.active_bots[user_id].status.is_running:
+            return {"success": False, "message": "Bot zaten çalışıyor."}
+        
+        # Kullanıcının API anahtarlarını Firebase'den al
+        user_data = await firebase_manager.get_user_settings(user_id)
+        api_key = user_data.get('apiKey')
+        api_secret = user_data.get('apiSecret')
+
+        if not api_key or not api_secret:
+            raise HTTPException(status_code=400, detail="API anahtarları bulunamadı. Lütfen önce API ayarlarınızı kaydedin.")
+
+        bot = BotCore(user_id, api_key, api_secret, start_req)
+        self.active_bots[user_id] = bot
+        result = await bot.start()
+        return result
+
+    async def stop_bot(self, user_id: str):
+        if user_id not in self.active_bots:
+            return {"success": False, "message": "Aktif bot bulunamadı."}
+        
+        result = await self.active_bots[user_id].stop()
+        if result.get("success"):
+            del self.active_bots[user_id]
+        return result
+
+# FastAPI uygulama başlatma
+app = FastAPI()
+bot_manager = BotManager()
 
 @app.on_event("startup")
 async def startup_event():
-    """Uygulama başlangıcında ayarları doğrula"""
-    print("🚀 Multi-Coin Bot başlatılıyor...")
-    settings.validate_settings()
-    settings.print_settings()
+    await firebase_manager.initialize_firebase()
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    if bot_core.status["is_running"]:
-        await bot_core.stop()
-    await position_manager.stop_monitoring()
+@app.post("/api/start-bot")
+async def start_bot_endpoint(start_req: dict, user_id: str = "example_user_id"): # TODO: Gerçek kullanıcı kimliği doğrulama
+    print(f"👤 Kullanıcı {user_id} için bot başlatılıyor...")
+    result = await bot_manager.start_bot(user_id, start_req)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message"))
+    return result
 
-# ============ YENİ MODEL'LER - MULTI-COIN ============
-class MultiStartRequest(BaseModel):
-    symbols: List[str]  # Birden fazla symbol
+@app.post("/api/stop-bot")
+async def stop_bot_endpoint(user_id: str = "example_user_id"): # TODO: Gerçek kullanıcı kimliği doğrulama
+    print(f"👤 Kullanıcı {user_id} için bot durduruluyor...")
+    result = await bot_manager.stop_bot(user_id)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message"))
+    return result
 
-class AddSymbolRequest(BaseModel):
-    symbol: str
+@app.get("/api/bot-status")
+async def get_bot_status_endpoint(user_id: str = "example_user_id"): # TODO: Gerçek kullanıcı kimliği doğrulama
+    print(f"👤 Kullanıcı {user_id} için bot durumu alınıyor...")
+    status = await firebase_manager.get_bot_status(user_id)
+    return status
 
-class RemoveSymbolRequest(BaseModel):
-    symbol: str
+@app.post("/api/save-settings")
+async def save_settings_endpoint(settings_data: dict, user_id: str = "example_user_id"):
+    print(f"👤 Kullanıcı {user_id} için ayarlar kaydediliyor...")
+    await firebase_manager.update_user_settings(user_id, settings_data)
+    return {"message": "Ayarlar başarıyla kaydedildi."}
 
-class SymbolRequest(BaseModel):
-    symbol: str
+@app.get("/api/load-settings")
+async def load_settings_endpoint(user_id: str = "example_user_id"):
+    print(f"👤 Kullanıcı {user_id} için ayarlar yükleniyor...")
+    settings = await firebase_manager.get_user_settings(user_id)
+    return settings
 
-# ============ MULTI-COIN ENDPOINT'LER ============
-
-@app.post("/api/multi-start")
-async def start_multi_bot(request: MultiStartRequest, background_tasks: BackgroundTasks, user: dict = Depends(authenticate)):
-    """Birden fazla coin ile bot başlat"""
-    if bot_core.status["is_running"]:
-        raise HTTPException(status_code=400, detail="Bot zaten çalışıyor.")
-    
-    if not request.symbols or len(request.symbols) == 0:
-        raise HTTPException(status_code=400, detail="En az bir symbol gerekli.")
-    
-    if len(request.symbols) > 20:
-        raise HTTPException(status_code=400, detail="Maksimum 20 symbol desteklenir.")
-    
-    # Symbolları normalize et
-    normalized_symbols = []
-    for symbol in request.symbols:
-        symbol = symbol.upper().strip()
-        if not symbol.endswith('USDT'):
-            symbol += 'USDT'
-        
-        if len(symbol) < 6 or len(symbol) > 20:
-            raise HTTPException(status_code=400, detail=f"Geçersiz sembol formatı: {symbol}")
-        
-        if symbol not in normalized_symbols:  # Duplicate kontrolü
-            normalized_symbols.append(symbol)
-    
-    print(f"👤 {user.get('email')} tarafından multi-coin bot başlatılıyor: {', '.join(normalized_symbols)}")
-    
-    background_tasks.add_task(bot_core.start, normalized_symbols)
-    await asyncio.sleep(2)
-    return bot_core.get_multi_status()
-
-@app.post("/api/add-symbol")
-async def add_symbol_to_bot(request: AddSymbolRequest, user: dict = Depends(authenticate)):
-    """Çalışan bot'a yeni symbol ekle"""
-    if not bot_core.status["is_running"]:
-        raise HTTPException(status_code=400, detail="Bot çalışmıyor.")
-    
-    symbol = request.symbol.upper().strip()
-    if not symbol.endswith('USDT'):
-        symbol += 'USDT'
-    
-    if len(symbol) < 6 or len(symbol) > 20:
-        raise HTTPException(status_code=400, detail="Geçersiz sembol formatı.")
-    
-    if len(bot_core.status["symbols"]) >= 20:
-        raise HTTPException(status_code=400, detail="Maksimum 20 symbol desteklenir.")
-    
-    print(f"👤 {user.get('email')} tarafından symbol ekleniyor: {symbol}")
-    
-    result = await bot_core.add_symbol(symbol)
-    if result["success"]:
-        return {
-            "success": True,
-            "message": result["message"],
-            "current_symbols": bot_core.status["symbols"],
-            "user": user.get('email'),
-            "timestamp": time.time()
-        }
-    else:
-        raise HTTPException(status_code=400, detail=result["message"])
-
-@app.post("/api/remove-symbol")
-async def remove_symbol_from_bot(request: RemoveSymbolRequest, user: dict = Depends(authenticate)):
-    """Çalışan bot'tan symbol çıkar"""
-    if not bot_core.status["is_running"]:
-        raise HTTPException(status_code=400, detail="Bot çalışmıyor.")
-    
-    symbol = request.symbol.upper().strip()
-    if not symbol.endswith('USDT'):
-        symbol += 'USDT'
-    
-    if len(bot_core.status["symbols"]) <= 1:
-        raise HTTPException(status_code=400, detail="En az bir symbol bot'ta kalmalı.")
-    
-    print(f"👤 {user.get('email')} tarafından symbol çıkarılıyor: {symbol}")
-    
-    result = await bot_core.remove_symbol(symbol)
-    if result["success"]:
-        return {
-            "success": True,
-            "message": result["message"],
-            "current_symbols": bot_core.status["symbols"],
-            "user": user.get('email'),
-            "timestamp": time.time()
-        }
-    else:
-        raise HTTPException(status_code=400, detail=result["message"])
-
-@app.get("/api/multi-status")
-async def get_multi_status(user: dict = Depends(authenticate)):
-    """Multi-coin bot durumunu döndür"""
-    return bot_core.get_multi_status()
-
-# ============ GERİYE UYUMLULUK - ESKİ ENDPOINT'LER ============
-
-@app.post("/api/start")
-async def start_bot(request: dict, background_tasks: BackgroundTasks, user: dict = Depends(authenticate)):
-    """Tek symbol için geriye uyumluluk - artık multi-coin olarak çalışır"""
-    symbol = request.get("symbol", "").upper().strip()
-    if not symbol.endswith('USDT'):
-        symbol += 'USDT'
-    
-    print(f"👤 {user.get('email')} tarafından tek symbol bot başlatılıyor: {symbol} (multi-coin modunda)")
-    
-    # Tek symbol'ü liste olarak gönder
-    background_tasks.add_task(bot_core.start, [symbol])
-    await asyncio.sleep(2)
-    
-    # Eski format için uyumlu response
-    status = bot_core.get_multi_status()
-    return {
-        "is_running": status["is_running"],
-        "symbol": status["symbols"][0] if status["symbols"] else None,
-        "position_side": status["position_side"],
-        "status_message": status["status_message"],
-        "account_balance": status["account_balance"],
-        "position_pnl": status["position_pnl"],
-        "order_size": status["order_size"],
-        "position_monitor_active": status["position_monitor_active"]
-    }
-
-@app.post("/api/stop")
-async def stop_bot(user: dict = Depends(authenticate)):
-    if not bot_core.status["is_running"]:
-        raise HTTPException(status_code=400, detail="Bot zaten durdurulmuş.")
-    
-    print(f"👤 {user.get('email')} tarafından bot durduruluyor")
-    await bot_core.stop()
-    return bot_core.get_multi_status()
-
-@app.get("/api/status")
-async def get_status(user: dict = Depends(authenticate)):
-    """Geriye uyumluluk için eski format status"""
-    status = bot_core.get_multi_status()
-    return {
-        "is_running": status["is_running"],
-        "symbol": status["active_symbol"],  # Aktif symbol'ü döndür
-        "position_side": status["position_side"],
-        "status_message": status["status_message"],
-        "account_balance": status["account_balance"],
-        "position_pnl": status["position_pnl"],
-        "order_size": status["order_size"],
-        "position_monitor_active": status["position_monitor_active"],
-        "position_manager": status["position_manager"]
-    }
-
-@app.get("/api/health")
-async def health_check():
-    """Sağlık kontrolü - authentication gerektirmez"""
-    return {
-        "status": "healthy",
-        "timestamp": time.time(),
-        "bot_running": bot_core.status["is_running"],
-        "symbols_count": len(bot_core.status["symbols"]),
-        "active_symbol": bot_core.status["active_symbol"],
-        "position_monitor_running": position_manager.is_running,
-        "websocket_connections": len(bot_core._websocket_connections),
-        "version": "3.0.0"
-    }
-
-# ============ POZISYON YÖNETİMİ ENDPOINT'LERİ ============
-
-@app.post("/api/scan-all-positions")
-async def scan_all_positions(user: dict = Depends(authenticate)):
-    """
-    Tüm açık pozisyonları tarayıp eksik TP/SL emirlerini ekler
-    Manuel işlemler ve bot dışı coinler için kullanılır
-    """
-    print(f"👤 {user.get('email')} tarafından tam pozisyon taraması başlatıldı")
-    
-    try:
-        result = await bot_core.scan_all_positions()
-        return {
-            "success": result["success"],
-            "message": result["message"],
-            "user": user.get('email'),
-            "timestamp": time.time(),
-            "monitor_status": result.get("monitor_status")
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pozisyon tarama hatası: {e}")
-
-@app.post("/api/scan-symbol")
-async def scan_specific_symbol(request: SymbolRequest, user: dict = Depends(authenticate)):
-    """
-    Belirli bir coin için TP/SL kontrolü yapar
-    Manuel işlemler için kullanılır
-    """
-    symbol = request.symbol.upper().strip()
-    if not symbol.endswith('USDT'):
-        symbol += 'USDT'
-    
-    print(f"👤 {user.get('email')} tarafından {symbol} TP/SL kontrolü başlatıldı")
-    
-    try:
-        result = await bot_core.scan_specific_symbol(symbol)
-        return {
-            "success": result["success"],
-            "symbol": result["symbol"],
-            "message": result["message"],
-            "user": user.get('email'),
-            "timestamp": time.time()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"{symbol} kontrolü hatası: {e}")
-
-@app.get("/api/position-monitor-status")
-async def get_position_monitor_status(user: dict = Depends(authenticate)):
-    """
-    Otomatik TP/SL monitoring sisteminin durumunu döndürür
-    """
-    return {
-        "monitor_status": position_manager.get_status(),
-        "bot_status": bot_core.status["is_running"],
-        "timestamp": time.time()
-    }
-
-@app.post("/api/start-position-monitor")
-async def start_position_monitor(background_tasks: BackgroundTasks, user: dict = Depends(authenticate)):
-    """
-    Otomatik TP/SL monitoring'i bot olmadan başlatır
-    Manuel işlemler için sürekli koruma sağlar
-    """
-    if position_manager.is_running:
-        raise HTTPException(status_code=400, detail="Position monitor zaten çalışıyor.")
-    
-    print(f"👤 {user.get('email')} tarafından standalone position monitor başlatılıyor")
-    
-    try:
-        background_tasks.add_task(position_manager.start_monitoring)
-        await asyncio.sleep(1)
-        
-        return {
-            "success": True,
-            "message": "Otomatik TP/SL monitoring başlatıldı",
-            "monitor_status": position_manager.get_status(),
-            "user": user.get('email'),
-            "timestamp": time.time()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Monitor başlatma hatası: {e}")
-
-@app.post("/api/stop-position-monitor")
-async def stop_position_monitor(user: dict = Depends(authenticate)):
-    """
-    Otomatik TP/SL monitoring'i durdurur
-    """
-    if not position_manager.is_running:
-        raise HTTPException(status_code=400, detail="Position monitor zaten durdurulmuş.")
-    
-    print(f"👤 {user.get('email')} tarafından position monitor durduruluyor")
-    
-    try:
-        await position_manager.stop_monitoring()
-        
-        return {
-            "success": True,
-            "message": "Otomatik TP/SL monitoring durduruldu",
-            "monitor_status": position_manager.get_status(),
-            "user": user.get('email'),
-            "timestamp": time.time()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Monitor durdurma hatası: {e}")
-
-# ============ STATIC FILES ============
-
+# ============ STATIC FILES ===========
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
-async def read_index():
-    return FileResponse('static/index.html')
+def read_root():
+    return FileResponse("index.html")
+
+@app.get("/login")
+def read_login():
+    return FileResponse("login.html")
+    
+@app.get("/dashboard")
+def read_dashboard():
+    return FileResponse("dashboard.html")
+
+@app.get("/register")
+def read_register():
+    return FileResponse("register.html")
+
+@app.get("/admin")
+def read_admin():
+    return FileResponse("admin.html")
