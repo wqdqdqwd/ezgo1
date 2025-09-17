@@ -447,7 +447,7 @@ async function extendSubscription(userId, userEmail) {
         const newExpiryDate = new Date(baseDate.getTime() + (30 * 24 * 60 * 60 * 1000));
         
         await userRef.update({
-            subscription_expiry: newExpiryDate.getTime(),
+            subscription_expiry: newExpiryDate.toISOString(),
             subscription_status: 'active',
             subscription_extended_by: currentUser.email,
             subscription_extended_at: firebase.database.ServerValue.TIMESTAMP,
@@ -506,7 +506,7 @@ async function approvePayment(paymentId) {
                 const newExpiryDate = new Date(baseDate.getTime() + (30 * 24 * 60 * 60 * 1000));
                 
                 await userRef.update({
-                    subscription_expiry: newExpiryDate.getTime(),
+                    subscription_expiry: newExpiryDate.toISOString(),
                     subscription_status: 'active',
                     payment_approved_by: currentUser.email,
                     payment_approved_at: firebase.database.ServerValue.TIMESTAMP,
@@ -660,6 +660,16 @@ async function checkAdminAuth() {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 try {
+                    // First check if user email is admin email
+                    const adminEmail = 'admin@epostaniz.com';
+                    if (user.email !== adminEmail) {
+                        console.log(`Non-admin user attempted access: ${user.email}`);
+                        showToast('⛔ Bu panele sadece admin erişebilir. Dashboard\'a yönlendiriliyorsunuz.', 'error');
+                        setTimeout(() => window.location.href = '/dashboard.html', 3000);
+                        resolve(false);
+                        return;
+                    }
+                    
                     // Get user data to check admin status
                     const userRef = database.ref(`users/${user.uid}`);
                     const snapshot = await userRef.once('value');
@@ -670,17 +680,20 @@ async function checkAdminAuth() {
                         console.log('Admin authenticated:', user.email);
                         resolve(true);
                     } else {
-                        showToast('Admin yetkisi bulunamadı. Dashboard\'a yönlendiriliyorsunuz.', 'error');
+                        console.log(`User ${user.email} does not have admin role in database`);
+                        showToast('⛔ Admin yetkisi bulunamadı. Dashboard\'a yönlendiriliyorsunuz.', 'error');
                         setTimeout(() => window.location.href = '/dashboard.html', 3000);
                         resolve(false);
                     }
                 } catch (error) {
                     console.error('Admin verification failed:', error);
-                    showToast('Yetki kontrolü başarısız.', 'error');
+                    showToast('⚠️ Yetki kontrolü başarısız. Lütfen tekrar giriş yapın.', 'error');
+                    setTimeout(() => window.location.href = '/login.html', 2000);
                     resolve(false);
                 }
             } else {
-                showToast('Giriş yapılmamış. Yönlendiriliyor...', 'error');
+                console.log('No user logged in for admin panel');
+                showToast('🔐 Giriş yapılmamış. Login sayfasına yönlendiriliyorsunuz...', 'error');
                 setTimeout(() => window.location.href = '/login.html', 2000);
                 resolve(false);
             }

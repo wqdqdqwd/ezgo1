@@ -768,6 +768,23 @@ body {
     .table-responsive {
         min-width: 700px;
     }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .section-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .nav-tab {
+        flex: 1;
+        text-align: center;
+        min-width: 120px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -810,6 +827,20 @@ body {
         gap: 1rem;
     }
     
+    .section-header > div {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .nav-tab {
+        flex: 1;
+        min-width: 100px;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
     .table-responsive {
         min-width: 600px;
     }
@@ -844,6 +875,22 @@ body {
     .data-table th,
     .data-table td {
         padding: 0.75rem 0.5rem;
+    }
+    
+    /* Mobile table improvements */
+    .user-info {
+        min-width: 150px;
+    }
+    
+    .expiry-info {
+        min-width: 120px;
+    }
+    
+    .user-id-text {
+        font-size: 0.75rem;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
@@ -886,6 +933,55 @@ body {
     .btn-sm {
         padding: 0.375rem 0.5rem;
         font-size: 0.75rem;
+    }
+    
+    /* Mobile-first admin panel */
+    .admin-header-content {
+        padding: 0.5rem 0;
+    }
+    
+    .admin-logo div h1 {
+        font-size: 1.1rem;
+    }
+    
+    .admin-logo div p {
+        font-size: 0.8rem;
+    }
+    
+    .nav-tab {
+        padding: 0.625rem 0.375rem;
+        font-size: 0.8rem;
+        min-width: 80px;
+    }
+    
+    .nav-tab i {
+        display: none;
+    }
+    
+    /* Horizontal scroll for table */
+    .table-container {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-responsive {
+        min-width: 500px;
+    }
+    
+    /* Stack action buttons vertically on very small screens */
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 60px;
+    }
+    
+    .action-buttons .btn-sm {
+        padding: 0.25rem 0.375rem;
+        font-size: 0.7rem;
+        min-height: 28px;
+    }
+    
+    .action-buttons .btn-text {
+        display: none;
     }
 }
 

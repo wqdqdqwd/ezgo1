@@ -165,6 +165,8 @@ function updateBotStatus(isRunning = false, statusMessage = '') {
 function updateApiStatus(hasKeys = false, isConnected = false) {
     const apiStatusIndicator = document.getElementById('api-status-indicator');
     const manageApiBtn = document.getElementById('manage-api-btn');
+    const controlButtons = document.getElementById('control-buttons');
+    const tradingSettings = document.getElementById('trading-settings');
     const startBtn = document.getElementById('start-bot-btn');
     const stopBtn = document.getElementById('stop-bot-btn');
     
@@ -177,18 +179,30 @@ function updateApiStatus(hasKeys = false, isConnected = false) {
                 <span>API bağlantısı aktif</span>
             `;
             apiStatusIndicator.className = 'api-status-indicator connected';
+            
+            // Show trading controls when API is connected
+            if (controlButtons) controlButtons.style.display = 'grid';
+            if (tradingSettings) tradingSettings.style.display = 'block';
         } else if (hasKeys && !isConnected) {
             apiStatusIndicator.innerHTML = `
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>API bağlantı hatası</span>
             `;
             apiStatusIndicator.className = 'api-status-indicator error';
+            
+            // Hide trading controls when API has error
+            if (controlButtons) controlButtons.style.display = 'none';
+            if (tradingSettings) tradingSettings.style.display = 'none';
         } else {
             apiStatusIndicator.innerHTML = `
                 <i class="fas fa-key"></i>
                 <span>API anahtarları gerekli</span>
             `;
             apiStatusIndicator.className = 'api-status-indicator error';
+            
+            // Hide trading controls when no API keys
+            if (controlButtons) controlButtons.style.display = 'none';
+            if (tradingSettings) tradingSettings.style.display = 'none';
         }
     }
     
