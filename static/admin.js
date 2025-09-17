@@ -442,8 +442,15 @@ async function extendSubscription(userId, userEmail) {
         if (!userData) throw new Error('Kullanıcı bulunamadı');
         
         const now = new Date();
-        const currentExpiry = userData.subscription_expiry ? new Date(userData.subscription_expiry) : now;
-        const baseDate = currentExpiry > now ? currentExpiry : now;
+        let baseDate;
+        
+        if (userData.subscription_expiry) {
+            const currentExpiry = new Date(userData.subscription_expiry);
+            baseDate = currentExpiry > now ? currentExpiry : now;
+        } else {
+            baseDate = now;
+        }
+        
         const newExpiryDate = new Date(baseDate.getTime() + (30 * 24 * 60 * 60 * 1000));
         
         await userRef.update({
@@ -451,6 +458,7 @@ async function extendSubscription(userId, userEmail) {
             subscription_status: 'active',
             subscription_extended_by: currentUser.email,
             subscription_extended_at: firebase.database.ServerValue.TIMESTAMP,
+            subscription_extended_days: 30,
             last_updated: firebase.database.ServerValue.TIMESTAMP,
             updated_by: currentUser.email
         });
@@ -501,8 +509,15 @@ async function approvePayment(paymentId) {
             
             if (userData) {
                 const now = new Date();
-                const currentExpiry = userData.subscription_expiry ? new Date(userData.subscription_expiry) : now;
-                const baseDate = currentExpiry > now ? currentExpiry : now;
+                let baseDate;
+                
+                if (userData.subscription_expiry) {
+                    const currentExpiry = new Date(userData.subscription_expiry);
+                    baseDate = currentExpiry > now ? currentExpiry : now;
+                } else {
+                    baseDate = now;
+                }
+                
                 const newExpiryDate = new Date(baseDate.getTime() + (30 * 24 * 60 * 60 * 1000));
                 
                 await userRef.update({
@@ -510,6 +525,7 @@ async function approvePayment(paymentId) {
                     subscription_status: 'active',
                     payment_approved_by: currentUser.email,
                     payment_approved_at: firebase.database.ServerValue.TIMESTAMP,
+                    payment_approved_days: 30,
                     last_updated: firebase.database.ServerValue.TIMESTAMP
                 });
                 
@@ -660,27 +676,32 @@ async function checkAdminAuth() {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 try {
-                    // First check if user email is admin email
-                    const adminEmail = 'admin@epostaniz.com';
-                    if (user.email !== adminEmail) {
-                        console.log(`Non-admin user attempted access: ${user.email}`);
-                        showToast('⛔ Bu panele sadece admin erişebilir. Dashboard\'a yönlendiriliyorsunuz.', 'error');
-                        setTimeout(() => window.location.href = '/dashboard.html', 3000);
-                        resolve(false);
-                        return;
-                    }
-                    
                     // Get user data to check admin status
                     const userRef = database.ref(`users/${user.uid}`);
                     const snapshot = await userRef.once('value');
                     const userData = snapshot.val();
                     
-                    if (userData && userData.role === 'admin') {
+                    // Check if user email is admin email OR has admin role
+                    const adminEmail = 'admin@epostaniz.com';
+                    const isAdminEmail = user.email === adminEmail;
+                    const hasAdminRole = userData && userData.role === 'admin';
+                    
+                    if (isAdminEmail || hasAdminRole) {
                         currentUser = user;
                         console.log('Admin authenticated:', user.email);
+                        
+                        // If admin email but no admin role in DB, set it
+                        if (isAdminEmail && !hasAdminRole) {
+                            await userRef.update({
+                                role: 'admin',
+                                admin_set_at: firebase.database.ServerValue.TIMESTAMP
+                            });
+                            console.log('Admin role set in database');
+                        }
+                        
                         resolve(true);
                     } else {
-                        console.log(`User ${user.email} does not have admin role in database`);
+                        console.log(`User ${user.email} is not admin`);
                         showToast('⛔ Admin yetkisi bulunamadı. Dashboard\'a yönlendiriliyorsunuz.', 'error');
                         setTimeout(() => window.location.href = '/dashboard.html', 3000);
                         resolve(false);

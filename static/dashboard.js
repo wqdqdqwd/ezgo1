@@ -1274,6 +1274,9 @@ async function initializeDashboard() {
             });
         });
         
+        // Load saved settings
+        loadSavedSettings();
+        
         // Setup event handlers
         setupEventHandlers();
         
@@ -1290,6 +1293,11 @@ async function initializeDashboard() {
         }
         
         showToast('Dashboard başarıyla yüklendi!', 'success');
+        
+        // Start auto-refresh if bot is running
+        if (userData && userData.bot_active) {
+            startDataRefresh();
+        }
         
         // Start auto-refresh if bot is running
         if (userData && userData.bot_active) {
