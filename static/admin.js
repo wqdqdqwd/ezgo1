@@ -7,8 +7,7 @@ let currentUser = null;
 // Initialize Firebase
 async function initializeFirebase() {
     try {
-        const response = await fetch('/api/firebase-config');
-        const firebaseConfig = await response.json();
+        const firebaseConfig = await window.configLoader.getFirebaseConfig();
         
         firebaseApp = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();

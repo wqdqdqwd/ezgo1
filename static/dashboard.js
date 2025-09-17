@@ -19,8 +19,7 @@ const elements = {
 // Initialize Firebase
 async function initializeFirebase() {
     try {
-        const response = await fetch('/api/firebase-config');
-        const firebaseConfig = await response.json();
+        const firebaseConfig = await window.configLoader.getFirebaseConfig();
         
         firebaseApp = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
@@ -30,6 +29,29 @@ async function initializeFirebase() {
     } catch (error) {
         console.error('Firebase initialization error:', error);
         return false;
+    }
+}
+
+// Load payment information
+async function loadPaymentInfo() {
+    try {
+        const appInfo = await window.configLoader.getAppInfo();
+        
+        // Update payment address
+        const paymentAddressText = document.getElementById('payment-address-text');
+        if (paymentAddressText) {
+            paymentAddressText.textContent = appInfo.payment_address || 'Ödeme adresi yapılandırılmamış';
+        }
+        
+        // Update bot price
+        const paymentAmount = document.getElementById('payment-amount');
+        if (paymentAmount) {
+            paymentAmount.textContent = `$${appInfo.bot_price || 15}/Ay`;
+        }
+        
+        console.log('Payment info loaded from environment');
+    } catch (error) {
+        console.error('Error loading payment info:', error);
     }
 }
 
@@ -165,31 +187,6 @@ function updateAccountStats(userInfo) {
     }
 }
 
-// Load IP addresses
-async function loadIPAddresses() {
-    const ipList = [
-        '0.0.0.0/0', // Tüm IP'ler için (güvenlik açısından önerilmez)
-        '185.199.108.0/22',
-        '185.199.109.0/22',
-        '185.199.110.0/22',
-        '185.199.111.0/22'
-    ];
-    
-    // IP listesini göster
-    const ipContainer = document.querySelector('.ip-list');
-    if (ipContainer) {
-        ipContainer.innerHTML = ipList.map(ip => 
-            `<div class="ip-item">${ip}</div>`
-        ).join('');
-    }
-}
-
-// Get payment address
-function getPaymentAddress() {
-    // TRC20 USDT cüzdan adresi - gerçek adresinizi buraya koyun
-    return 'TYourTRC20WalletAddressHere123456789';
-}
-
 // Copy to clipboard
 async function copyToClipboard(text) {
     try {
@@ -273,11 +270,13 @@ async function sendPaymentNotification(transactionHash, amount = 15) {
     }
     
     try {
+        const appInfo = await window.configLoader.getAppInfo();
+        
         const paymentData = {
             user_id: currentUser.uid,
             user_email: userData.email,
             transaction_hash: transactionHash,
-            amount: amount,
+            amount: appInfo.bot_price || amount,
             currency: 'USDT',
             network: 'TRC20',
             status: 'pending',
@@ -323,7 +322,6 @@ function setupEventHandlers() {
     
     if (manageApiBtn) {
         manageApiBtn.addEventListener('click', () => {
-            loadIPAddresses();
             toggleModal('api-modal', true);
         });
     }
@@ -382,11 +380,8 @@ function setupEventHandlers() {
     const copyAddressBtn = document.getElementById('copy-address-btn');
     
     if (mobilePurchaseBtn) {
-        mobilePurchaseBtn.addEventListener('click', () => {
-            const paymentAddress = document.getElementById('payment-address');
-            if (paymentAddress) {
-                paymentAddress.textContent = getPaymentAddress();
-            }
+        mobilePurchaseBtn.addEventListener('click', async () => {
+            await loadPaymentInfo();
             toggleModal('purchase-modal', true);
         });
     }
@@ -401,8 +396,10 @@ function setupEventHandlers() {
     
     if (copyAddressBtn) {
         copyAddressBtn.addEventListener('click', () => {
-            const address = getPaymentAddress();
-            copyToClipboard(address);
+            const addressElement = document.getElementById('payment-address-text');
+            if (addressElement) {
+                copyToClipboard(addressElement.textContent);
+            }
         });
     }
     
@@ -505,7 +502,7 @@ function setupEventHandlers() {
         if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
             try {
                 await auth.signOut();
-                window.location.href = '/login.html';
+                window.location.href = '/login';
             } catch (error) {
                 console.error('Logout error:', error);
                 showToast('Çıkış yapılırken bir hata oluştu', 'error');
@@ -535,10 +532,16 @@ async function initializeDashboard() {
     try {
         console.log('Initializing dashboard...');
         
-        // Initialize Firebase
+        // Load configurations first
+        await window.configLoader.loadConfigurations();
+        
+        // Initialize Firebase with loaded config
         if (!(await initializeFirebase())) {
             throw new Error('Firebase initialization failed');
         }
+        
+        // Load payment info
+        await loadPaymentInfo();
         
         // Wait for auth state
         await new Promise((resolve) => {
@@ -547,7 +550,7 @@ async function initializeDashboard() {
                 
                 if (!user) {
                     console.log('No user logged in, redirecting to login...');
-                    window.location.href = '/login.html';
+                    window.location.href = '/login';
                     return;
                 }
                 

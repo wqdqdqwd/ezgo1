@@ -6,23 +6,10 @@ let database = null;
 // Get Firebase configuration from backend
 async function getFirebaseConfig() {
     try {
-        const response = await fetch('/api/firebase-config');
-        if (!response.ok) {
-            throw new Error('Firebase config could not be loaded');
-        }
-        return await response.json();
+        return await window.configLoader.getFirebaseConfig();
     } catch (error) {
         console.error('Error getting Firebase config:', error);
-        // Fallback configuration for development
-        return {
-            apiKey: "demo-api-key",
-            authDomain: "demo.firebaseapp.com",
-            databaseURL: "https://demo-default-rtdb.firebaseio.com/",
-            projectId: "demo-project",
-            storageBucket: "demo-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
+        throw new Error('Firebase configuration could not be loaded');
     }
 }
 
