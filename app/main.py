@@ -196,7 +196,7 @@ async def get_app_info():
     """Uygulama bilgileri"""
     return {
         "bot_price": settings.BOT_PRICE_USD,
-        "monthly_price": settings.MONTHLY_SUBSCRIPTION_PRICE,
+        "monthly_price": settings.BOT_PRICE_USD,  # Use BOT_PRICE_USD for consistency
         "trial_days": settings.TRIAL_PERIOD_DAYS,
         "demo_mode": settings.DEMO_MODE_ENABLED,
         "maintenance_mode": settings.MAINTENANCE_MODE,
