@@ -132,9 +132,33 @@ async function loadUsers() {
             </tr>
         `;
         
-        const usersRef = database.ref('users');
-        const snapshot = await usersRef.once('value');
-        const usersData = snapshot.val();
+        let usersData = null;
+        try {
+            const usersRef = database.ref('users');
+            const snapshot = await usersRef.once('value');
+            usersData = snapshot.val();
+        } catch (readError) {
+            console.error('Could not read users data:', readError);
+            
+            // If permission denied, show helpful message
+            if (readError.message.includes('permission_denied')) {
+                usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            <div class="error-state">
+                                <i class="fas fa-shield-alt"></i>
+                                <h3>Firebase Rules Güncellenmeli</h3>
+                                <p>Admin yetkisi için Firebase rules'ları güncelleyin</p>
+                                <button class="btn btn-primary btn-sm" onclick="location.reload()">Tekrar Dene</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            throw readError;
+        }
 
         if (!usersData) {
             usersTableBody.innerHTML = `
