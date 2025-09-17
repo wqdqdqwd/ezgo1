@@ -1,10 +1,10 @@
 {
   "rules": {
-    // Kullanıcı verileri - sadece kendi verilerine erişim
+    // Kullanıcı verileri - sadece kendi verilerine erişim veya admin
     "users": {
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".read": "auth != null && (auth.uid == $uid || (auth.token.admin == true))",
+        ".write": "auth != null && (auth.uid == $uid || (auth.token.admin == true))",
         ".validate": "newData.hasChildren(['email', 'full_name', 'created_at'])",
         
         // Email validation
@@ -24,16 +24,10 @@
         
         // Role validation - sadece admin değiştirebilir
         "role": {
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin'"
+          ".write": "auth.token.admin == true"
         },
         
         // API keys - sadece kullanıcı kendisi yazabilir
-        "api_keys": {
-          ".read": "auth.uid == $uid",
-          ".write": "auth.uid == $uid"
-        },
-        
-        // Encrypted API data
         "binance_api_key": {
           ".read": "auth.uid == $uid",
           ".write": "auth.uid == $uid"
@@ -50,7 +44,7 @@
           ".write": "auth.uid == $uid"
         },
         
-        // Trading stats - kullanıcı okuyabilir, sistem yazabilir
+        // Trading stats
         "total_trades": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
         },
@@ -61,19 +55,6 @@
         
         "account_balance": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
-        },
-        
-        // Timestamps
-        "created_at": {
-          ".validate": "newData.isNumber()"
-        },
-        
-        "last_login": {
-          ".validate": "newData.isNumber()"
-        },
-        
-        "subscription_expiry": {
-          ".validate": "newData.isString()"
         }
       }
     },
@@ -81,8 +62,8 @@
     // Trading verileri - kullanıcı kendi verilerini okuyabilir, admin hepsini
     "trades": {
       "$tradeId": {
-        ".read": "auth != null && (data.child('user_id').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
         ".validate": "newData.hasChildren(['user_id', 'symbol', 'timestamp'])",
         
         "user_id": {
@@ -95,154 +76,41 @@
         
         "side": {
           ".validate": "newData.isString() && (newData.val() == 'LONG' || newData.val() == 'SHORT' || newData.val() == 'BUY' || newData.val() == 'SELL')"
-        },
-        
-        "quantity": {
-          ".validate": "newData.isNumber() && newData.val() > 0"
-        },
-        
-        "price": {
-          ".validate": "newData.isNumber() && newData.val() > 0"
-        },
-        
-        "pnl": {
-          ".validate": "newData.isNumber()"
-        },
-        
-        "status": {
-          ".validate": "newData.isString() && (newData.val() == 'OPENED' || newData.val() == 'CLOSED' || newData.val() == 'CLOSED_BY_FLIP' || newData.val() == 'FAILED')"
         }
       }
     },
     
     // Ödeme bildirimleri - kullanıcı kendi bildirimini, admin hepsini görebilir
     "payment_notifications": {
+      ".read": "auth != null && auth.token.admin == true",
+      ".write": "auth != null",
       "$paymentId": {
-        ".read": "auth != null && (data.child('user_id').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
         ".validate": "newData.hasChildren(['user_id', 'user_email', 'transaction_hash', 'amount'])",
         
-        "user_id": {
-          ".validate": "newData.isString() && newData.val() == auth.uid"
-        },
-        
-        "user_email": {
-          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/)"
-        },
-        
-        "transaction_hash": {
-          ".validate": "newData.isString() && newData.val().length >= 10"
-        },
-        
-        "amount": {
-          ".validate": "newData.isNumber() && newData.val() > 0"
-        },
-        
-        "currency": {
-          ".validate": "newData.isString() && newData.val() == 'USDT'"
-        },
-        
-        "network": {
-          ".validate": "newData.isString() && newData.val() == 'TRC20'"
-        },
-        
         "status": {
-          ".validate": "newData.isString() && (newData.val() == 'pending' || newData.val() == 'approved' || newData.val() == 'rejected')",
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin' || (data.val() == 'pending' && newData.val() == 'pending')"
-        },
-        
-        // Admin approval fields
-        "approved_by": {
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin'"
-        },
-        
-        "rejected_by": {
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin'"
-        },
-        
-        "rejection_reason": {
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin'"
+          ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'pending')"
         }
       }
     },
     
-    // Destek mesajları - kullanıcı kendi mesajını, admin hepsini görebilir
+    // Destek mesajları
     "support_messages": {
+      ".read": "auth != null && auth.token.admin == true",
+      ".write": "auth != null",
       "$messageId": {
-        ".read": "auth != null && (data.child('user_id').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".validate": "newData.hasChildren(['user_id', 'user_email', 'message'])",
-        
-        "user_id": {
-          ".validate": "newData.isString() && newData.val() == auth.uid"
-        },
-        
-        "user_email": {
-          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/)"
-        },
-        
-        "subject": {
-          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200"
-        },
-        
-        "message": {
-          ".validate": "newData.isString() && newData.val().length >= 10 && newData.val().length <= 2000"
-        },
-        
-        "status": {
-          ".validate": "newData.isString() && (newData.val() == 'open' || newData.val() == 'resolved')",
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin' || (data.val() == null && newData.val() == 'open')"
-        },
-        
-        // Admin response fields
-        "resolved_by": {
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin'"
-        },
-        
-        "admin_response": {
-          ".write": "root.child('users').child(auth.uid).child('role').val() == 'admin'"
-        }
+        ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)"
       }
     },
     
-    // Bot durumları - gerçek zamanlı bot status tracking
+    // Bot durumları
     "bot_status": {
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && auth.uid == $uid",
-        
-        "is_running": {
-          ".validate": "newData.isBoolean()"
-        },
-        
-        "symbol": {
-          ".validate": "newData.isString() && newData.val().matches(/^[A-Z]{3,10}USDT$/)"
-        },
-        
-        "position_side": {
-          ".validate": "newData.isString() && (newData.val() == 'LONG' || newData.val() == 'SHORT' || newData.val() == null)"
-        },
-        
-        "account_balance": {
-          ".validate": "newData.isNumber() && newData.val() >= 0"
-        },
-        
-        "position_pnl": {
-          ".validate": "newData.isNumber()"
-        }
+        ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+        ".write": "auth != null && auth.uid == $uid"
       }
-    },
-    
-    // Sistem logları - sadece admin erişimi
-    "system_logs": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
-    },
-    
-    // Admin istatistikleri
-    "admin_stats": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
     },
     
     // Genel kurallar
