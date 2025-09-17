@@ -292,7 +292,7 @@ async function sendPaymentNotification(transactionHash, amount = 15) {
             user_id: currentUser.uid,
             user_email: userData.email,
             transaction_hash: transactionHash,
-            amount: appInfo.bot_price || amount,
+            amount: appInfo.monthly_price || amount,
             currency: 'USDT',
             network: 'TRC20',
             status: 'pending',
