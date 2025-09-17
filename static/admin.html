@@ -355,8 +355,15 @@
                 
                 // Extend subscription
                 const now = new Date();
-                const currentExpiry = userInfo.subscription_expiry ? new Date(userInfo.subscription_expiry) : now;
-                const baseDate = currentExpiry > now ? currentExpiry : now;
+                let baseDate;
+                
+                if (userInfo.subscription_expiry) {
+                    const currentExpiry = new Date(userInfo.subscription_expiry);
+                    baseDate = currentExpiry > now ? currentExpiry : now;
+                } else {
+                    baseDate = now;
+                }
+                
                 const newExpiryDate = new Date(baseDate.getTime() + (days * 24 * 60 * 60 * 1000));
                 
                 await usersRef.child(userId).update({
@@ -382,6 +389,70 @@
             } catch (error) {
                 console.error('Error adding days:', error);
                 showToast('Gün ekleme hatası: ' + error.message, 'error');
+            }
+        }
+        
+        // Execute bulk action
+        async function executeBulkAction() {
+            const actionType = document.getElementById('bulk-action-type').value;
+            const days = parseInt(document.getElementById('bulk-days').value);
+            
+            if (!confirm(`Tüm kullanıcılara ${actionType} işlemini yapmak istediğinizden emin misiniz?`)) return;
+            
+            try {
+                showToast('Toplu işlem başlatılıyor...', 'info');
+                
+                const usersRef = database.ref('users');
+                const snapshot = await usersRef.once('value');
+                const usersData = snapshot.val();
+                
+                if (!usersData) {
+                    showToast('Kullanıcı bulunamadı', 'error');
+                    return;
+                }
+                
+                const users = Object.entries(usersData);
+                let processedCount = 0;
+                
+                for (const [userId, userData] of users) {
+                    try {
+                        if (userData.role === 'admin') continue; // Skip admin users
+                        
+                        const now = new Date();
+                        let updateData = {
+                            bulk_action_by: currentUser.email,
+                            bulk_action_at: firebase.database.ServerValue.TIMESTAMP,
+                            bulk_action_type: actionType,
+                            last_updated: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        
+                        if (actionType === 'extend_trial') {
+                            const currentExpiry = userData.subscription_expiry ? new Date(userData.subscription_expiry) : now;
+                            const baseDate = currentExpiry > now ? currentExpiry : now;
+                            const newExpiryDate = new Date(baseDate.getTime() + (days * 24 * 60 * 60 * 1000));
+                            
+                            updateData.subscription_expiry = newExpiryDate.toISOString();
+                            updateData.subscription_status = 'active';
+                            updateData.bulk_extension_days = days;
+                        }
+                        
+                        await usersRef.child(userId).update(updateData);
+                        processedCount++;
+                        
+                    } catch (error) {
+                        console.error(`Error processing user ${userId}:`, error);
+                    }
+                }
+                
+                showToast(`✅ Toplu işlem tamamlandı! ${processedCount} kullanıcı işlendi.`, 'success');
+                closeModal('bulk-actions-modal');
+                
+                // Reload users
+                setTimeout(loadUsers, 1000);
+                
+            } catch (error) {
+                console.error('Bulk action error:', error);
+                showToast('Toplu işlem hatası: ' + error.message, 'error');
             }
         }
     </script>

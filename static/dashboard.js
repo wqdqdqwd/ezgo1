@@ -289,8 +289,8 @@ async function loadPaymentInfo() {
         
         // Update server IPs
         const serverIpsText = document.getElementById('server-ips-text');
-        if (serverIpsText && appInfo.server_ips) {
-            serverIpsText.textContent = appInfo.server_ips;
+        if (serverIpsText && appInfo.server_ips && Array.isArray(appInfo.server_ips)) {
+            serverIpsText.textContent = appInfo.server_ips.join(', ');
         } else if (serverIpsText) {
             serverIpsText.textContent = 'Server IP bilgisi bulunamadı';
         }
