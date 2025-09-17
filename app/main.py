@@ -167,11 +167,11 @@ async def get_firebase_config():
         firebase_config = {
             "apiKey": settings.FIREBASE_WEB_API_KEY,
             "authDomain": settings.FIREBASE_WEB_AUTH_DOMAIN,
-            "databaseURL": settings.FIREBASE_DATABASE_URL,
             "projectId": settings.FIREBASE_WEB_PROJECT_ID,
             "storageBucket": settings.FIREBASE_WEB_STORAGE_BUCKET,
             "messagingSenderId": settings.FIREBASE_WEB_MESSAGING_SENDER_ID,
-            "appId": settings.FIREBASE_WEB_APP_ID
+            "appId": settings.FIREBASE_WEB_APP_ID,
+            "databaseURL": settings.FIREBASE_DATABASE_URL
         }
         
         # Check for missing fields

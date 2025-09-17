@@ -1,33 +1,29 @@
 {
   "rules": {
-    // Kullanıcı verileri - sadece kendi verilerine erişim veya admin
     "users": {
+      ".read": "auth != null && (auth.token.admin == true)",
+      ".write": "auth != null && (auth.token.admin == true)",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || (auth.token.admin == true))",
-        ".write": "auth != null && (auth.uid == $uid || (auth.token.admin == true))",
+        ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
         ".validate": "newData.hasChildren(['email', 'full_name', 'created_at'])",
         
-        // Email validation
         "email": {
           ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/)"
         },
         
-        // Full name validation
         "full_name": {
           ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
         },
         
-        // Subscription status validation
         "subscription_status": {
           ".validate": "newData.isString() && (newData.val() == 'trial' || newData.val() == 'active' || newData.val() == 'expired')"
         },
         
-        // Role validation - sadece admin değiştirebilir
         "role": {
           ".write": "auth.token.admin == true"
         },
         
-        // API keys - sadece kullanıcı kendisi yazabilir
         "binance_api_key": {
           ".read": "auth.uid == $uid",
           ".write": "auth.uid == $uid"
@@ -38,13 +34,11 @@
           ".write": "auth.uid == $uid"
         },
         
-        // Bot settings
         "bot_settings": {
           ".read": "auth.uid == $uid",
           ".write": "auth.uid == $uid"
         },
         
-        // Trading stats
         "total_trades": {
           ".validate": "newData.isNumber() && newData.val() >= 0"
         },
@@ -59,8 +53,9 @@
       }
     },
     
-    // Trading verileri - kullanıcı kendi verilerini okuyabilir, admin hepsini
     "trades": {
+      ".read": "auth != null && auth.token.admin == true",
+      ".write": "auth != null",
       "$tradeId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
         ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
@@ -80,7 +75,6 @@
       }
     },
     
-    // Ödeme bildirimleri - kullanıcı kendi bildirimini, admin hepsini görebilir
     "payment_notifications": {
       ".read": "auth != null && auth.token.admin == true",
       ".write": "auth != null",
@@ -91,21 +85,36 @@
         
         "status": {
           ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'pending')"
+        },
+        
+        "approved_by": {
+          ".write": "auth.token.admin == true"
+        },
+        
+        "rejected_by": {
+          ".write": "auth.token.admin == true"
         }
       }
     },
     
-    // Destek mesajları
     "support_messages": {
       ".read": "auth != null && auth.token.admin == true",
       ".write": "auth != null",
       "$messageId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)"
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".validate": "newData.hasChildren(['user_id', 'user_email', 'subject', 'message'])",
+        
+        "status": {
+          ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'open')"
+        },
+        
+        "resolved_by": {
+          ".write": "auth.token.admin == true"
+        }
       }
     },
     
-    // Bot durumları
     "bot_status": {
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
@@ -113,7 +122,6 @@
       }
     },
     
-    // Genel kurallar
     ".read": false,
     ".write": false
   }
