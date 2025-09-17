@@ -22,6 +22,7 @@ class Settings:
     FIREBASE_WEB_STORAGE_BUCKET: str = os.getenv("FIREBASE_WEB_STORAGE_BUCKET")
     FIREBASE_WEB_MESSAGING_SENDER_ID: str = os.getenv("FIREBASE_WEB_MESSAGING_SENDER_ID")
     FIREBASE_WEB_APP_ID: str = os.getenv("FIREBASE_WEB_APP_ID")
+    FIREBASE_WEB_MEASUREMENT_ID: str = os.getenv("FIREBASE_WEB_MEASUREMENT_ID", "")
     
     # --- Güvenlik Ayarları ---
     ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY")
@@ -88,6 +89,7 @@ class Settings:
     # --- Binance API (Fallback - gerçekte kullanıcıdan alınacak) ---
     BINANCE_API_KEY: str = os.getenv("BINANCE_API_KEY", "")
     BINANCE_API_SECRET: str = os.getenv("BINANCE_API_SECRET", "")
+    
     # --- Backward Compatibility ---
     LEVERAGE: int = DEFAULT_LEVERAGE
     ORDER_SIZE_USDT: float = DEFAULT_ORDER_SIZE_USDT
@@ -126,6 +128,12 @@ class Settings:
         if not cls.FIREBASE_WEB_API_KEY:
             warnings.append("⚠️ FIREBASE_WEB_API_KEY ayarlanmamış!")
         
+        if not cls.FIREBASE_WEB_PROJECT_ID:
+            warnings.append("⚠️ FIREBASE_WEB_PROJECT_ID ayarlanmamış!")
+        
+        if not cls.FIREBASE_WEB_AUTH_DOMAIN:
+            warnings.append("⚠️ FIREBASE_WEB_AUTH_DOMAIN ayarlanmamış!")
+        
         # Güvenlik kontrolü
         if not cls.ENCRYPTION_KEY:
             warnings.append("⚠️ ENCRYPTION_KEY ayarlanmamış!")
@@ -159,7 +167,26 @@ class Settings:
     @classmethod
     def get_firebase_web_config(cls):
         """Frontend için Firebase web config döndür"""
-        return {
+        logger = logging.getLogger("config")
+        
+        # Gerekli alanları kontrol et
+        required_fields = {
+            'apiKey': cls.FIREBASE_WEB_API_KEY,
+            'authDomain': cls.FIREBASE_WEB_AUTH_DOMAIN,
+            'databaseURL': cls.FIREBASE_DATABASE_URL,
+            'projectId': cls.FIREBASE_WEB_PROJECT_ID,
+            'storageBucket': cls.FIREBASE_WEB_STORAGE_BUCKET,
+            'messagingSenderId': cls.FIREBASE_WEB_MESSAGING_SENDER_ID,
+            'appId': cls.FIREBASE_WEB_APP_ID
+        }
+        
+        # Eksik alanları kontrol et
+        missing_fields = [key for key, value in required_fields.items() if not value]
+        if missing_fields:
+            logger.error(f"Missing Firebase Web config fields: {missing_fields}")
+            raise ValueError(f"Missing Firebase Web config: {', '.join(missing_fields)}")
+        
+        config = {
             "apiKey": cls.FIREBASE_WEB_API_KEY,
             "authDomain": cls.FIREBASE_WEB_AUTH_DOMAIN,
             "databaseURL": cls.FIREBASE_DATABASE_URL,
@@ -168,6 +195,18 @@ class Settings:
             "messagingSenderId": cls.FIREBASE_WEB_MESSAGING_SENDER_ID,
             "appId": cls.FIREBASE_WEB_APP_ID
         }
+        
+        logger.info(f"Firebase Web config prepared for project: {config['projectId']}")
+        return {
+            "apiKey": config["apiKey"],
+            "authDomain": config["authDomain"],
+            "databaseURL": config["databaseURL"],
+            "projectId": config["projectId"],
+            "storageBucket": config["storageBucket"],
+            "messagingSenderId": config["messagingSenderId"],
+            "appId": config["appId"]
+        }
+
     @classmethod
     def print_settings(cls):
         """Environment'dan yüklenen ayarları yazdır"""
@@ -191,17 +230,5 @@ class Settings:
         print("🔒 Firebase ve API bilgileri güvenli şekilde saklanıyor")
         print("=" * 60)
 
+# Global settings instance
 settings = Settings()
-
-    @classmethod
-    def get_firebase_web_config(cls):
-        """Frontend için Firebase web config döndür"""
-        return {
-            "apiKey": cls.FIREBASE_WEB_API_KEY,
-            "authDomain": cls.FIREBASE_WEB_AUTH_DOMAIN,
-            "databaseURL": cls.FIREBASE_DATABASE_URL,
-            "projectId": cls.FIREBASE_WEB_PROJECT_ID,
-            "storageBucket": cls.FIREBASE_WEB_STORAGE_BUCKET,
-            "messagingSenderId": cls.FIREBASE_WEB_MESSAGING_SENDER_ID,
-            "appId": cls.FIREBASE_WEB_APP_ID
-        }
