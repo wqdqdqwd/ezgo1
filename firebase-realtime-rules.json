@@ -1,23 +1,37 @@
 {
   "rules": {
     "users": {
-      ".read": "auth != null && (auth.token.admin == true)",
-      ".write": "auth != null && (auth.token.admin == true)",
+      ".read": "auth != null && (auth.token.admin == true || auth.uid == $uid)",
+      ".write": "auth != null && auth.token.admin == true",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
         ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
-        ".validate": "newData.hasChildren(['email', 'full_name', 'created_at'])",
+        ".validate": "newData.hasChildren(['email', 'full_name']) || auth.token.admin == true",
         
         "email": {
-          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/)"
+          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/) || auth.token.admin == true"
         },
         
         "full_name": {
-          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100 || auth.token.admin == true"
         },
         
         "subscription_status": {
-          ".validate": "newData.isString() && (newData.val() == 'trial' || newData.val() == 'active' || newData.val() == 'expired')"
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+          ".validate": "newData.isString() && (newData.val() == 'trial' || newData.val() == 'active' || newData.val() == 'expired') || auth.token.admin == true"
+        },
+        
+        "subscription_expiry": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+          ".validate": "newData.isNumber() || auth.token.admin == true"
+        },
+        
+        "subscription_extended_by": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "subscription_extended_at": {
+          ".write": "auth != null && auth.token.admin == true"
         },
         
         "role": {
@@ -25,30 +39,65 @@
         },
         
         "binance_api_key": {
-          ".read": "auth.uid == $uid",
-          ".write": "auth.uid == $uid"
+          ".read": "auth.uid == $uid || auth.token.admin == true",
+          ".write": "auth.uid == $uid || auth.token.admin == true"
         },
         
         "binance_api_secret": {
-          ".read": "auth.uid == $uid", 
-          ".write": "auth.uid == $uid"
+          ".read": "auth.uid == $uid || auth.token.admin == true", 
+          ".write": "auth.uid == $uid || auth.token.admin == true"
+        },
+        
+        "api_keys_set": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "api_connection_verified": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
         "bot_settings": {
-          ".read": "auth.uid == $uid",
-          ".write": "auth.uid == $uid"
+          ".read": "auth.uid == $uid || auth.token.admin == true",
+          ".write": "auth.uid == $uid || auth.token.admin == true"
+        },
+        
+        "bot_active": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "bot_start_time": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "bot_symbols": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "bot_status": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
         "total_trades": {
-          ".validate": "newData.isNumber() && newData.val() >= 0"
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+          ".validate": "newData.isNumber() && newData.val() >= 0 || auth.token.admin == true"
         },
         
         "total_pnl": {
-          ".validate": "newData.isNumber()"
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+          ".validate": "newData.isNumber() || auth.token.admin == true"
         },
         
         "account_balance": {
-          ".validate": "newData.isNumber() && newData.val() >= 0"
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+          ".validate": "newData.isNumber() && newData.val() >= 0 || auth.token.admin == true"
+        },
+        
+        "last_updated": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "updated_by": {
+          ".write": "auth != null && auth.token.admin == true"
         }
       }
     },
@@ -59,18 +108,18 @@
       "$tradeId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
         ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".validate": "newData.hasChildren(['user_id', 'symbol', 'timestamp'])",
+        ".validate": "newData.hasChildren(['user_id', 'symbol', 'timestamp']) || auth.token.admin == true",
         
         "user_id": {
-          ".validate": "newData.isString() && newData.val().length > 0"
+          ".validate": "newData.isString() && newData.val().length > 0 || auth.token.admin == true"
         },
         
         "symbol": {
-          ".validate": "newData.isString() && newData.val().matches(/^[A-Z]{3,10}USDT$/)"
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Z]{3,10}USDT$/) || auth.token.admin == true"
         },
         
         "side": {
-          ".validate": "newData.isString() && (newData.val() == 'LONG' || newData.val() == 'SHORT' || newData.val() == 'BUY' || newData.val() == 'SELL')"
+          ".validate": "newData.isString() && (newData.val() == 'LONG' || newData.val() == 'SHORT' || newData.val() == 'BUY' || newData.val() == 'SELL') || auth.token.admin == true"
         }
       }
     },
@@ -81,7 +130,7 @@
       "$paymentId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
         ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".validate": "newData.hasChildren(['user_id', 'user_email', 'transaction_hash', 'amount'])",
+        ".validate": "newData.hasChildren(['user_id', 'user_email', 'transaction_hash', 'amount']) || auth.token.admin == true",
         
         "status": {
           ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'pending')"
@@ -91,7 +140,19 @@
           ".write": "auth.token.admin == true"
         },
         
+        "approved_at": {
+          ".write": "auth.token.admin == true"
+        },
+        
         "rejected_by": {
+          ".write": "auth.token.admin == true"
+        },
+        
+        "rejected_at": {
+          ".write": "auth.token.admin == true"
+        },
+        
+        "rejection_reason": {
           ".write": "auth.token.admin == true"
         }
       }
@@ -103,13 +164,17 @@
       "$messageId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
         ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".validate": "newData.hasChildren(['user_id', 'user_email', 'subject', 'message'])",
+        ".validate": "newData.hasChildren(['user_id', 'user_email', 'subject', 'message']) || auth.token.admin == true",
         
         "status": {
           ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'open')"
         },
         
         "resolved_by": {
+          ".write": "auth.token.admin == true"
+        },
+        
+        "resolved_at": {
           ".write": "auth.token.admin == true"
         }
       }
@@ -118,11 +183,11 @@
     "bot_status": {
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
-        ".write": "auth != null && auth.uid == $uid"
+        ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
       }
     },
     
-    ".read": false,
-    ".write": false
+    ".read": "auth != null && auth.token.admin == true",
+    ".write": "auth != null && auth.token.admin == true"
   }
 }
