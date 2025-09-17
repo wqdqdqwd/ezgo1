@@ -6,3 +6,5 @@ numpy
 pandas
 python-dotenv
 firebase-admin
+python-multipart
+aiofiles
