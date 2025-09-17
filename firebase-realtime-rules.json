@@ -23,7 +23,35 @@
         
         "subscription_expiry": {
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
-          ".validate": "newData.isNumber() || auth.token.admin == true"
+          ".validate": "newData.isString() || newData.isNumber() || auth.token.admin == true"
+        },
+        
+        "subscription_start": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "created_at": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "last_login": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "last_login_ip": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "registration_ip": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "is_active": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "settings": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
         "subscription_extended_by": {
@@ -34,7 +62,59 @@
           ".write": "auth != null && auth.token.admin == true"
         },
         
+        "subscription_extended_days": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "manual_extension_by": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "manual_extension_at": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "manual_extension_days": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "manual_extension_note": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "payment_approved_by": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "payment_approved_at": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "payment_approved_days": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "bulk_action_by": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "bulk_action_at": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "bulk_action_type": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
+        "bulk_action_days": {
+          ".write": "auth != null && auth.token.admin == true"
+        },
+        
         "role": {
+          ".write": "auth.token.admin == true"
+        },
+        
+        "admin_set_at": {
           ".write": "auth.token.admin == true"
         },
         
@@ -52,7 +132,19 @@
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
+        "api_testnet": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
         "api_connection_verified": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "api_updated_at": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "api_last_test": {
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
@@ -69,11 +161,27 @@
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
+        "bot_stop_time": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
         "bot_symbols": {
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
         "bot_status": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "bot_status_message": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "bot_last_signal": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
+        },
+        
+        "last_bot_update": {
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
@@ -87,9 +195,18 @@
           ".validate": "newData.isNumber() || auth.token.admin == true"
         },
         
+        "win_rate": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100 || auth.token.admin == true"
+        },
+        
         "account_balance": {
           ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
           ".validate": "newData.isNumber() && newData.val() >= 0 || auth.token.admin == true"
+        },
+        
+        "last_trade_time": {
+          ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
         },
         
         "last_updated": {
@@ -107,7 +224,7 @@
       ".write": "auth != null",
       "$tradeId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true || !data.exists())",
         ".validate": "newData.hasChildren(['user_id', 'symbol', 'timestamp']) || auth.token.admin == true",
         
         "user_id": {
@@ -120,6 +237,18 @@
         
         "side": {
           ".validate": "newData.isString() && (newData.val() == 'LONG' || newData.val() == 'SHORT' || newData.val() == 'BUY' || newData.val() == 'SELL') || auth.token.admin == true"
+        },
+        
+        "status": {
+          ".validate": "newData.isString() || auth.token.admin == true"
+        },
+        
+        "timestamp": {
+          ".validate": "newData.isString() || auth.token.admin == true"
+        },
+        
+        "pnl": {
+          ".validate": "newData.isNumber() || auth.token.admin == true"
         }
       }
     },
@@ -129,11 +258,28 @@
       ".write": "auth != null",
       "$paymentId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true || !data.exists())",
         ".validate": "newData.hasChildren(['user_id', 'user_email', 'transaction_hash', 'amount']) || auth.token.admin == true",
         
+        "user_id": {
+          ".validate": "newData.isString() && newData.val().length > 0 || auth.token.admin == true"
+        },
+        
+        "user_email": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/) || auth.token.admin == true"
+        },
+        
+        "transaction_hash": {
+          ".validate": "newData.isString() && newData.val().length >= 10 || auth.token.admin == true"
+        },
+        
+        "amount": {
+          ".validate": "newData.isNumber() && newData.val() > 0 || auth.token.admin == true"
+        },
+        
         "status": {
-          ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'pending')"
+          ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'pending')",
+          ".validate": "newData.isString() && (newData.val() == 'pending' || newData.val() == 'approved' || newData.val() == 'rejected') || auth.token.admin == true"
         },
         
         "approved_by": {
@@ -154,6 +300,10 @@
         
         "rejection_reason": {
           ".write": "auth.token.admin == true"
+        },
+        
+        "created_at": {
+          ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true || !data.exists())"
         }
       }
     },
@@ -163,11 +313,28 @@
       ".write": "auth != null",
       "$messageId": {
         ".read": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
-        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true)",
+        ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true || !data.exists())",
         ".validate": "newData.hasChildren(['user_id', 'user_email', 'subject', 'message']) || auth.token.admin == true",
         
+        "user_id": {
+          ".validate": "newData.isString() && newData.val().length > 0 || auth.token.admin == true"
+        },
+        
+        "user_email": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/) || auth.token.admin == true"
+        },
+        
+        "subject": {
+          ".validate": "newData.isString() && newData.val().length > 0 || auth.token.admin == true"
+        },
+        
+        "message": {
+          ".validate": "newData.isString() && newData.val().length > 0 || auth.token.admin == true"
+        },
+        
         "status": {
-          ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'open')"
+          ".write": "auth.token.admin == true || (data.val() == null && newData.val() == 'open')",
+          ".validate": "newData.isString() && (newData.val() == 'open' || newData.val() == 'resolved') || auth.token.admin == true"
         },
         
         "resolved_by": {
@@ -176,14 +343,11 @@
         
         "resolved_at": {
           ".write": "auth.token.admin == true"
+        },
+        
+        "created_at": {
+          ".write": "auth != null && (data.child('user_id').val() == auth.uid || auth.token.admin == true || !data.exists())"
         }
-      }
-    },
-    
-    "bot_status": {
-      "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
       }
     }
   }
