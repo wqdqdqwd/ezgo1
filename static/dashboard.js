@@ -1,17 +1,23 @@
+// Firebase Config - Bu bilgileri kendi Firebase projenizden alın
+const firebaseConfig = {
+  apiKey: "AIzaSyC6ENhmUrrtrN6HFbudthifGwUGSzWih7A",
+  authDomain: "aviatoronline-6c2b4.firebaseapp.com",
+  databaseURL: "https://aviatoronline-6c2b4-default-rtdb.firebaseio.com",
+  projectId: "aviatoronline-6c2b4",
+  storageBucket: "aviatoronline-6c2b4.firebasestorage.app",
+  messagingSenderId: "471392622297",
+  appId: "1:471392622297:web:95dca8c181277d3526d0c8",
+  measurementId: "G-192Z8B860B"
+};
+
 // Global variables
 let firebaseApp = null;
 let auth = null;
 let database = null;
 let currentUser = null;
-let refreshInterval = null;
-let authToken = null;
-let botStatusListener = null;
-let settingsListener = null;
+let userData = null;
 
-// API Base URL - Production için doğru URL
-const API_BASE_URL = window.location.origin + '/api';
-
-// DOM Elements - Güvenli erişim ile
+// DOM Elements
 const elements = {
     get: (id) => {
         const element = document.getElementById(id);
@@ -19,525 +25,608 @@ const elements = {
             console.warn(`Element not found: ${id}`);
         }
         return element;
-    },
-
-    // Cache variables
-    loadingScreen: null,
-    dashboard: null,
-    hamburgerMenu: null,
-    mobileMenu: null,
-    mobileMenuClose: null,
-
-    // User info
-    userName: null,
-    subscriptionBadge: null,
-    subscriptionText: null,
-    subStatusBadge: null,
-    daysRemaining: null,
-    subscriptionNote: null,
-
-    // Bot status
-    statusDot: null,
-    statusText: null,
-    statusMessageText: null,
-    accountBalance: null,
-    positionPnl: null,
-    
-    // API
-    apiStatusIndicator: null,
-    manageApiBtn: null,
-    mobileApiBtn: null,
-    apiModal: null,
-    apiModalClose: null,
-    apiForm: null,
-    apiKey: null,
-    apiSecret: null,
-    apiTestnet: null,
-    saveApiBtn: null,
-    cancelApiBtn: null,
-    apiTestResult: null,
-
-    // Trading settings
-    tradingSettings: null,
-    controlButtons: null,
-    symbolSelect: null,
-    leverageInput: null,
-    orderSizeInput: null,
-    stopLossInput: null,
-    takeProfitInput: null,
-    startBotBtn: null,
-    stopBotBtn: null,
-    manageApiBtn: null,
-    showApiModal: null,
-
-    // Payment
-    paymentAddress: null,
-    copyAddressBtn: null,
-    transactionHash: null,
-    confirmPaymentBtn: null,
-    paymentMessage: null,
-
-    // Modals
-    confirmModal: null,
-    confirmModalMessage: null,
-    confirmModalYes: null,
-    confirmModalNo: null,
-    
-    // Support
-    supportBtn: null,
-    supportModal: null,
-    supportModalClose: null,
-    supportForm: null,
-    supportMessage: null,
-    sendSupportBtn: null,
-
-    // Charts
-    chart: null,
-
-    // Log & History
-    logContainer: null,
-    tradesTableBody: null,
-
-    // Other
-    darkModeToggle: null,
-    logoutBtn: null,
-    userIdDisplay: null,
+    }
 };
 
-// --- UTILS ---
+// Initialize Firebase
+function initializeFirebase() {
+    try {
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        database = firebase.database();
+        console.log('Firebase initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Firebase initialization error:', error);
+        return false;
+    }
+}
+
+// Show toast notification
 function showToast(message, type = 'info') {
-    const toast = elements.get('toast');
-    const toastMessage = elements.get('toast-message');
-    const toastIcon = elements.get('toast-icon');
-
-    if (!toast || !toastMessage || !toastIcon) return;
-
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    const toastIcon = toast?.querySelector('.toast-icon');
+    
+    if (!toast || !toastMessage) return;
+    
+    // Set icon based on type
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+    };
+    
+    if (toastIcon) {
+        toastIcon.className = `toast-icon ${icons[type] || icons.info}`;
+    }
+    
     toastMessage.textContent = message;
-    toast.className = `toast show ${type}`;
-    toastIcon.className = `toast-icon fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-times-circle' : 'fa-info-circle'}`;
-
+    toast.classList.add('show');
+    
+    // Auto hide after 5 seconds
     setTimeout(() => {
-        toast.className = toast.className.replace('show', '');
+        toast.classList.remove('show');
     }, 5000);
 }
 
-function showConfirm(message, onConfirm) {
-    if (!elements.confirmModal) return;
-    elements.confirmModalMessage.textContent = message;
-    elements.confirmModal.style.display = 'block';
-
-    const handleConfirm = () => {
-        onConfirm();
-        elements.confirmModal.style.display = 'none';
-        elements.confirmModalYes.removeEventListener('click', handleConfirm);
-        elements.confirmModalNo.removeEventListener('click', handleCancel);
-    };
-
-    const handleCancel = () => {
-        elements.confirmModal.style.display = 'none';
-        elements.confirmModalYes.removeEventListener('click', handleConfirm);
-        elements.confirmModalNo.removeEventListener('click', handleCancel);
-    };
-
-    elements.confirmModalYes.addEventListener('click', handleConfirm);
-    elements.confirmModalNo.addEventListener('click', handleCancel);
-}
-
+// Toggle modal
 function toggleModal(modalId, show) {
-    const modal = elements.get(modalId);
+    const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = show ? 'flex' : 'none';
     }
 }
 
-function bindDOM() {
-    for (const key in elements) {
-        if (key !== 'get') {
-            elements[key] = elements.get(key)
-        }
+// Update user info display
+function updateUserInfo(user, userInfo) {
+    const userNameEl = document.getElementById('user-name');
+    const subscriptionTextEl = document.getElementById('subscription-text');
+    const subscriptionBadgeEl = document.getElementById('subscription-badge');
+    const daysRemainingEl = document.getElementById('days-remaining');
+    const subscriptionNoteEl = document.getElementById('subscription-note');
+    
+    if (userNameEl) {
+        userNameEl.textContent = userInfo.full_name || user.displayName || user.email || 'Kullanıcı';
     }
-}
-
-function formatDate(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleString('tr-TR', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-}
-
-function updateBotStatusUI(statusData) {
-    const isRunning = statusData?.is_running;
-    const message = statusData?.status_message || 'Durum bilgisi alınamadı.';
-    const accountBalance = statusData?.account_balance !== undefined ? parseFloat(statusData.account_balance).toFixed(2) : '---';
-    const positionPnl = statusData?.position_pnl !== undefined ? parseFloat(statusData.position_pnl).toFixed(2) : '---';
-
-    if (elements.statusDot) {
-        elements.statusDot.className = `status-dot ${isRunning ? 'running' : 'stopped'}`;
+    
+    if (subscriptionTextEl && userInfo.subscription_status) {
+        const statusText = {
+            'trial': 'Deneme',
+            'active': 'Premium',
+            'expired': 'Süresi Dolmuş'
+        };
+        subscriptionTextEl.textContent = statusText[userInfo.subscription_status] || 'Deneme';
     }
-    if (elements.statusText) {
-        elements.statusText.textContent = isRunning ? 'Bot Çalışıyor' : 'Bot Durduruldu';
-    }
-    if (elements.statusMessageText) {
-        elements.statusMessageText.textContent = message;
-    }
-    if (elements.accountBalance) {
-        elements.accountBalance.textContent = accountBalance;
-    }
-    if (elements.positionPnl) {
-        elements.positionPnl.textContent = positionPnl;
-        if (positionPnl !== '---') {
-            elements.positionPnl.classList.toggle('text-green-500', positionPnl >= 0);
-            elements.positionPnl.classList.toggle('text-red-500', positionPnl < 0);
-        }
-    }
-    if (elements.startBotBtn && elements.stopBotBtn) {
-        elements.startBotBtn.disabled = isRunning;
-        elements.stopBotBtn.disabled = !isRunning;
-    }
-}
-
-// --- FIREBASE AND AUTH ---
-async function initializeFirebase() {
-    try {
-        const firebaseConfig = JSON.parse(__firebase_config);
-        firebaseApp = firebase.initializeApp(firebaseConfig);
-        auth = firebase.auth();
-        database = firebase.database();
+    
+    // Calculate remaining days
+    if (userInfo.subscription_expiry && daysRemainingEl) {
+        const expiryDate = new Date(userInfo.subscription_expiry);
+        const today = new Date();
+        const daysLeft = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
         
-        await new Promise((resolve) => {
-            const unsub = auth.onAuthStateChanged(user => {
-                currentUser = user;
-                if (!currentUser) {
-                    window.location.href = '/login';
-                } else {
-                    if (elements.userIdDisplay) {
-                        elements.userIdDisplay.textContent = currentUser.uid;
-                    }
-                    resolve();
-                }
-                unsub(); // Tek bir kez dinle
-            });
-        });
-
-    } catch (error) {
-        console.error("Firebase başlatılamadı:", error);
-        showToast("Sistem başlatılamadı. Lütfen sayfayı yenileyin.", "error");
-        elements.loadingScreen.innerHTML = `
-            <div class="loading-content">
-                <div class="loading-logo">
-                    <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                    <span>Hata</span>
-                </div>
-                <p>Uygulama başlatılırken hata oluştu. İnternet bağlantınızı kontrol edin.</p>
-                <button class="btn btn-primary" onclick="location.reload()">Tekrar Dene</button>
-            </div>
-        `;
-    }
-}
-
-// --- FIREBASE REALTIME DB LISTENERS ---
-async function setupDatabaseListeners() {
-    if (!currentUser || !database) return;
-
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const userDbRef = database.ref(`artifacts/${appId}/users/${currentUser.uid}`);
-
-    // Bot durumu dinleme
-    if (botStatusListener) userDbRef.child('bot_status').off('value', botStatusListener);
-    botStatusListener = userDbRef.child('bot_status').on('value', (snapshot) => {
-        const statusData = snapshot.val();
-        console.log("Bot durumu güncellendi:", statusData);
-        updateBotStatusUI(statusData);
-    });
-
-    // Ayarları dinleme
-    if (settingsListener) userDbRef.child('settings').off('value', settingsListener);
-    settingsListener = userDbRef.child('settings').on('value', (snapshot) => {
-        const settingsData = snapshot.val();
-        console.log("Ayarlar güncellendi:", settingsData);
-        loadSettingsToUI(settingsData);
-    });
-
-    // İşlem geçmişini dinleme
-    const tradesRef = userDbRef.child('trades').orderByKey().limitToLast(50);
-    tradesRef.on('child_added', (snapshot) => {
-        const trade = snapshot.val();
-        addTradeToUI(trade);
-    });
-}
-
-function loadSettingsToUI(settings) {
-    if (!settings) return;
-
-    if (elements.apiKey) elements.apiKey.value = settings.apiKey || '';
-    if (elements.apiSecret) elements.apiSecret.value = settings.apiSecret || '';
-    if (elements.apiTestnet) elements.apiTestnet.checked = settings.testnet || false;
-
-    if (elements.symbolSelect) elements.symbolSelect.value = settings.symbol || 'BTCUSDT';
-    if (elements.leverageInput) elements.leverageInput.value = settings.leverage || 10;
-    if (elements.orderSizeInput) elements.orderSizeInput.value = settings.orderSize || 35;
-    if (elements.stopLossInput) elements.stopLossInput.value = settings.stopLoss || 0.8;
-    if (elements.takeProfitInput) elements.takeProfitInput.value = settings.takeProfit || 1;
-}
-
-function addTradeToUI(trade) {
-    if (!elements.tradesTableBody) return;
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap">${formatDate(trade.timestamp)}</td>
-        <td class="px-6 py-4 whitespace-nowrap">${trade.symbol}</td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <span class="status-badge ${trade.side === 'LONG' ? 'bg-green-500' : 'bg-red-500'}">
-                ${trade.side}
-            </span>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">${parseFloat(trade.entryPrice).toFixed(2)}</td>
-        <td class="px-6 py-4 whitespace-nowrap">${parseFloat(trade.exitPrice).toFixed(2)}</td>
-        <td class="px-6 py-4 whitespace-nowrap">${parseFloat(trade.realizedPnl).toFixed(2)}</td>
-    `;
-    elements.tradesTableBody.prepend(row);
-}
-
-
-// --- API FUNCTIONS ---
-async function saveAndTestAPI(event) {
-    event.preventDefault();
-    if (!currentUser) return;
-
-    const apiKey = elements.apiKey.value.trim();
-    const apiSecret = elements.apiSecret.value.trim();
-    const testnet = elements.apiTestnet.checked;
-
-    if (!apiKey || !apiSecret) {
-        showToast("API anahtar ve gizli anahtar boş bırakılamaz.", "error");
-        return;
-    }
-
-    if (elements.saveApiBtn) {
-        elements.saveApiBtn.disabled = true;
-        elements.saveApiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
-    }
-
-    const payload = {
-        apiKey,
-        apiSecret,
-        testnet
-    };
-
-    try {
-        // Ayarları Realtime Database'e kaydet
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        await database.ref(`artifacts/${appId}/users/${currentUser.uid}/settings`).update(payload);
-
-        showToast("API ayarları kaydedildi.", "success");
-        toggleModal('api-modal', false);
-    } catch (error) {
-        console.error("API ayarları kaydedilirken hata:", error);
-        showToast("API ayarları kaydedilemedi: " + error.message, "error");
-    } finally {
-        if (elements.saveApiBtn) {
-            elements.saveApiBtn.disabled = false;
-            elements.saveApiBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet ve Test Et';
-        }
-    }
-}
-
-
-async function startBot() {
-    if (!currentUser) return;
-    
-    // UI'dan ayarları al
-    const symbol = elements.symbolSelect.value;
-    const leverage = parseInt(elements.leverageInput.value, 10);
-    const orderSize = parseFloat(elements.orderSizeInput.value);
-    const stopLoss = parseFloat(elements.stopLossInput.value);
-    const takeProfit = parseFloat(elements.takeProfitInput.value);
-
-    const payload = {
-        symbol,
-        leverage,
-        orderSize,
-        stopLoss,
-        takeProfit
-    };
-
-    try {
-        showToast("Bot başlatılıyor...", "info");
-        const response = await fetch(`${API_BASE_URL}/start-bot`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            showToast(result.message, "success");
-        } else {
-            showToast(result.detail || result.message, "error");
-        }
-    } catch (error) {
-        console.error("Bot başlatma hatası:", error);
-        showToast("Bot başlatılırken bir hata oluştu: " + error.message, "error");
-    }
-}
-
-async function stopBot() {
-    if (!currentUser) return;
-    
-    showConfirm("Botu durdurmak istediğinize emin misiniz?", async () => {
-        try {
-            showToast("Bot durduruluyor...", "info");
-            const response = await fetch(`${API_BASE_URL}/stop-bot`, {
-                method: 'POST'
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                showToast(result.message, "success");
-            } else {
-                showToast(result.detail || result.message, "error");
+        if (daysLeft > 0) {
+            daysRemainingEl.textContent = `${daysLeft} gün kaldı`;
+            if (subscriptionNoteEl) {
+                subscriptionNoteEl.textContent = daysLeft <= 3 ? 
+                    'Aboneliğiniz yakında sona erecek!' : 
+                    'Aboneliğiniz aktif durumda.';
             }
-        } catch (error) {
-            console.error("Bot durdurma hatası:", error);
-            showToast("Bot durdurulurken bir hata oluştu: " + error.message, "error");
+        } else {
+            daysRemainingEl.textContent = 'Süresi dolmuş';
+            if (subscriptionNoteEl) {
+                subscriptionNoteEl.textContent = 'Aboneliğinizi yenilemeniz gerekiyor.';
+            }
         }
-    });
+    }
 }
 
-// --- EVENT LISTENERS ---
-function initializeEventListeners() {
-    // Hamburger menü
-    if (elements.hamburgerMenu) {
-        elements.hamburgerMenu.addEventListener('click', () => {
-            if (elements.mobileMenu) elements.mobileMenu.classList.add('active');
+// Update bot status
+function updateBotStatus(isRunning = false) {
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const statusMessageText = document.getElementById('status-message-text');
+    const startBtn = document.getElementById('start-bot-btn');
+    const stopBtn = document.getElementById('stop-bot-btn');
+    
+    if (statusDot) {
+        statusDot.className = `status-dot ${isRunning ? 'active' : ''}`;
+    }
+    
+    if (statusText) {
+        statusText.textContent = isRunning ? 'Çalışıyor' : 'Durduruldu';
+    }
+    
+    if (statusMessageText) {
+        statusMessageText.textContent = isRunning ? 
+            'Bot aktif olarak çalışıyor.' : 
+            'Bot durduruldu. API anahtarlarınızı kontrol edin.';
+    }
+    
+    if (startBtn) startBtn.disabled = isRunning;
+    if (stopBtn) stopBtn.disabled = !isRunning;
+}
+
+// Update account stats
+function updateAccountStats(userInfo) {
+    const totalBalance = document.getElementById('total-balance');
+    const totalTrades = document.getElementById('total-trades');
+    const winRate = document.getElementById('win-rate');
+    const totalPnl = document.getElementById('total-pnl');
+    
+    if (totalBalance) {
+        totalBalance.textContent = `${(userInfo.total_balance || 0).toFixed(2)} USDT`;
+    }
+    
+    if (totalTrades) {
+        totalTrades.textContent = userInfo.total_trades || '0';
+    }
+    
+    if (winRate) {
+        winRate.textContent = `${(userInfo.win_rate || 0).toFixed(1)}%`;
+    }
+    
+    if (totalPnl) {
+        const pnl = userInfo.total_pnl || 0;
+        totalPnl.textContent = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USDT`;
+        totalPnl.style.color = pnl >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+    }
+}
+
+// Load IP addresses
+async function loadIPAddresses() {
+    const ipList = [
+        '0.0.0.0/0', // Tüm IP'ler için (güvenlik açısından önerilmez)
+        '185.199.108.0/22',
+        '185.199.109.0/22',
+        '185.199.110.0/22',
+        '185.199.111.0/22'
+    ];
+    
+    // IP listesini göster
+    const ipContainer = document.querySelector('.ip-list');
+    if (ipContainer) {
+        ipContainer.innerHTML = ipList.map(ip => 
+            `<div class="ip-item">${ip}</div>`
+        ).join('');
+    }
+}
+
+// Get payment address
+function getPaymentAddress() {
+    // TRC20 USDT cüzdan adresi - gerçek adresinizi buraya koyun
+    return 'TYourTRC20WalletAddressHere123456789';
+}
+
+// Copy to clipboard
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Kopyalandı: ' + text.substring(0, 20) + '...', 'success');
+    } catch (error) {
+        console.error('Copy failed:', error);
+        showToast('Kopyalama başarısız', 'error');
+    }
+}
+
+// Save API keys
+async function saveAPIKeys(apiKey, apiSecret, testnet = false) {
+    if (!currentUser) {
+        showToast('Oturum açmanız gerekiyor', 'error');
+        return false;
+    }
+    
+    try {
+        // Encrypt API keys (basit örnekleme - gerçek uygulamada daha güvenli şifreleme kullanın)
+        const encryptedKey = btoa(apiKey); // Base64 encoding (güvenlik için yeterli değil)
+        const encryptedSecret = btoa(apiSecret);
+        
+        const apiData = {
+            api_key: encryptedKey,
+            api_secret: encryptedSecret,
+            testnet: testnet,
+            created_at: firebase.database.ServerValue.TIMESTAMP,
+            updated_at: firebase.database.ServerValue.TIMESTAMP
+        };
+        
+        // Save to user's data
+        await database.ref(`users/${currentUser.uid}/api_keys`).set(apiData);
+        await database.ref(`users/${currentUser.uid}`).update({
+            api_keys_set: true,
+            updated_at: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        console.log('API keys saved successfully');
+        return true;
+    } catch (error) {
+        console.error('Error saving API keys:', error);
+        return false;
+    }
+}
+
+// Send support message
+async function sendSupportMessage(subject, message) {
+    if (!currentUser || !userData) {
+        showToast('Oturum açmanız gerekiyor', 'error');
+        return false;
+    }
+    
+    try {
+        const supportData = {
+            user_id: currentUser.uid,
+            user_email: userData.email,
+            subject: subject,
+            message: message,
+            status: 'open',
+            created_at: firebase.database.ServerValue.TIMESTAMP,
+            updated_at: firebase.database.ServerValue.TIMESTAMP
+        };
+        
+        // Save support message
+        await database.ref('support_messages').push(supportData);
+        
+        console.log('Support message sent successfully');
+        return true;
+    } catch (error) {
+        console.error('Error sending support message:', error);
+        return false;
+    }
+}
+
+// Send payment notification
+async function sendPaymentNotification(transactionHash, amount = 15) {
+    if (!currentUser || !userData) {
+        showToast('Oturum açmanız gerekiyor', 'error');
+        return false;
+    }
+    
+    try {
+        const paymentData = {
+            user_id: currentUser.uid,
+            user_email: userData.email,
+            transaction_hash: transactionHash,
+            amount: amount,
+            currency: 'USDT',
+            network: 'TRC20',
+            status: 'pending',
+            created_at: firebase.database.ServerValue.TIMESTAMP
+        };
+        
+        // Save payment notification
+        await database.ref('payment_notifications').push(paymentData);
+        
+        console.log('Payment notification sent successfully');
+        return true;
+    } catch (error) {
+        console.error('Error sending payment notification:', error);
+        return false;
+    }
+}
+
+// Event handlers
+function setupEventHandlers() {
+    // Mobile menu
+    const hamburgerMenu = document.getElementById('hamburger-menu');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuClose = document.getElementById('mobile-menu-close');
+    
+    if (hamburgerMenu && mobileMenu) {
+        hamburgerMenu.addEventListener('click', () => {
+            mobileMenu.classList.add('show');
         });
     }
-
-    if (elements.mobileMenuClose) {
-        elements.mobileMenuClose.addEventListener('click', () => {
-            if (elements.mobileMenu) elements.mobileMenu.classList.remove('active');
+    
+    if (mobileMenuClose && mobileMenu) {
+        mobileMenuClose.addEventListener('click', () => {
+            mobileMenu.classList.remove('show');
         });
     }
     
     // API Modal
-    if (elements.manageApiBtn) {
-        elements.manageApiBtn.addEventListener('click', () => toggleModal('api-modal', true));
-    }
-    if (elements.apiModalClose) {
-        elements.apiModalClose.addEventListener('click', () => toggleModal('api-modal', false));
-    }
-    if (elements.cancelApiBtn) {
-        elements.cancelApiBtn.addEventListener('click', () => toggleModal('api-modal', false));
-    }
-
-    // Support Modal
-    if (elements.supportBtn) {
-        elements.supportBtn.addEventListener('click', () => toggleModal('support-modal', true));
-    }
-    if (elements.supportModalClose) {
-        elements.supportModalClose.addEventListener('click', () => toggleModal('support-modal', false));
-    }
-    if (elements.cancelSupportBtn) {
-        elements.cancelSupportBtn.addEventListener('click', () => toggleModal('support-modal', false));
+    const manageApiBtn = document.getElementById('manage-api-btn');
+    const apiModal = document.getElementById('api-modal');
+    const apiModalClose = document.getElementById('api-modal-close');
+    const cancelApiBtn = document.getElementById('cancel-api-btn');
+    const apiForm = document.getElementById('api-form');
+    
+    if (manageApiBtn) {
+        manageApiBtn.addEventListener('click', () => {
+            loadIPAddresses();
+            toggleModal('api-modal', true);
+        });
     }
     
-    // Form actions
-    if (elements.apiForm) {
-        elements.apiForm.addEventListener('submit', saveAndTestAPI);
+    if (apiModalClose) {
+        apiModalClose.addEventListener('click', () => toggleModal('api-modal', false));
     }
     
-    if (elements.startBotBtn) {
-        elements.startBotBtn.addEventListener('click', startBot);
+    if (cancelApiBtn) {
+        cancelApiBtn.addEventListener('click', () => toggleModal('api-modal', false));
     }
     
-    if (elements.stopBotBtn) {
-        elements.stopBotBtn.addEventListener('click', stopBot);
-    }
-
-    // Logout
-    if (elements.logoutBtn) {
-        elements.logoutBtn.addEventListener('click', async (e) => {
+    if (apiForm) {
+        apiForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            try {
-                await auth.signOut();
-                window.location.href = '/';
-            } catch (error) {
-                console.error("Çıkış hatası:", error);
-                showToast("Çıkış yapılırken bir hata oluştu.", "error");
+            
+            const apiKey = document.getElementById('api-key')?.value.trim();
+            const apiSecret = document.getElementById('api-secret')?.value.trim();
+            const testnet = document.getElementById('api-testnet')?.checked;
+            
+            if (!apiKey || !apiSecret) {
+                showToast('API anahtarları boş bırakılamaz', 'error');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('save-api-btn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
+            }
+            
+            const success = await saveAPIKeys(apiKey, apiSecret, testnet);
+            
+            if (success) {
+                showToast('API anahtarları başarıyla kaydedildi!', 'success');
+                toggleModal('api-modal', false);
+                // API form'unu temizle
+                apiForm.reset();
+            } else {
+                showToast('API anahtarları kaydedilemedi', 'error');
+            }
+            
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet ve Test Et';
             }
         });
     }
-
-    // Toggle Dark Mode
-    if (elements.darkModeToggle) {
-        elements.darkModeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
+    
+    // Purchase Modal
+    const mobilePurchaseBtn = document.getElementById('mobile-purchase-btn');
+    const purchaseModal = document.getElementById('purchase-modal');
+    const purchaseModalClose = document.getElementById('purchase-modal-close');
+    const cancelPurchaseBtn = document.getElementById('cancel-purchase-btn');
+    const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+    const copyAddressBtn = document.getElementById('copy-address-btn');
+    
+    if (mobilePurchaseBtn) {
+        mobilePurchaseBtn.addEventListener('click', () => {
+            const paymentAddress = document.getElementById('payment-address');
+            if (paymentAddress) {
+                paymentAddress.textContent = getPaymentAddress();
             }
+            toggleModal('purchase-modal', true);
+        });
+    }
+    
+    if (purchaseModalClose) {
+        purchaseModalClose.addEventListener('click', () => toggleModal('purchase-modal', false));
+    }
+    
+    if (cancelPurchaseBtn) {
+        cancelPurchaseBtn.addEventListener('click', () => toggleModal('purchase-modal', false));
+    }
+    
+    if (copyAddressBtn) {
+        copyAddressBtn.addEventListener('click', () => {
+            const address = getPaymentAddress();
+            copyToClipboard(address);
+        });
+    }
+    
+    if (confirmPaymentBtn) {
+        confirmPaymentBtn.addEventListener('click', async () => {
+            const transactionHash = document.getElementById('transaction-hash')?.value.trim();
+            
+            if (!transactionHash) {
+                showToast('Lütfen işlem hash\'ini girin', 'error');
+                return;
+            }
+            
+            confirmPaymentBtn.disabled = true;
+            confirmPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+            
+            const success = await sendPaymentNotification(transactionHash);
+            
+            if (success) {
+                showToast('Ödeme bildirimi gönderildi! Admin onayını bekleyin.', 'success');
+                toggleModal('purchase-modal', false);
+                document.getElementById('transaction-hash').value = '';
+            } else {
+                showToast('Ödeme bildirimi gönderilemedi', 'error');
+            }
+            
+            confirmPaymentBtn.disabled = false;
+            confirmPaymentBtn.innerHTML = '<i class="fas fa-check"></i> Ödeme Bildir';
+        });
+    }
+    
+    // Support Modal
+    const mobileSupportBtn = document.getElementById('mobile-support-btn');
+    const supportModal = document.getElementById('support-modal');
+    const supportModalClose = document.getElementById('support-modal-close');
+    const cancelSupportBtn = document.getElementById('cancel-support-btn');
+    const sendSupportBtn = document.getElementById('send-support-btn');
+    
+    if (mobileSupportBtn) {
+        mobileSupportBtn.addEventListener('click', () => toggleModal('support-modal', true));
+    }
+    
+    if (supportModalClose) {
+        supportModalClose.addEventListener('click', () => toggleModal('support-modal', false));
+    }
+    
+    if (cancelSupportBtn) {
+        cancelSupportBtn.addEventListener('click', () => toggleModal('support-modal', false));
+    }
+    
+    if (sendSupportBtn) {
+        sendSupportBtn.addEventListener('click', async () => {
+            const subject = document.getElementById('support-subject')?.value;
+            const message = document.getElementById('support-message')?.value.trim();
+            
+            if (!subject || !message) {
+                showToast('Lütfen konu ve mesaj alanlarını doldurun', 'error');
+                return;
+            }
+            
+            sendSupportBtn.disabled = true;
+            sendSupportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+            
+            const success = await sendSupportMessage(subject, message);
+            
+            if (success) {
+                showToast('Destek mesajı gönderildi!', 'success');
+                toggleModal('support-modal', false);
+                document.getElementById('support-subject').value = '';
+                document.getElementById('support-message').value = '';
+            } else {
+                showToast('Destek mesajı gönderilemedi', 'error');
+            }
+            
+            sendSupportBtn.disabled = false;
+            sendSupportBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gönder';
+        });
+    }
+    
+    // Bot control buttons
+    const startBotBtn = document.getElementById('start-bot-btn');
+    const stopBotBtn = document.getElementById('stop-bot-btn');
+    
+    if (startBotBtn) {
+        startBotBtn.addEventListener('click', () => {
+            showToast('Bot başlatma özelliği yakında aktif olacak!', 'info');
+        });
+    }
+    
+    if (stopBotBtn) {
+        stopBotBtn.addEventListener('click', () => {
+            showToast('Bot durdurma özelliği yakında aktif olacak!', 'info');
+        });
+    }
+    
+    // Logout
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    const handleLogout = async () => {
+        if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+            try {
+                await auth.signOut();
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('Çıkış yapılırken bir hata oluştu', 'error');
+            }
+        }
+    };
+    
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', handleLogout);
+    }
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+    
+    // Toast close button
+    const toastClose = document.getElementById('toast-close');
+    if (toastClose) {
+        toastClose.addEventListener('click', () => {
+            document.getElementById('toast')?.classList.remove('show');
         });
     }
 }
 
-// --- INITIALIZATION ---
+// Initialize dashboard
 async function initializeDashboard() {
     try {
-        // 1. DOM elemanlarını bağla
-        bindDOM();
-
-        // 2. Firebase ve kimlik doğrulama başlat
-        await initializeFirebase();
+        console.log('Initializing dashboard...');
         
-        // 3. Veritabanı dinleyicilerini kur
-        await setupDatabaseListeners();
-
-        // 4. Loading ekranını gizle, dashboard'u göster
-        if (elements.loadingScreen) elements.loadingScreen.style.display = 'none';
-        if (elements.dashboard) elements.dashboard.classList.remove('hidden');
-
-        showToast("Dashboard başarıyla yüklendi!", "success");
-
-        // 5. Olay dinleyicilerini başlat
-        initializeEventListeners();
-        
-        // 6. Başlangıç teması kontrolü
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-            if (elements.darkModeToggle) elements.darkModeToggle.checked = true;
-        } else {
-            document.documentElement.classList.remove('dark');
-            if (elements.darkModeToggle) elements.darkModeToggle.checked = false;
+        // Initialize Firebase
+        if (!initializeFirebase()) {
+            throw new Error('Firebase initialization failed');
         }
-
+        
+        // Wait for auth state
+        await new Promise((resolve) => {
+            const unsubscribe = auth.onAuthStateChanged(async (user) => {
+                unsubscribe();
+                
+                if (!user) {
+                    console.log('No user logged in, redirecting to login...');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                currentUser = user;
+                console.log('User authenticated:', user.uid);
+                
+                try {
+                    // Load user data
+                    const userRef = database.ref(`users/${user.uid}`);
+                    const snapshot = await userRef.once('value');
+                    userData = snapshot.val();
+                    
+                    if (!userData) {
+                        throw new Error('User data not found');
+                    }
+                    
+                    console.log('User data loaded:', userData);
+                    
+                    // Update UI
+                    updateUserInfo(user, userData);
+                    updateBotStatus(userData.bot_active || false);
+                    updateAccountStats(userData);
+                    
+                    resolve();
+                    
+                } catch (error) {
+                    console.error('Error loading user data:', error);
+                    showToast('Kullanıcı verileri yüklenirken hata oluştu', 'error');
+                    resolve();
+                }
+            });
+        });
+        
+        // Setup event handlers
+        setupEventHandlers();
+        
+        // Hide loading screen and show dashboard
+        const loadingScreen = document.getElementById('loading-screen');
+        const dashboard = document.getElementById('dashboard');
+        
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
+        
+        if (dashboard) {
+            dashboard.classList.remove('hidden');
+        }
+        
+        showToast('Dashboard başarıyla yüklendi!', 'success');
+        
     } catch (error) {
-        console.error("Dashboard başlatma hatası:", error);
-        if (elements.loadingScreen) {
-            elements.loadingScreen.innerHTML = `
+        console.error('Dashboard initialization failed:', error);
+        
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.innerHTML = `
                 <div class="loading-content">
                     <div class="loading-logo">
-                        <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                        <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
                         <span>Hata</span>
                     </div>
-                    <p>Dashboard başlatılırken kritik bir hata oluştu. Lütfen konsolu kontrol edin.</p>
-                    <button class="btn btn-primary" onclick="location.reload()">Tekrar Dene</button>
+                    <p>Dashboard başlatılırken hata oluştu</p>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-redo"></i> Tekrar Dene
+                    </button>
                 </div>
             `;
         }
     }
 }
 
-// Başlangıç
+// Start when DOM is ready
 document.addEventListener('DOMContentLoaded', initializeDashboard);
