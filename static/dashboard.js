@@ -165,8 +165,8 @@ function updateBotStatus(isRunning = false, statusMessage = '') {
 function updateApiStatus(hasKeys = false, isConnected = false) {
     const apiStatusIndicator = document.getElementById('api-status-indicator');
     const manageApiBtn = document.getElementById('manage-api-btn');
-    const controlButtons = document.getElementById('control-buttons');
-    const tradingSettings = document.getElementById('trading-settings');
+    const startBtn = document.getElementById('start-bot-btn');
+    const stopBtn = document.getElementById('stop-bot-btn');
     
     apiKeysConfigured = hasKeys && isConnected;
     
@@ -196,16 +196,25 @@ function updateApiStatus(hasKeys = false, isConnected = false) {
         manageApiBtn.textContent = hasKeys ? 'API Anahtarlarını Düzenle' : 'API Anahtarlarını Ekle';
     }
     
-    if (controlButtons) {
-        controlButtons.style.display = apiKeysConfigured ? 'grid' : 'none';
+    // Bot butonlarını aktif/pasif yap
+    if (startBtn) {
+        startBtn.disabled = !apiKeysConfigured || botRunning;
+    }
+    if (stopBtn) {
+        stopBtn.disabled = !botRunning;
     }
     
-    if (tradingSettings) {
-        tradingSettings.style.display = apiKeysConfigured ? 'block' : 'none';
+    // Status mesajını güncelle
+    const statusMessageText = document.getElementById('status-message-text');
+    if (statusMessageText) {
+        if (apiKeysConfigured) {
+            statusMessageText.textContent = 'API bağlantısı aktif. Bot ayarlarını yapıp başlatabilirsiniz.';
+        } else if (hasKeys && !isConnected) {
+            statusMessageText.textContent = 'API anahtarları kayıtlı ancak bağlantı hatası var. Lütfen kontrol edin.';
+        } else {
+            statusMessageText.textContent = 'Bot\'u çalıştırmak için API anahtarlarınızı eklemelisiniz.';
+        }
     }
-    
-    // Update start button
-    updateBotStatus(botRunning);
 }
 
 // Update account stats

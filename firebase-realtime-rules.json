@@ -1,7 +1,7 @@
 {
   "rules": {
     "users": {
-      ".read": "auth != null && (auth.token.admin == true || auth.uid == $uid)",
+      ".read": "auth != null && auth.token.admin == true",
       ".write": "auth != null && auth.token.admin == true",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
@@ -185,9 +185,6 @@
         ".read": "auth != null && (auth.uid == $uid || auth.token.admin == true)",
         ".write": "auth != null && (auth.uid == $uid || auth.token.admin == true)"
       }
-    },
-    
-    ".read": "auth != null && auth.token.admin == true",
-    ".write": "auth != null && auth.token.admin == true"
+    }
   }
 }
