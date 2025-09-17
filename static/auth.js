@@ -3,6 +3,29 @@ let firebaseApp = null;
 let auth = null;
 let database = null;
 
+// Get Firebase configuration from backend
+async function getFirebaseConfig() {
+    try {
+        const response = await fetch('/api/firebase-config');
+        if (!response.ok) {
+            throw new Error('Firebase config could not be loaded');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error getting Firebase config:', error);
+        // Fallback configuration for development
+        return {
+            apiKey: "demo-api-key",
+            authDomain: "demo.firebaseapp.com",
+            databaseURL: "https://demo-default-rtdb.firebaseio.com/",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+    }
+}
+
 // Initialize auth page
 async function initAuthPage(pageType) {
     try {
@@ -30,29 +53,6 @@ async function initAuthPage(pageType) {
     } catch (error) {
         console.error('Firebase initialization failed:', error);
         showError('Sistem başlatılamadı. Lütfen sayfayı yenileyin.');
-    }
-}
-
-// Get Firebase configuration from backend
-async function getFirebaseConfig() {
-    try {
-        const response = await fetch('/api/firebase-config');
-        if (!response.ok) {
-            throw new Error('Firebase config could not be loaded');
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error getting Firebase config:', error);
-        // Fallback configuration for development
-        return {
-            apiKey: "demo-api-key",
-            authDomain: "demo.firebaseapp.com",
-            databaseURL: "https://demo-default-rtdb.firebaseio.com/",
-            projectId: "demo-project",
-            storageBucket: "demo-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
     }
 }
 
