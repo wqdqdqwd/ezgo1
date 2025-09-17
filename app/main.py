@@ -30,9 +30,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Import routes
 from app.routes.auth import router as auth_router
+from app.routes.bot import router as bot_router
+from app.routes.user import router as user_router
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(bot_router)
+app.include_router(user_router)
 
 @app.on_event("startup")
 async def startup_event():
@@ -145,8 +149,14 @@ async def get_metrics():
 async def shutdown_event():
     """Uygulama kapatma"""
     logger.info("EzyagoTrading shutting down...")
-    # Bot manager shutdown logic will be added here
-    pass
+    
+    # Tüm aktif botları güvenli şekilde durdur
+    try:
+        from app.bot_manager import bot_manager
+        await bot_manager.shutdown_all_bots()
+        logger.info("All bots shutdown completed")
+    except Exception as e:
+        logger.error(f"Error during bot shutdown: {e}")
 
 if __name__ == "__main__":
     import uvicorn

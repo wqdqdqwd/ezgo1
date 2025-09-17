@@ -85,6 +85,9 @@ class Settings:
     BASE_URL = "https://fapi.binance.com" if ENVIRONMENT == "LIVE" else "https://testnet.binancefuture.com"
     WEBSOCKET_URL = "wss://fstream.binance.com" if ENVIRONMENT == "LIVE" else "wss://stream.binancefuture.com"
 
+    # --- Binance API (Fallback - gerçekte kullanıcıdan alınacak) ---
+    BINANCE_API_KEY: str = os.getenv("BINANCE_API_KEY", "")
+    BINANCE_API_SECRET: str = os.getenv("BINANCE_API_SECRET", "")
     # --- Backward Compatibility ---
     LEVERAGE: int = DEFAULT_LEVERAGE
     ORDER_SIZE_USDT: float = DEFAULT_ORDER_SIZE_USDT
@@ -153,6 +156,18 @@ class Settings:
         
         return len(warnings) == 0
 
+    @classmethod
+    def get_firebase_web_config(cls):
+        """Frontend için Firebase web config döndür"""
+        return {
+            "apiKey": cls.FIREBASE_WEB_API_KEY,
+            "authDomain": cls.FIREBASE_WEB_AUTH_DOMAIN,
+            "databaseURL": cls.FIREBASE_DATABASE_URL,
+            "projectId": cls.FIREBASE_WEB_PROJECT_ID,
+            "storageBucket": cls.FIREBASE_WEB_STORAGE_BUCKET,
+            "messagingSenderId": cls.FIREBASE_WEB_MESSAGING_SENDER_ID,
+            "appId": cls.FIREBASE_WEB_APP_ID
+        }
     @classmethod
     def print_settings(cls):
         """Environment'dan yüklenen ayarları yazdır"""
