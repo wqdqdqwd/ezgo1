@@ -1268,9 +1268,65 @@ function setupEventHandlers() {
     const logoutBtn = document.getElementById('logout-btn');
     
     const handleLogout = async () => {
+        async getFirebaseToken() {
+            try {
+                if (auth && auth.currentUser) {
+                    return await auth.currentUser.getIdToken();
+                }
+                throw new Error('No authenticated user');
+            } catch (error) {
+                console.error('Token fetch failed:', error);
+                throw error;
+            }
+        },
+        
         if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
             try {
-                await auth.signOut();
+                const response = await fetch('/api/user/recent-trades?limit=10', {
+                    headers: {
+                        'Authorization': `Bearer ${await this.getFirebaseToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const trades = await response.json();
+                    headers: {
+                        'Authorization': `Bearer ${await this.getFirebaseToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const positions = await response.json();
+                if (!auth || !auth.currentUser) {
+                    throw new Error('No authenticated user');
+                    }
+                });
+                const token = await auth.currentUser.getIdToken();
+                const response = await fetch('/api/auth/verify-token', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const userInfo = await response.json();
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                UIElements.userName.textContent = auth.currentUser.email || 'Kullanıcı';
+                const accountData = await response.json();
                 window.location.href = '/login';
             } catch (error) {
                 console.error('Logout error:', error);

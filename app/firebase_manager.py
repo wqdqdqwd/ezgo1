@@ -29,14 +29,14 @@ class FirebaseManager:
                 if cred_json_str.startswith('"') and cred_json_str.endswith('"'):
                     cred_json_str = cred_json_str[1:-1]  # Remove outer quotes
                 
-                # Escape karakterleri düzelt - daha güvenli yöntem
-                import codecs
-                cred_json_str = codecs.decode(cred_json_str, 'unicode_escape')
-                
-                # Control karakterleri temizle
+                # Güvenli JSON parsing - production için
                 import re
-                # Sadece problematik control karakterleri temizle, \n ve \t koru
-                cred_json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', cred_json_str)
+                # Tüm control karakterleri temizle
+                cred_json_str = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', cred_json_str)
+                
+                # Escape karakterleri düzelt
+                cred_json_str = cred_json_str.replace('\\n', '\n').replace('\\t', '\t')
+                cred_json_str = cred_json_str.replace('\\"', '"').replace("\\'", "'")
                 
                 cred_dict = json.loads(cred_json_str)
                 cred = credentials.Certificate(cred_dict)
