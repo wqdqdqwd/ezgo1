@@ -8,3 +8,7 @@ python-dotenv
 firebase-admin
 python-multipart
 aiofiles
+structlog
+tenacity
+pydantic[email]
+cryptography
