@@ -169,7 +169,8 @@
                 }
                 
                 const firebaseConfig = await response.json();
-                console.log('Firebase config received:', firebaseConfig);
+                console.log('Firebase config received from backend');
+                // GÜVENLİK: Firebase config'i console'da gösterme
                 
                 // Required fields kontrolü
                 const requiredFields = ['apiKey', 'authDomain', 'projectId', 'appId'];

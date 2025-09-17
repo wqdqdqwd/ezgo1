@@ -46,10 +46,26 @@ async function loadPaymentInfo() {
         // Update bot price
         const paymentAmount = document.getElementById('payment-amount');
         if (paymentAmount) {
-            paymentAmount.textContent = `$${appInfo.bot_price || 15}/Ay`;
+            paymentAmount.textContent = `$${appInfo.monthly_price || 15}/Ay`;
         }
         
-        console.log('Payment info loaded from environment');
+        // Server IPs'leri yükle
+        const serverIpsText = document.getElementById('server-ips-text');
+        const copyIpsBtn = document.getElementById('copy-ips-btn');
+        
+        if (serverIpsText && appInfo.server_ips) {
+            serverIpsText.textContent = appInfo.server_ips;
+        }
+        
+        if (copyIpsBtn) {
+            copyIpsBtn.addEventListener('click', () => {
+                if (appInfo.server_ips) {
+                    copyToClipboard(appInfo.server_ips);
+                }
+            });
+        }
+        
+        console.log('Payment and server info loaded from environment');
     } catch (error) {
         console.error('Error loading payment info:', error);
     }

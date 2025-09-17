@@ -43,8 +43,7 @@ class ConfigLoader {
             this.appInfo = await appResponse.json();
 
             console.log('✅ App info loaded from environment variables');
-            console.log('💰 Bot Price:', this.appInfo.bot_price);
-            console.log('💳 Payment Address:', this.appInfo.payment_address);
+            // GÜVENLİK: Payment bilgilerini console'da gösterme
 
             this.isLoaded = true;
             
